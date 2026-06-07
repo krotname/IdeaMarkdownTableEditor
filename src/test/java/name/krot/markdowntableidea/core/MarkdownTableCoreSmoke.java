@@ -209,6 +209,38 @@ public final class MarkdownTableCoreSmoke {
 			"| Bob  | keeps tabs   |"
 		));
 
+		MarkdownTableCore.EditResult largeFishCsv = MarkdownTableCore.fromDelimited(
+			"Name,Story,Score\r\n" +
+				"Anna,\"Lorem ipsum dolor sit amet, consectetur adipiscing elit, with comma\",42\r\n" +
+				"Борис,\"Длинная рыба с переносом\r\nвнутри кавычек и pipe |\",7\r\n" +
+				"Chen,\"CJK 表 with comma, quote \"\"ok\"\", and more filler text\",100\r\n" +
+				"Delta,\"one two three four five six seven eight nine ten\",-12.5\r\n"
+		);
+		expectTrue("large fish csv ok", largeFishCsv.ok);
+		expectInt("large fish csv line count", largeFishCsv.lines.size(), 6);
+		String largeFishCsvText = String.join("\n", largeFishCsv.lines);
+		expectContains("large fish csv keeps lorem", largeFishCsvText, "Lorem ipsum dolor sit amet");
+		expectContains("large fish csv flattens newline", largeFishCsvText, "переносом внутри кавычек");
+		expectContains("large fish csv escapes pipe", largeFishCsvText, "pipe \\|");
+		expectContains("large fish csv keeps quotes", largeFishCsvText, "quote \"ok\"");
+
+		StringBuilder hugeCsv = new StringBuilder("Id,Text,Score\r\n");
+		for (int i = 0; i < 220; i++) {
+			hugeCsv
+				.append("row-").append(i).append(",\"")
+				.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit, with comma, ")
+				.append("quote \"\"ok\"\", pipe |, кириллица, 表, and generated chunk ").append(i)
+				.append("\",").append(i - 110).append("\r\n");
+		}
+		MarkdownTableCore.EditResult hugeCsvTable = MarkdownTableCore.fromDelimited(hugeCsv.toString());
+		expectTrue("huge generated csv ok", hugeCsvTable.ok);
+		expectInt("huge generated csv line count", hugeCsvTable.lines.size(), 222);
+		String hugeCsvText = String.join("\n", hugeCsvTable.lines);
+		expectContains("huge generated csv keeps first row", hugeCsvText, "row-0");
+		expectContains("huge generated csv keeps last row", hugeCsvText, "row-219");
+		expectContains("huge generated csv escapes pipe", hugeCsvText, "pipe \\|");
+		expectContains("huge generated csv keeps quotes", hugeCsvText, "quote \"ok\"");
+
 		expectTrue("plain text is not csv", !MarkdownTableCore.fromDelimited("just a note").ok);
 		expectTrue("empty csv is rejected", !MarkdownTableCore.fromDelimited("  \r\n  ").ok);
 		expectTrue("invalid table size is rejected", !MarkdownTableCore.newTable(0, 2).ok);
@@ -269,6 +301,49 @@ public final class MarkdownTableCoreSmoke {
 			"| тест | 1     |",
 			"| 表   | 22    |"
 		));
+
+		MarkdownTableCore.EditResult largeFishTable = MarkdownTableCore.apply(
+			List.of(
+				"| Topic | Description | Note |",
+				"| --- | --- | --- |",
+				"| Lorem | Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. | alpha |",
+				"| Рыба | Съешь еще этих мягких французских булок, да выпей чаю; длинная проверка ширины кириллицы. | beta \\| pipe |",
+				"| CJK | 表示確認のための長いセルと punctuation, commas, and quotes \"ok\". | gamma |",
+				"| Mixed | Markdown \\| escaped pipe stays in one cell while text keeps going for a wider table. | delta |",
+				"| Numbers | 1234567890 9876543210 3.1415926535 -42.75 and padded numeric-looking prose. | epsilon |",
+				"| URL | https://example.com/path/to/a/very/long/resource?query=markdown-table-editor&fixture=fish | zeta |"
+			),
+			2,
+			0,
+			MarkdownTableCore.Action.ALIGN
+		);
+		expectTrue("large fish table ok", largeFishTable.ok);
+		expectInt("large fish table line count", largeFishTable.lines.size(), 8);
+		String largeFishText = String.join("\n", largeFishTable.lines);
+		expectContains("large fish keeps lorem", largeFishText, "Lorem ipsum dolor sit amet");
+		expectContains("large fish keeps cyrillic", largeFishText, "Съешь еще этих мягких французских булок");
+		expectContains("large fish keeps cjk", largeFishText, "表示確認");
+		expectContains("large fish keeps escaped pipe", largeFishText, "Markdown \\| escaped pipe");
+		expectContains("large fish keeps url", largeFishText, "https://example.com/path/to/a/very/long/resource");
+
+		List<String> hugeTableLines = new java.util.ArrayList<>();
+		hugeTableLines.add("| Id | Payload | Note |");
+		hugeTableLines.add("| --- | --- | --- |");
+		String hugePayload =
+			"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua; " +
+				"Съешь еще этих мягких французских булок для проверки длинной кириллицы; " +
+				"表示確認 and Markdown \\| escaped pipe remain stable.";
+		for (int i = 0; i < 160; i++) {
+			hugeTableLines.add("| row-" + i + " | " + hugePayload + " chunk-" + i + " | note-" + i + " |");
+		}
+		MarkdownTableCore.EditResult hugeTable = MarkdownTableCore.apply(hugeTableLines, 80, 1, MarkdownTableCore.Action.ALIGN);
+		expectTrue("huge generated table ok", hugeTable.ok);
+		expectInt("huge generated table line count", hugeTable.lines.size(), 162);
+		String hugeTableText = String.join("\n", hugeTable.lines);
+		expectContains("huge generated table keeps first row", hugeTableText, "row-0");
+		expectContains("huge generated table keeps last row", hugeTableText, "row-159");
+		expectContains("huge generated table keeps long payload", hugeTableText, "Lorem ipsum dolor sit amet");
+		expectContains("huge generated table keeps escaped pipe", hugeTableText, "Markdown \\| escaped pipe");
 
 		MarkdownTableCore.EditResult deleteLast = MarkdownTableCore.apply(
 			List.of(
@@ -410,6 +485,8 @@ public final class MarkdownTableCoreSmoke {
 			"| 2   |",
 			"| 1   |"
 		));
+
+		failures += MarkdownTableCoreScenarios.run();
 
 		if (failures != 0) {
 			System.err.println(failures + " test(s) failed");
