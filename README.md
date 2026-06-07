@@ -17,13 +17,14 @@ Markdown Table Editor помогает быстро приводить Markdown-
 
 ### Установка
 
-Если у вас есть готовый ZIP-файл плагина:
+Если вы хотите установить готовую версию:
 
-1. Откройте IntelliJ IDEA.
-2. Перейдите в `Settings | Plugins`.
-3. Нажмите на шестеренку и выберите `Install Plugin from Disk...`.
-4. Выберите `MarkdownTableEditorIdea-0.1.0.zip`.
-5. Перезапустите IDE.
+1. Скачайте `MarkdownTableEditorIdea-0.1.0.zip` со страницы GitHub Releases.
+2. Откройте IntelliJ IDEA.
+3. Перейдите в `Settings | Plugins`.
+4. Нажмите на шестеренку и выберите `Install Plugin from Disk...`.
+5. Выберите скачанный ZIP-файл.
+6. Перезапустите IDE.
 
 Для локальной сборки и установки:
 
@@ -51,13 +52,14 @@ Features:
 
 ### Installation
 
-If you already have the plugin ZIP:
+To install the ready-to-use version:
 
-1. Open IntelliJ IDEA.
-2. Go to `Settings | Plugins`.
-3. Click the gear icon and choose `Install Plugin from Disk...`.
-4. Select `MarkdownTableEditorIdea-0.1.0.zip`.
-5. Restart the IDE.
+1. Download `MarkdownTableEditorIdea-0.1.0.zip` from GitHub Releases.
+2. Open IntelliJ IDEA.
+3. Go to `Settings | Plugins`.
+4. Click the gear icon and choose `Install Plugin from Disk...`.
+5. Select the downloaded ZIP file.
+6. Restart the IDE.
 
 To build and install locally:
 
