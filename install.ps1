@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PluginName = "MarkdownTableEditorIdea"
-$ZipPath = Join-Path $ProjectRoot "build\$PluginName-0.1.0.zip"
+$ZipPath = Join-Path $ProjectRoot "build\$PluginName-0.1.1.zip"
 $PluginsDir = Join-Path $IdeaConfigDir "plugins"
 $TargetDir = Join-Path $PluginsDir $PluginName
 
@@ -35,4 +35,4 @@ finally {
 }
 
 Write-Output "Installed to $TargetDir"
-Write-Output "Restart IntelliJ IDEA to load the plugin."
+Write-Output "If IntelliJ IDEA is already running, install the ZIP through Settings | Plugins for dynamic loading without restart."

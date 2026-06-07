@@ -1,8 +1,8 @@
-<idea-plugin>
+<idea-plugin require-restart="false">
 	<id>name.krot.markdown-table-editor-idea</id>
 	<name>Markdown Table Editor</name>
 	<vendor email="krotname@users.noreply.github.com" url="https://github.com/krotname">krotname</vendor>
-	<version>0.1.0</version>
+	<version>0.1.1</version>
 	<idea-version since-build="261" until-build="261.*"/>
 
 	<description><![CDATA[
@@ -12,7 +12,7 @@
 	<depends>com.intellij.modules.platform</depends>
 
 	<extensions defaultExtensionNs="com.intellij">
-		<postStartupActivity implementation="name.krot.markdowntableidea.MarkdownTableStartupActivity"/>
+		<editorActionHandler action="EditorTab" implementationClass="name.krot.markdowntableidea.MarkdownTableTabHandler" order="last"/>
 	</extensions>
 
 	<actions>

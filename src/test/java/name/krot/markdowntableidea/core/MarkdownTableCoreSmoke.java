@@ -1,11 +1,19 @@
 package name.krot.markdowntableidea.core;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 public final class MarkdownTableCoreSmoke {
 	private static int failures;
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
+		String pluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
+		expectContains("dynamic plugin descriptor", pluginXml, "<idea-plugin require-restart=\"false\">");
+		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
+		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
+		expectNotContains("no startup activity descriptor", pluginXml, "postStartupActivity");
+
 		List<String> input = List.of(
 			"| Name | Age |",
 			"| --- | ---: |",
@@ -298,6 +306,18 @@ public final class MarkdownTableCoreSmoke {
 	private static void expectLines(String name, List<String> actual, List<String> expected) {
 		if (!actual.equals(expected)) {
 			fail(name, "expected:\n" + String.join("\n", expected) + "\nactual:\n" + String.join("\n", actual));
+		}
+	}
+
+	private static void expectContains(String name, String actual, String expected) {
+		if (!actual.contains(expected)) {
+			fail(name, "expected to contain: " + expected);
+		}
+	}
+
+	private static void expectNotContains(String name, String actual, String unexpected) {
+		if (actual.contains(unexpected)) {
+			fail(name, "expected not to contain: " + unexpected);
 		}
 	}
 
