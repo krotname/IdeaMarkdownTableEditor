@@ -12,8 +12,12 @@ public final class MarkdownTableCoreSmoke {
 
 	public static void main(String[] args) throws Exception {
 		String pluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
+		String projectVersion = Files.readString(Path.of("VERSION")).trim();
 		expectContains("dynamic plugin descriptor", pluginXml, "require-restart=\"false\"");
-		expectContains("plugin version", pluginXml, "<version>5.5.0</version>");
+		expectContains("plugin version matches VERSION", pluginXml, "<version>" + projectVersion + "</version>");
+		expectContains("plugin compatibility starts at IDEA 2024.2", pluginXml, "<idea-version since-build=\"242\"");
+		expectNotContains("plugin compatibility is not limited to 242.*", pluginXml, "until-build=\"242.*\"");
+		expectNotContains("plugin compatibility has no upper build cap", pluginXml, "until-build=\"");
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
 		expectContains("tab handler runs before default tab processors", pluginXml, "order=\"first\"");
@@ -49,6 +53,20 @@ public final class MarkdownTableCoreSmoke {
 		MarkdownTableCore.EditResult plainPipe = MarkdownTableCore.apply(List.of("Use A | B in text"), 0, 0, MarkdownTableCore.Action.ALIGN);
 		expectTrue("plain pipe is not table", !plainPipe.ok);
 		expectTrue("plain pipe keeps empty result", plainPipe.lines.isEmpty());
+
+		List<String> adjacentPipeText = List.of(
+			"Use A | B in text",
+			"| H | V |",
+			"| --- | --- |",
+			"| a | b |",
+			"Next A | B"
+		);
+		MarkdownTableCore.TableRange adjacentTable = MarkdownTableCore.findTableRange(adjacentPipeText, 3);
+		expectTrue("adjacent pipe range found", adjacentTable.found);
+		expectInt("adjacent pipe range start", adjacentTable.firstRow, 1);
+		expectInt("adjacent pipe range end", adjacentTable.lastRow, 3);
+		expectTrue("adjacent pipe text before rejected", !MarkdownTableCore.findTableRange(adjacentPipeText, 0).found);
+		expectTrue("adjacent pipe text after rejected", !MarkdownTableCore.findTableRange(adjacentPipeText, 4).found);
 
 		MarkdownTableCore.EditResult next = MarkdownTableCore.apply(input, 3, 1, MarkdownTableCore.Action.NEXT_CELL);
 		expectTrue("next cell ok", next.ok);
@@ -198,6 +216,25 @@ public final class MarkdownTableCoreSmoke {
 			"| A    |  -1.5 |",
 			"| C    |  2.25 |",
 			"| B    |    10 |"
+		));
+
+		expectLines("sort rows ascending cyrillic case fold", MarkdownTableCore.apply(
+			List.of(
+				"| Name |",
+				"| --- |",
+				"| Яна |",
+				"| борис |",
+				"| Анна |"
+			),
+			2,
+			0,
+			MarkdownTableCore.Action.SORT_ASCENDING
+		).lines, List.of(
+			"| Name  |",
+			"| ----- |",
+			"| Анна  |",
+			"| борис |",
+			"| Яна   |"
 		));
 
 		expectLines("sort table without data rows", MarkdownTableCore.apply(

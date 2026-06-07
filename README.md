@@ -74,31 +74,46 @@ GIF собран из реальных скриншотов IntelliJ IDEA под
 
 ## Сборка и тесты
 
-Нужны JDK 21 и локально установленная IntelliJ IDEA `2026.1.x`.
+Нужен JDK 21. IntelliJ Platform SDK для сборки скачивается Gradle IntelliJ Platform plugin.
 
 ```powershell
-.\build.ps1
+.\gradlew.bat check buildPlugin
 ```
 
-По умолчанию скрипт ищет IDE здесь:
-
-```text
-C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3
-```
-
-Если IntelliJ IDEA установлена в другом каталоге, передайте путь явно:
+Готовый ZIP появится в папке `build/distributions`.
+Если локально установлена IDEA и не хочется ждать скачивания платформы, можно передать путь:
 
 ```powershell
-.\build.ps1 -IdeaHome "D:\Apps\JetBrains\IntelliJ IDEA 2026.1.3"
+.\gradlew.bat check buildPlugin -PplatformLocalPath="C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3"
 ```
 
-Готовый ZIP появится в папке `build`.
-Скрипт также компилирует и запускает smoke-тесты ядра, если тестовые исходники есть в `src\test\java`.
-
-Для прямого копирования в локальную папку plugins:
+Для Marketplace-проверки совместимости:
 
 ```powershell
-.\install.ps1
+.\gradlew.bat verifyPlugin
 ```
 
-Важно: `install.ps1` копирует файлы в профиль IDE. Если IntelliJ IDEA уже запущена, для загрузки без перезапуска лучше установить ZIP через `Settings | Plugins | Install Plugin from Disk...`.
+В GitHub Actions verifier дополнительно берет recommended IDEs. Локально это можно включить явно:
+
+```powershell
+.\gradlew.bat verifyPlugin -PverifyRecommendedIdes=true
+```
+
+Полный релизный build:
+
+```powershell
+.\gradlew.bat clean check verifyPlugin buildPlugin
+```
+
+Для быстрой локальной сборки без Plugin Verifier:
+
+```powershell
+.\gradlew.bat clean check buildPlugin
+```
+
+Для локальной установки используйте готовый ZIP из `build/distributions` через `Settings | Plugins | Install Plugin from Disk...`.
+
+## Лицензия
+
+Код плагина распространяется по лицензии MIT. Полный текст лицензии находится в [LICENSE](LICENSE).
+Сторонние build-инструменты перечислены в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

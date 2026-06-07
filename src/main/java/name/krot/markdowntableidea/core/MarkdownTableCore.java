@@ -32,6 +32,12 @@ public final class MarkdownTableCore {
 		public int targetColumnOffset;
 	}
 
+	public static final class TableRange {
+		public boolean found;
+		public int firstRow;
+		public int lastRow;
+	}
+
 	private enum Align {
 		NONE,
 		LEFT,
@@ -42,6 +48,7 @@ public final class MarkdownTableCore {
 	private static final class Row {
 		final List<String> cells = new ArrayList<>();
 		boolean separator;
+		int id;
 	}
 
 	private static final class Table {
@@ -114,6 +121,36 @@ public final class MarkdownTableCore {
 		return column;
 	}
 
+	public static TableRange findTableRange(List<String> lines, int row) {
+		TableRange result = new TableRange();
+		if (lines.isEmpty() || row < 0 || row >= lines.size()) {
+			return result;
+		}
+
+		for (int separatorRow = 1; separatorRow < lines.size(); separatorRow++) {
+			int firstRow = separatorRow - 1;
+			if (!isPotentialTableLine(lines.get(firstRow))) {
+				continue;
+			}
+
+			Row separator = new Row();
+			separator.cells.addAll(splitCells(lines.get(separatorRow)));
+			if (!isSeparatorRow(separator) && !isShortSeparatorLine(lines.get(separatorRow))) {
+				continue;
+			}
+
+			int lastRow = tableRangeEnd(lines, firstRow, separatorRow);
+			if (row >= firstRow && row <= lastRow) {
+				result.found = true;
+				result.firstRow = firstRow;
+				result.lastRow = lastRow;
+				return result;
+			}
+		}
+
+		return result;
+	}
+
 	public static EditResult apply(List<String> lines, int row, int column, Action action) {
 		EditResult result = new EditResult();
 		if (lines.isEmpty()) {
@@ -142,6 +179,7 @@ public final class MarkdownTableCore {
 
 		int targetRow = row;
 		int targetColumn = column;
+		int currentRowId = table.rows.get(row).id;
 
 		switch (action) {
 			case NEXT_CELL:
@@ -209,10 +247,10 @@ public final class MarkdownTableCore {
 				}
 				break;
 			case SORT_ASCENDING:
-				targetRow = sortRows(table, column, true, table.rows.get(row));
+				targetRow = sortRows(table, column, true, currentRowId, row);
 				break;
 			case SORT_DESCENDING:
-				targetRow = sortRows(table, column, false, table.rows.get(row));
+				targetRow = sortRows(table, column, false, currentRowId, row);
 				break;
 			case ALIGN:
 				break;
@@ -394,12 +432,30 @@ public final class MarkdownTableCore {
 		return Align.NONE;
 	}
 
+	private static int tableRangeEnd(List<String> lines, int firstRow, int separatorRow) {
+		boolean requireLeadingPipe = startsWithUnescapedPipe(lines.get(firstRow)) && startsWithUnescapedPipe(lines.get(separatorRow));
+		int lastRow = separatorRow;
+		for (int row = separatorRow + 1; row < lines.size(); row++) {
+			String line = lines.get(row);
+			if (!isPotentialTableLine(line)) {
+				break;
+			}
+			if (requireLeadingPipe && !startsWithUnescapedPipe(line)) {
+				break;
+			}
+			lastRow = row;
+		}
+		return lastRow;
+	}
+
 	private static Table parseTable(List<String> lines) {
 		Table table = new Table();
 		int leadingPipeRows = 0;
 		int trailingPipeRows = 0;
-		for (String line : lines) {
+		for (int i = 0; i < lines.size(); i++) {
+			String line = lines.get(i);
 			Row row = new Row();
+			row.id = i;
 			row.cells.addAll(splitCells(line));
 			table.columns = Math.max(table.columns, row.cells.size());
 			table.rows.add(row);
@@ -456,6 +512,7 @@ public final class MarkdownTableCore {
 		}
 
 		Row header = new Row();
+		header.id = table.rows.size();
 		for (int column = 0; column < table.columns; column++) {
 			header.cells.add(column < rows.get(0).size() ? sanitizeMarkdownCell(rows.get(0).get(column)) : "");
 		}
@@ -463,6 +520,7 @@ public final class MarkdownTableCore {
 
 		Row separator = new Row();
 		separator.separator = true;
+		separator.id = table.rows.size();
 		for (int column = 0; column < table.columns; column++) {
 			separator.cells.add("---");
 			table.alignments.add(Align.NONE);
@@ -471,6 +529,7 @@ public final class MarkdownTableCore {
 
 		for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
 			Row row = new Row();
+			row.id = table.rows.size();
 			List<String> source = rows.get(rowIndex);
 			for (int column = 0; column < table.columns; column++) {
 				row.cells.add(column < source.size() ? sanitizeMarkdownCell(source.get(column)) : "");
@@ -795,8 +854,26 @@ public final class MarkdownTableCore {
 		return 0;
 	}
 
+	private static int nextRowId(Table table) {
+		int id = 0;
+		for (Row row : table.rows) {
+			id = Math.max(id, row.id + 1);
+		}
+		return id;
+	}
+
+	private static int rowById(Table table, int id, int fallbackRow) {
+		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+			if (table.rows.get(rowIndex).id == id) {
+				return rowIndex;
+			}
+		}
+		return closestEditableRow(table, fallbackRow);
+	}
+
 	private static void insertEmptyRow(Table table, int index) {
 		Row row = new Row();
+		row.id = nextRowId(table);
 		for (int i = 0; i < table.columns; i++) {
 			row.cells.add("");
 		}
@@ -847,10 +924,14 @@ public final class MarkdownTableCore {
 		table.alignments.add(to, align);
 	}
 
-	private static int sortRows(Table table, int column, boolean ascending, Row currentRow) {
+	private static int sortRows(Table table, int column, boolean ascending, int currentRowId, int fallbackRow) {
+		if (column >= table.columns || table.rows.isEmpty()) {
+			return closestEditableRow(table, fallbackRow);
+		}
+
 		int firstDataRow = table.separatorRow + 1;
 		if (firstDataRow >= table.rows.size()) {
-			return table.rows.indexOf(currentRow);
+			return rowById(table, currentRowId, fallbackRow);
 		}
 
 		List<SortEntry> entries = new ArrayList<>(table.rows.size() - firstDataRow);
@@ -870,11 +951,8 @@ public final class MarkdownTableCore {
 			SortEntry entry = entries.get(i);
 			int rowIndex = firstDataRow + i;
 			table.rows.set(rowIndex, entry.row);
-			if (entry.row == currentRow) {
-				targetRow = rowIndex;
-			}
 		}
-		return targetRow;
+		return rowById(table, currentRowId, targetRow);
 	}
 
 	private static SortKey makeSortKey(String value) {

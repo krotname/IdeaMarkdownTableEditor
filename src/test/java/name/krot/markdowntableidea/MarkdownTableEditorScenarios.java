@@ -87,6 +87,14 @@ public final class MarkdownTableEditorScenarios {
 			"Before\n| Name | Age |\n| ---- | --: |\n| Anna |  20 |\nAfter");
 		expectInt("align caret offset", table.caretOffset(), table.text().indexOf("Anna"));
 
+		TestEditor adjacentPipeText = new TestEditor("Use A | B in text\n| H | V |\n| --- | --- |\n| a | b |\nNext A | B", false, true);
+		adjacentPipeText.setCaretAt("a | b");
+		expectTrue("run aligns table without adjacent pipe text", MarkdownTableEditor.run(adjacentPipeText.editor, null, MarkdownTableCore.Action.ALIGN, true));
+		expectString("adjacent pipe text stays outside table", adjacentPipeText.text(),
+			"Use A | B in text\n| H   | V   |\n| --- | --- |\n| a   | b   |\nNext A | B");
+		adjacentPipeText.setCaretAt("Use A");
+		expectTrue("adjacent plain pipe text is outside table", !MarkdownTableEditor.isInsidePotentialTable(adjacentPipeText.editor));
+
 		TestEditor nextCell = new TestEditor("| Name | Age |\n| --- | ---: |\n| Anna | 20 |", false, true);
 		nextCell.setCaretAt("20");
 		expectTrue("run next cell appends row", MarkdownTableEditor.run(nextCell.editor, null, MarkdownTableCore.Action.NEXT_CELL, true));

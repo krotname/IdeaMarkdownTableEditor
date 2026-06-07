@@ -1,4 +1,6 @@
 .idea/
+.gradle/
+.intellijPlatform/
 build/
 *.class
 *.zip

@@ -61,22 +61,20 @@ public final class MarkdownTableEditor {
 			return false;
 		}
 
-		int firstLine = currentLine;
-		while (firstLine > 0 && MarkdownTableCore.isPotentialTableLine(getLineText(document, firstLine - 1))) {
-			firstLine--;
-		}
-
-		int lastLine = currentLine;
-		while (lastLine + 1 < document.getLineCount() && MarkdownTableCore.isPotentialTableLine(getLineText(document, lastLine + 1))) {
-			lastLine++;
+		LineRange tableRange = findTableLineRange(document, currentLine);
+		if (tableRange == null) {
+			if (!quiet) {
+				Messages.showInfoMessage(project, "Could not edit the Markdown table.", COMMAND_NAME);
+			}
+			return false;
 		}
 
 		List<String> tableLines = new ArrayList<>();
-		for (int line = firstLine; line <= lastLine; line++) {
+		for (int line = tableRange.firstLine; line <= tableRange.lastLine; line++) {
 			tableLines.add(getLineText(document, line));
 		}
 
-		int row = currentLine - firstLine;
+		int row = currentLine - tableRange.firstLine;
 		int columnInLine = editor.getCaretModel().getOffset() - document.getLineStartOffset(currentLine);
 		int column = MarkdownTableCore.columnFromCursor(currentLineText, columnInLine);
 		MarkdownTableCore.EditResult edit = MarkdownTableCore.apply(tableLines, row, column, action);
@@ -87,9 +85,9 @@ public final class MarkdownTableEditor {
 			return false;
 		}
 
-		int replaceStart = document.getLineStartOffset(firstLine);
-		int replaceEnd = document.getLineEndOffset(lastLine);
-		String eol = chooseEol(document, firstLine, lastLine);
+		int replaceStart = document.getLineStartOffset(tableRange.firstLine);
+		int replaceEnd = document.getLineEndOffset(tableRange.lastLine);
+		String eol = chooseEol(document, tableRange.firstLine, tableRange.lastLine);
 		String replacement = String.join(eol, edit.lines);
 		int targetOffset = positionForLineColumn(replaceStart, edit.lines, eol, edit.targetRow, edit.targetColumnOffset);
 
@@ -121,7 +119,7 @@ public final class MarkdownTableEditor {
 			currentLine = document.getLineCount() - 1;
 		}
 
-		return MarkdownTableCore.isPotentialTableLine(getLineText(document, currentLine));
+		return findTableLineRange(document, currentLine) != null;
 	}
 
 	public static boolean convertDelimited(Editor editor, Project project, boolean quiet) {
@@ -198,6 +196,33 @@ public final class MarkdownTableEditor {
 		int start = document.getLineStartOffset(line);
 		int end = document.getLineEndOffset(line);
 		return document.getImmutableCharSequence().subSequence(start, end).toString();
+	}
+
+	private static LineRange findTableLineRange(Document document, int currentLine) {
+		if (!MarkdownTableCore.isPotentialTableLine(getLineText(document, currentLine))) {
+			return null;
+		}
+
+		int firstLine = currentLine;
+		while (firstLine > 0 && MarkdownTableCore.isPotentialTableLine(getLineText(document, firstLine - 1))) {
+			firstLine--;
+		}
+
+		int lastLine = currentLine;
+		while (lastLine + 1 < document.getLineCount() && MarkdownTableCore.isPotentialTableLine(getLineText(document, lastLine + 1))) {
+			lastLine++;
+		}
+
+		List<String> candidateLines = new ArrayList<>();
+		for (int line = firstLine; line <= lastLine; line++) {
+			candidateLines.add(getLineText(document, line));
+		}
+
+		MarkdownTableCore.TableRange tableRange = MarkdownTableCore.findTableRange(candidateLines, currentLine - firstLine);
+		if (!tableRange.found) {
+			return null;
+		}
+		return new LineRange(firstLine + tableRange.firstRow, firstLine + tableRange.lastRow);
 	}
 
 	private static Range selectedOrCurrentBlock(Editor editor) {
@@ -320,6 +345,9 @@ public final class MarkdownTableEditor {
 	}
 
 	private record Range(int start, int end) {
+	}
+
+	private record LineRange(int firstLine, int lastLine) {
 	}
 
 	private record InsertText(String text, int caretDelta) {

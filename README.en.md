@@ -74,31 +74,46 @@ You can assign shortcuts for the other commands in `Settings | Keymap`.
 
 ## Build and Tests
 
-You need JDK 21 and a local IntelliJ IDEA `2026.1.x` installation.
+You need JDK 21. The IntelliJ Platform SDK used for compilation is downloaded by the Gradle IntelliJ Platform plugin.
 
 ```powershell
-.\build.ps1
+.\gradlew.bat check buildPlugin
 ```
 
-By default, the script looks for the IDE here:
-
-```text
-C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3
-```
-
-If IntelliJ IDEA is installed elsewhere, pass the path explicitly:
+The built ZIP appears in `build/distributions`.
+If IDEA is installed locally and you do not want to wait for the platform download, pass its path:
 
 ```powershell
-.\build.ps1 -IdeaHome "D:\Apps\JetBrains\IntelliJ IDEA 2026.1.3"
+.\gradlew.bat check buildPlugin -PplatformLocalPath="C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3"
 ```
 
-The built ZIP appears in the `build` directory.
-The script also compiles and runs core smoke tests when test sources exist in `src\test\java`.
-
-To copy the plugin directly into the local plugins directory:
+For Marketplace compatibility verification:
 
 ```powershell
-.\install.ps1
+.\gradlew.bat verifyPlugin
 ```
 
-Important: `install.ps1` copies files into the IDE profile. If IntelliJ IDEA is already running, installing the ZIP through `Settings | Plugins | Install Plugin from Disk...` is better for dynamic loading without restart.
+In GitHub Actions, the verifier also uses recommended IDEs. Locally, enable that explicitly with:
+
+```powershell
+.\gradlew.bat verifyPlugin -PverifyRecommendedIdes=true
+```
+
+Full release build:
+
+```powershell
+.\gradlew.bat clean check verifyPlugin buildPlugin
+```
+
+For a faster local build without Plugin Verifier:
+
+```powershell
+.\gradlew.bat clean check buildPlugin
+```
+
+For local installation, use the ZIP from `build/distributions` through `Settings | Plugins | Install Plugin from Disk...`.
+
+## License
+
+The plugin code is distributed under the MIT License. The full license text is in [LICENSE](LICENSE).
+Third-party build tooling is listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

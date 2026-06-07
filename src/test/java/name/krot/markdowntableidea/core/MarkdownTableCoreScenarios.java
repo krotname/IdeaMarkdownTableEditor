@@ -143,6 +143,24 @@ final class MarkdownTableCoreScenarios {
 			"| Chen   |   100 |",
 			"| Anna   |    42 |"
 		));
+		expectLines("sort rows ascending cyrillic case fold", MarkdownTableCore.apply(
+			List.of(
+				"| Name |",
+				"| --- |",
+				"| Яна |",
+				"| борис |",
+				"| Анна |"
+			),
+			2,
+			0,
+			MarkdownTableCore.Action.SORT_ASCENDING
+		).lines, List.of(
+			"| Name  |",
+			"| ----- |",
+			"| Анна  |",
+			"| борис |",
+			"| Яна   |"
+		));
 		expectLines("insert table dialog result", MarkdownTableCore.newTable(2, 1).lines, List.of(
 			"| Column 1 | Column 2 |",
 			"| -------- | -------- |",
