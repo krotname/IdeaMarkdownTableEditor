@@ -2,6 +2,7 @@ package name.krot.markdowntableidea.core;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public final class MarkdownTableCore {
@@ -16,7 +17,9 @@ public final class MarkdownTableCore {
 		MOVE_ROW_UP,
 		MOVE_ROW_DOWN,
 		MOVE_COLUMN_LEFT,
-		MOVE_COLUMN_RIGHT
+		MOVE_COLUMN_RIGHT,
+		SORT_ASCENDING,
+		SORT_DESCENDING
 	}
 
 	public static final class EditResult {
@@ -177,12 +180,63 @@ public final class MarkdownTableCore {
 					targetColumn = column + 1;
 				}
 				break;
+			case SORT_ASCENDING:
+				targetRow = sortRows(table, column, true, table.rows.get(row));
+				break;
+			case SORT_DESCENDING:
+				targetRow = sortRows(table, column, false, table.rows.get(row));
+				break;
 			case ALIGN:
 				break;
 		}
 
 		FormatResult formatted = formatTable(table);
 		setResultFromFormat(result, formatted, targetRow, targetColumn);
+		result.ok = true;
+		result.changed = true;
+		return result;
+	}
+
+	public static EditResult fromDelimited(String text) {
+		EditResult result = new EditResult();
+		List<List<String>> rows = parseDelimited(text);
+		if (rows.isEmpty()) {
+			result.message = "No CSV or TSV data found";
+			return result;
+		}
+
+		Table table = tableFromCells(rows);
+		FormatResult formatted = formatTable(table);
+		setResultFromFormat(result, formatted, 0, 0);
+		result.ok = true;
+		result.changed = true;
+		return result;
+	}
+
+	public static EditResult newTable(int columns, int dataRows) {
+		EditResult result = new EditResult();
+		if (columns < 1 || dataRows < 0) {
+			result.message = "Invalid table size";
+			return result;
+		}
+
+		List<List<String>> rows = new ArrayList<>();
+		List<String> header = new ArrayList<>();
+		for (int column = 1; column <= columns; column++) {
+			header.add("Column " + column);
+		}
+		rows.add(header);
+		for (int row = 0; row < dataRows; row++) {
+			List<String> values = new ArrayList<>();
+			for (int column = 0; column < columns; column++) {
+				values.add("");
+			}
+			rows.add(values);
+		}
+
+		Table table = tableFromCells(rows);
+		FormatResult formatted = formatTable(table);
+		setResultFromFormat(result, formatted, dataRows > 0 ? 2 : 0, 0);
 		result.ok = true;
 		result.changed = true;
 		return result;
@@ -350,6 +404,147 @@ public final class MarkdownTableCore {
 		}
 
 		return table;
+	}
+
+	private static Table tableFromCells(List<List<String>> rows) {
+		Table table = new Table();
+		table.separatorRow = 1;
+		table.columns = 1;
+		for (List<String> row : rows) {
+			table.columns = Math.max(table.columns, row.size());
+		}
+
+		Row header = new Row();
+		for (int column = 0; column < table.columns; column++) {
+			header.cells.add(column < rows.get(0).size() ? sanitizeMarkdownCell(rows.get(0).get(column)) : "");
+		}
+		table.rows.add(header);
+
+		Row separator = new Row();
+		separator.separator = true;
+		for (int column = 0; column < table.columns; column++) {
+			separator.cells.add("---");
+			table.alignments.add(Align.NONE);
+		}
+		table.rows.add(separator);
+
+		for (int rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
+			Row row = new Row();
+			List<String> source = rows.get(rowIndex);
+			for (int column = 0; column < table.columns; column++) {
+				row.cells.add(column < source.size() ? sanitizeMarkdownCell(source.get(column)) : "");
+			}
+			table.rows.add(row);
+		}
+
+		return table;
+	}
+
+	private static String sanitizeMarkdownCell(String value) {
+		StringBuilder result = new StringBuilder();
+		String text = trim(value == null ? "" : value);
+		for (int i = 0; i < text.length(); i++) {
+			char ch = text.charAt(i);
+			if (ch == '|') {
+				result.append("\\|");
+			} else if (ch == '\r' || ch == '\n') {
+				result.append(' ');
+			} else {
+				result.append(ch);
+			}
+		}
+		return result.toString();
+	}
+
+	private static List<List<String>> parseDelimited(String text) {
+		String value = text == null ? "" : text.strip();
+		if (value.isEmpty()) {
+			return Collections.emptyList();
+		}
+		if (!value.contains(",") && !value.contains("\t") && !value.contains("\n") && !value.contains("\r")) {
+			return Collections.emptyList();
+		}
+
+		char delimiter = detectDelimiter(value);
+		List<List<String>> rows = new ArrayList<>();
+		List<String> row = new ArrayList<>();
+		StringBuilder cell = new StringBuilder();
+		boolean inQuotes = false;
+
+		for (int i = 0; i < value.length(); i++) {
+			char ch = value.charAt(i);
+			if (inQuotes) {
+				if (ch == '"') {
+					if (i + 1 < value.length() && value.charAt(i + 1) == '"') {
+						cell.append('"');
+						i++;
+					} else {
+						inQuotes = false;
+					}
+				} else if (ch == '\r' || ch == '\n') {
+					cell.append(' ');
+					if (ch == '\r' && i + 1 < value.length() && value.charAt(i + 1) == '\n') {
+						i++;
+					}
+				} else {
+					cell.append(ch);
+				}
+				continue;
+			}
+
+			if (ch == '"') {
+				inQuotes = true;
+			} else if (ch == delimiter) {
+				row.add(cell.toString());
+				cell.setLength(0);
+			} else if (ch == '\r' || ch == '\n') {
+				row.add(cell.toString());
+				addDelimitedRow(rows, row);
+				row = new ArrayList<>();
+				cell.setLength(0);
+				if (ch == '\r' && i + 1 < value.length() && value.charAt(i + 1) == '\n') {
+					i++;
+				}
+			} else {
+				cell.append(ch);
+			}
+		}
+
+		row.add(cell.toString());
+		addDelimitedRow(rows, row);
+		return rows;
+	}
+
+	private static char detectDelimiter(String text) {
+		int tabs = 0;
+		int commas = 0;
+		boolean inQuotes = false;
+		for (int i = 0; i < text.length(); i++) {
+			char ch = text.charAt(i);
+			if (ch == '"') {
+				inQuotes = !inQuotes;
+			} else if (!inQuotes && ch == '\n') {
+				break;
+			} else if (!inQuotes && ch == '\t') {
+				tabs++;
+			} else if (!inQuotes && ch == ',') {
+				commas++;
+			}
+		}
+		return tabs > commas ? '\t' : ',';
+	}
+
+	private static void addDelimitedRow(List<List<String>> rows, List<String> row) {
+		boolean hasValue = false;
+		for (String cell : row) {
+			if (!trim(cell).isEmpty()) {
+				hasValue = true;
+				break;
+			}
+		}
+		if (hasValue) {
+			rows.add(row);
+		}
 	}
 
 	private static boolean isMarkdownTable(Table table) {
@@ -570,6 +765,53 @@ public final class MarkdownTableCore {
 
 		Align align = table.alignments.remove(from);
 		table.alignments.add(to, align);
+	}
+
+	private static int sortRows(Table table, int column, boolean ascending, Row currentRow) {
+		int firstDataRow = table.separatorRow + 1;
+		if (firstDataRow >= table.rows.size()) {
+			return table.rows.indexOf(currentRow);
+		}
+
+		List<Row> dataRows = table.rows.subList(firstDataRow, table.rows.size());
+		Comparator<Row> comparator = (left, right) -> compareCells(left.cells.get(column), right.cells.get(column));
+		if (!ascending) {
+			comparator = comparator.reversed();
+		}
+		dataRows.sort(comparator);
+
+		int targetRow = table.rows.indexOf(currentRow);
+		return targetRow >= 0 ? targetRow : firstDataRow;
+	}
+
+	private static int compareCells(String left, String right) {
+		String leftValue = trim(left);
+		String rightValue = trim(right);
+		Double leftNumber = parseNumber(leftValue);
+		Double rightNumber = parseNumber(rightValue);
+		if (leftNumber != null && rightNumber != null) {
+			int numeric = Double.compare(leftNumber, rightNumber);
+			if (numeric != 0) {
+				return numeric;
+			}
+		}
+
+		int text = leftValue.compareToIgnoreCase(rightValue);
+		if (text != 0) {
+			return text;
+		}
+		return leftValue.compareTo(rightValue);
+	}
+
+	private static Double parseNumber(String value) {
+		if (value.isEmpty()) {
+			return null;
+		}
+		try {
+			return Double.parseDouble(value);
+		} catch (NumberFormatException ignored) {
+			return null;
+		}
 	}
 
 	private static void setResultFromFormat(EditResult result, FormatResult formatted, int row, int column) {

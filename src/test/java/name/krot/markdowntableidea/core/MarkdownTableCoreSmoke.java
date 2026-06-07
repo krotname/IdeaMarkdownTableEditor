@@ -10,8 +10,12 @@ public final class MarkdownTableCoreSmoke {
 	public static void main(String[] args) throws Exception {
 		String pluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
 		expectContains("dynamic plugin descriptor", pluginXml, "<idea-plugin require-restart=\"false\">");
+		expectContains("plugin version", pluginXml, "<version>0.4.0</version>");
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
+		expectContains("sort action descriptor", pluginXml, "MarkdownTableEditor.SortAscending");
+		expectContains("csv action descriptor", pluginXml, "MarkdownTableEditor.ConvertCsvTsv");
+		expectContains("insert table action descriptor", pluginXml, "MarkdownTableEditor.InsertTable");
 		expectNotContains("no startup activity descriptor", pluginXml, "postStartupActivity");
 
 		List<String> input = List.of(
@@ -91,6 +95,71 @@ public final class MarkdownTableCoreSmoke {
 			"| B   | A   | C   |",
 			"| --- | --- | --- |",
 			"| 2   | 1   | 3   |"
+		));
+
+		expectLines("sort rows ascending text", MarkdownTableCore.apply(
+			List.of(
+				"| Name | Age |",
+				"| --- | ---: |",
+				"| Zoe | 9 |",
+				"| Anna | 12 |",
+				"| Bob | 3 |"
+			),
+			2,
+			0,
+			MarkdownTableCore.Action.SORT_ASCENDING
+		).lines, List.of(
+			"| Name | Age |",
+			"| ---- | --: |",
+			"| Anna |  12 |",
+			"| Bob  |   3 |",
+			"| Zoe  |   9 |"
+		));
+
+		expectLines("sort rows descending numeric", MarkdownTableCore.apply(
+			List.of(
+				"| Name | Age |",
+				"| --- | ---: |",
+				"| Zoe | 9 |",
+				"| Anna | 12 |",
+				"| Bob | 3 |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.SORT_DESCENDING
+		).lines, List.of(
+			"| Name | Age |",
+			"| ---- | --: |",
+			"| Anna |  12 |",
+			"| Zoe  |   9 |",
+			"| Bob  |   3 |"
+		));
+
+		expectLines("csv to markdown table", MarkdownTableCore.fromDelimited("""
+			Name,Role,Note
+			Anna,Developer,"uses, commas"
+			Bob,QA,"pipe | escaped"
+			""").lines, List.of(
+			"| Name | Role      | Note            |",
+			"| ---- | --------- | --------------- |",
+			"| Anna | Developer | uses, commas    |",
+			"| Bob  | QA        | pipe \\| escaped |"
+		));
+
+		expectLines("tsv to markdown table", MarkdownTableCore.fromDelimited("Name\tScore\nAnna\t10\nBob\t2").lines, List.of(
+			"| Name | Score |",
+			"| ---- | ----- |",
+			"| Anna | 10    |",
+			"| Bob  | 2     |"
+		));
+
+		expectTrue("plain text is not csv", !MarkdownTableCore.fromDelimited("just a note").ok);
+
+		expectLines("new table by size", MarkdownTableCore.newTable(3, 2).lines, List.of(
+			"| Column 1 | Column 2 | Column 3 |",
+			"| -------- | -------- | -------- |",
+			"|          |          |          |",
+			"|          |          |          |"
 		));
 
 		List<String> unwrapped = List.of(

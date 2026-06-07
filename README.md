@@ -1,73 +1,100 @@
 # Markdown Table Editor for IntelliJ IDEA
 
-## Русский
+Плагин для JetBrains IDE, который превращает Markdown-таблицы из ручной боли в быстрый редакторский жест.
 
-Markdown Table Editor помогает быстро приводить Markdown-таблицы в порядок прямо в редакторе JetBrains IDE.
+![Демо выравнивания Markdown-таблицы](docs/alignment-demo.gif)
 
-Он нужен, когда таблица в README, заметках или документации разъехалась после правки текста. Вместо ручного добавления пробелов достаточно поставить курсор внутрь таблицы и нажать `Tab`.
+## Зачем он нужен
 
-Что умеет плагин:
+Markdown-таблицы часто живут в `README.md`, changelog, issue-шаблонах, заметках и проектной документации. После пары правок они быстро превращаются в неровный текст: колонки съезжают, числа трудно сравнивать, а руками расставлять пробелы долго и бессмысленно.
 
-- выравнивает Markdown-таблицу по `Tab`;
-- не мешает обычному `Tab` вне настоящих Markdown-таблиц;
-- переходит между ячейками;
-- добавляет и удаляет строки и столбцы;
-- перемещает строки и столбцы;
-- сохраняет выравнивание колонок: left, center, right.
+Markdown Table Editor делает это прямо в IDE:
 
-### Установка
+- нажмите `Tab` внутри таблицы, чтобы выровнять ее;
+- сортируйте строки по текущей колонке;
+- вставляйте CSV/TSV и сразу получайте Markdown-таблицу;
+- создавайте новую таблицу нужного размера;
+- редактируйте строки и столбцы без ухода из файла.
 
-Если вы хотите установить готовую версию:
+## Возможности
 
-1. Скачайте `MarkdownTableEditorIdea-0.1.1.zip` со страницы GitHub Releases.
+- Выравнивание Markdown pipe-таблицы по `Tab`.
+- Обычный `Tab` продолжает работать вне настоящих Markdown-таблиц.
+- Переход между ячейками вперед и назад.
+- Вставка и удаление строк.
+- Вставка и удаление столбцов.
+- Перемещение строк и столбцов.
+- Сортировка строк по текущей колонке: по возрастанию и по убыванию.
+- Конвертация CSV/TSV в Markdown-таблицу из выделения или текущего блока.
+- Вставка новой таблицы по размеру, например `3x4`.
+- Сохранение выравнивания колонок: left, center, right.
+
+## Установка
+
+1. Скачайте `MarkdownTableEditorIdea-0.4.0.zip` из раздела Releases.
 2. Откройте IntelliJ IDEA.
 3. Перейдите в `Settings | Plugins`.
 4. Нажмите на шестеренку и выберите `Install Plugin from Disk...`.
 5. Выберите скачанный ZIP-файл.
-6. Плагин рассчитан на установку без перезапуска IDE в совместимых версиях IntelliJ IDEA.
 
-Для локальной сборки и установки:
+Плагин собран как dynamic plugin и рассчитан на установку без перезапуска IDE в совместимых версиях IntelliJ IDEA. Если сама IDE попросит перезапуск, значит платформа обнаружила ограничение загрузки или выгрузки в текущей сессии.
 
-```powershell
-.\build.ps1
-```
-
-Готовый ZIP создается в папке `build`. Чтобы загрузить его без перезапуска IDE, установите этот ZIP через `Settings | Plugins | Install Plugin from Disk...`.
-
-Скрипт `install.ps1` можно использовать для прямого копирования плагина в папку plugins, но уже запущенной IDE может потребоваться перезапуск, чтобы увидеть такой файл.
-
-## English
-
-Markdown Table Editor keeps Markdown pipe tables clean without breaking your writing flow.
-
-It is useful when a table in a README, changelog, issue template, or project note becomes hard to read after a quick edit. Put the caret inside the table, press `Tab`, and the plugin aligns it for you.
-
-Features:
-
-- align a Markdown table with `Tab`;
-- keep normal `Tab` behavior outside real Markdown tables;
-- move between cells;
-- insert and delete rows and columns;
-- move rows and columns;
-- preserve column alignment: left, center, right.
-
-### Installation
-
-To install the ready-to-use version:
-
-1. Download `MarkdownTableEditorIdea-0.1.1.zip` from GitHub Releases.
-2. Open IntelliJ IDEA.
-3. Go to `Settings | Plugins`.
-4. Click the gear icon and choose `Install Plugin from Disk...`.
-5. Select the downloaded ZIP file.
-6. The plugin is designed to install without restarting the IDE in compatible IntelliJ IDEA versions.
-
-To build and install locally:
+## Локальная сборка
 
 ```powershell
 .\build.ps1
 ```
 
-The plugin ZIP is created in the `build` directory. To load it without restarting the IDE, install this ZIP through `Settings | Plugins | Install Plugin from Disk...`.
+Готовый ZIP появится в папке `build`.
 
-The `install.ps1` script can copy the plugin directly into the plugins directory, but an already running IDE may need a restart to detect that file.
+Для прямого копирования в локальную папку plugins:
+
+```powershell
+.\install.ps1
+```
+
+Важно: `install.ps1` копирует файлы в профиль IDE. Если IntelliJ IDEA уже запущена, для загрузки без перезапуска лучше установить ZIP через `Settings | Plugins | Install Plugin from Disk...`.
+
+## Быстрые сценарии
+
+### Выровнять таблицу
+
+Поставьте курсор внутрь Markdown-таблицы и нажмите `Tab`.
+
+### Отсортировать строки
+
+Поставьте курсор в колонку, по которой нужно сортировать, затем выберите:
+
+- `Tools | Markdown Table Editor | Sort Rows Ascending`
+- `Tools | Markdown Table Editor | Sort Rows Descending`
+
+Заголовок и строка-разделитель остаются на месте, сортируются только строки данных.
+
+### Превратить CSV/TSV в Markdown
+
+Выделите CSV или TSV:
+
+```csv
+Name,Role,Score
+Anna,Developer,10
+Bob,QA,7
+```
+
+Выполните `Tools | Markdown Table Editor | Convert CSV/TSV to Table`.
+
+Результат:
+
+```markdown
+| Name | Role      | Score |
+| ---- | --------- | ----- |
+| Anna | Developer | 10    |
+| Bob  | QA        | 7     |
+```
+
+### Вставить новую таблицу
+
+Выполните `Tools | Markdown Table Editor | Insert New Table` и введите размер в формате `столбцы x строки данных`, например `3x4`.
+
+## Совместимость
+
+Текущая версия ориентирована на IntelliJ IDEA `2026.1.x` и собирается без Gradle, напрямую против локальной установки IntelliJ IDEA.

@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PluginName = "MarkdownTableEditorIdea"
-$ZipPath = Join-Path $ProjectRoot "build\$PluginName-0.1.1.zip"
+$ZipPath = Join-Path $ProjectRoot "build\$PluginName-0.4.0.zip"
 $PluginsDir = Join-Path $IdeaConfigDir "plugins"
 $TargetDir = Join-Path $PluginsDir $PluginName
 

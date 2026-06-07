@@ -5,6 +5,7 @@ import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ScrollType;
+import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import name.krot.markdowntableidea.core.MarkdownTableCore;
@@ -97,10 +98,106 @@ public final class MarkdownTableEditor {
 		return true;
 	}
 
+	public static boolean convertDelimited(Editor editor, Project project, boolean quiet) {
+		if (editor == null || editor.isViewer()) {
+			return false;
+		}
+
+		Document document = editor.getDocument();
+		if (!document.isWritable()) {
+			if (!quiet) {
+				document.fireReadOnlyModificationAttempt();
+			}
+			return false;
+		}
+
+		Range range = selectedOrCurrentBlock(editor);
+		if (range.start >= range.end) {
+			if (!quiet) {
+				Messages.showInfoMessage(project, "Select CSV/TSV text or put the caret inside a CSV/TSV block first.", COMMAND_NAME);
+			}
+			return false;
+		}
+
+		String source = document.getImmutableCharSequence().subSequence(range.start, range.end).toString();
+		MarkdownTableCore.EditResult edit = MarkdownTableCore.fromDelimited(source);
+		if (!edit.ok) {
+			if (!quiet) {
+				Messages.showInfoMessage(project, "Could not convert the selected CSV/TSV text.", COMMAND_NAME);
+			}
+			return false;
+		}
+
+		String eol = chooseEol(source);
+		String replacement = String.join(eol, edit.lines);
+		replaceRange(editor, project, range.start, range.end, replacement, range.start + edit.targetColumnOffset);
+		return true;
+	}
+
+	public static boolean insertTable(Editor editor, Project project, int columns, int dataRows) {
+		if (editor == null || editor.isViewer()) {
+			return false;
+		}
+
+		Document document = editor.getDocument();
+		if (!document.isWritable()) {
+			document.fireReadOnlyModificationAttempt();
+			return false;
+		}
+
+		MarkdownTableCore.EditResult edit = MarkdownTableCore.newTable(columns, dataRows);
+		if (!edit.ok) {
+			Messages.showInfoMessage(project, "Could not create a Markdown table.", COMMAND_NAME);
+			return false;
+		}
+
+		SelectionModel selection = editor.getSelectionModel();
+		int start;
+		int end;
+		if (selection.hasSelection()) {
+			start = selection.getSelectionStart();
+			end = selection.getSelectionEnd();
+		} else {
+			start = editor.getCaretModel().getOffset();
+			end = start;
+		}
+
+		String eol = chooseEol(document, Math.max(0, document.getLineNumber(Math.min(start, Math.max(document.getTextLength() - 1, 0)))), document.getLineCount() - 1);
+		InsertText insertText = tableInsertText(document, start, end, String.join(eol, edit.lines), eol);
+		replaceRange(editor, project, start, end, insertText.text, start + insertText.caretDelta + edit.targetColumnOffset);
+		return true;
+	}
+
 	private static String getLineText(Document document, int line) {
 		int start = document.getLineStartOffset(line);
 		int end = document.getLineEndOffset(line);
 		return document.getImmutableCharSequence().subSequence(start, end).toString();
+	}
+
+	private static Range selectedOrCurrentBlock(Editor editor) {
+		SelectionModel selection = editor.getSelectionModel();
+		if (selection.hasSelection()) {
+			return new Range(selection.getSelectionStart(), selection.getSelectionEnd());
+		}
+
+		Document document = editor.getDocument();
+		if (document.getTextLength() == 0) {
+			return new Range(0, 0);
+		}
+
+		int currentOffset = Math.min(editor.getCaretModel().getOffset(), Math.max(document.getTextLength() - 1, 0));
+		int currentLine = document.getLineNumber(currentOffset);
+		int firstLine = currentLine;
+		while (firstLine > 0 && !getLineText(document, firstLine - 1).isBlank()) {
+			firstLine--;
+		}
+
+		int lastLine = currentLine;
+		while (lastLine + 1 < document.getLineCount() && !getLineText(document, lastLine + 1).isBlank()) {
+			lastLine++;
+		}
+
+		return new Range(document.getLineStartOffset(firstLine), document.getLineEndOffset(lastLine));
 	}
 
 	private static String chooseEol(Document document, int firstLine, int lastLine) {
@@ -109,6 +206,18 @@ public final class MarkdownTableEditor {
 			if (!separator.isEmpty()) {
 				return separator;
 			}
+		}
+		return "\n";
+	}
+
+	private static String chooseEol(String text) {
+		int crlf = text.indexOf("\r\n");
+		if (crlf >= 0) {
+			return "\r\n";
+		}
+		int cr = text.indexOf('\r');
+		if (cr >= 0) {
+			return "\r";
 		}
 		return "\n";
 	}
@@ -131,5 +240,58 @@ public final class MarkdownTableEditor {
 			position += replacementLines.get(i).length() + eol.length();
 		}
 		return position + columnOffset;
+	}
+
+	private static void replaceRange(Editor editor, Project project, int start, int end, String replacement, int targetOffset) {
+		Document document = editor.getDocument();
+		Runnable change = () -> {
+			document.replaceString(start, end, replacement);
+			editor.getSelectionModel().removeSelection();
+			int safeTargetOffset = Math.min(Math.max(targetOffset, 0), document.getTextLength());
+			editor.getCaretModel().moveToOffset(safeTargetOffset);
+			editor.getScrollingModel().scrollToCaret(ScrollType.MAKE_VISIBLE);
+		};
+
+		if (project != null) {
+			WriteCommandAction.runWriteCommandAction(project, COMMAND_NAME, null, change);
+		} else {
+			ApplicationManager.getApplication().runWriteAction(change);
+		}
+	}
+
+	private static InsertText tableInsertText(Document document, int start, int end, String table, String eol) {
+		StringBuilder text = new StringBuilder();
+		int caretDelta = 0;
+		if (start > 0 && !isLineStart(document, start)) {
+			text.append(eol);
+			caretDelta += eol.length();
+		}
+		text.append(table);
+		if (end < document.getTextLength() && !isLineEnd(document, end)) {
+			text.append(eol);
+		}
+		return new InsertText(text.toString(), caretDelta);
+	}
+
+	private static boolean isLineStart(Document document, int offset) {
+		if (offset <= 0) {
+			return true;
+		}
+		int safeOffset = Math.min(offset, Math.max(document.getTextLength() - 1, 0));
+		return document.getLineStartOffset(document.getLineNumber(safeOffset)) == offset;
+	}
+
+	private static boolean isLineEnd(Document document, int offset) {
+		if (offset >= document.getTextLength()) {
+			return true;
+		}
+		int safeOffset = Math.min(offset, Math.max(document.getTextLength() - 1, 0));
+		return document.getLineEndOffset(document.getLineNumber(safeOffset)) == offset;
+	}
+
+	private record Range(int start, int end) {
+	}
+
+	private record InsertText(String text, int caretDelta) {
 	}
 }
