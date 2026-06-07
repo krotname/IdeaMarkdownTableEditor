@@ -13,7 +13,7 @@ public final class MarkdownTableCoreSmoke {
 	public static void main(String[] args) throws Exception {
 		String pluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
 		expectContains("dynamic plugin descriptor", pluginXml, "require-restart=\"false\"");
-		expectContains("plugin version", pluginXml, "<version>0.5.0</version>");
+		expectContains("plugin version", pluginXml, "<version>5.5.0</version>");
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
 		expectContains("tab handler runs before default tab processors", pluginXml, "order=\"first\"");

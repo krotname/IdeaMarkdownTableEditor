@@ -1,17 +1,18 @@
 param(
-	[string]$IdeaConfigDir = "$env:APPDATA\JetBrains\IntelliJIdea2026.1"
+	[string]$IdeaConfigDir = "$env:APPDATA\JetBrains\IntelliJIdea2026.1",
+	[string]$Version = "5.5.0"
 )
 
 $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PluginName = "MarkdownTableEditorIdea"
-$ZipPath = Join-Path $ProjectRoot "build\$PluginName-0.5.0.zip"
+$ZipPath = Join-Path $ProjectRoot "build\$PluginName-$Version.zip"
 $PluginsDir = Join-Path $IdeaConfigDir "plugins"
 $TargetDir = Join-Path $PluginsDir $PluginName
 
 if (-not (Test-Path -LiteralPath $ZipPath)) {
-	& (Join-Path $ProjectRoot "build.ps1")
+	& (Join-Path $ProjectRoot "build.ps1") -Version $Version
 }
 
 if (-not (Test-Path -LiteralPath $PluginsDir)) {

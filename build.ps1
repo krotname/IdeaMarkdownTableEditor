@@ -1,5 +1,6 @@
 param(
-	[string]$IdeaHome = "C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3"
+	[string]$IdeaHome = "C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3",
+	[string]$Version = "5.5.0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,7 +18,6 @@ function Write-JavacArgs([string]$Path, [string[]]$Lines) {
 }
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Version = "0.5.0"
 $PluginName = "MarkdownTableEditorIdea"
 $BuildDir = Join-Path $ProjectRoot "build"
 $ClassesDir = Join-Path $BuildDir "classes"
