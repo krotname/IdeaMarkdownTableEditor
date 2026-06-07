@@ -148,6 +148,17 @@ final class MarkdownTableCoreScenarios {
 			"| -------- | -------- |",
 			"|          |          |"
 		));
+
+		List<String> unwrapped = List.of(
+			"Name | Age",
+			"--- | ---:",
+			"Anna | 20"
+		);
+		expectLines("unwrapped align preserves style", MarkdownTableCore.apply(unwrapped, 2, 1, MarkdownTableCore.Action.ALIGN).lines, List.of(
+			"Name | Age",
+			"---- | --:",
+			"Anna |  20"
+		));
 	}
 
 	private static void delimitedScenarios() {

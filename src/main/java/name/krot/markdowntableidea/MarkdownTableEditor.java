@@ -1,6 +1,7 @@
 package name.krot.markdowntableidea;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -15,8 +16,18 @@ import java.util.List;
 
 public final class MarkdownTableEditor {
 	private static final String COMMAND_NAME = "Markdown Table Editor";
+	private static CommandRunner commandRunner = MarkdownTableEditor::runWriteCommand;
 
 	private MarkdownTableEditor() {
+	}
+
+	@FunctionalInterface
+	interface CommandRunner {
+		void run(Project project, String name, Runnable change);
+	}
+
+	static void setCommandRunnerForTests(CommandRunner runner) {
+		commandRunner = runner == null ? MarkdownTableEditor::runWriteCommand : runner;
 	}
 
 	public static boolean run(Editor editor, Project project, MarkdownTableCore.Action action, boolean quiet) {
@@ -89,13 +100,28 @@ public final class MarkdownTableEditor {
 			editor.getScrollingModel().scrollToCaret(ScrollType.MAKE_VISIBLE);
 		};
 
-		if (project != null) {
-			WriteCommandAction.runWriteCommandAction(project, COMMAND_NAME, null, change);
-		} else {
-			ApplicationManager.getApplication().runWriteAction(change);
-		}
+		commandRunner.run(project, COMMAND_NAME, change);
 
 		return true;
+	}
+
+	public static boolean isInsidePotentialTable(Editor editor) {
+		if (editor == null || editor.isViewer()) {
+			return false;
+		}
+
+		Document document = editor.getDocument();
+		if (document.getLineCount() == 0 || document.getTextLength() == 0) {
+			return false;
+		}
+
+		int currentOffset = Math.min(editor.getCaretModel().getOffset(), document.getTextLength() - 1);
+		int currentLine = document.getLineNumber(currentOffset);
+		if (currentLine >= document.getLineCount()) {
+			currentLine = document.getLineCount() - 1;
+		}
+
+		return MarkdownTableCore.isPotentialTableLine(getLineText(document, currentLine));
 	}
 
 	public static boolean convertDelimited(Editor editor, Project project, boolean quiet) {
@@ -252,10 +278,14 @@ public final class MarkdownTableEditor {
 			editor.getScrollingModel().scrollToCaret(ScrollType.MAKE_VISIBLE);
 		};
 
+		commandRunner.run(project, COMMAND_NAME, change);
+	}
+
+	private static void runWriteCommand(Project project, String name, Runnable change) {
 		if (project != null) {
-			WriteCommandAction.runWriteCommandAction(project, COMMAND_NAME, null, change);
+			WriteCommandAction.runWriteCommandAction(project, name, null, change);
 		} else {
-			ApplicationManager.getApplication().runWriteAction(change);
+			CommandProcessor.getInstance().executeCommand(null, () -> ApplicationManager.getApplication().runWriteAction(change), name, null);
 		}
 	}
 

@@ -14,8 +14,37 @@ import java.util.regex.Pattern;
 
 public final class MarkdownTableActions {
 	private static final Pattern TABLE_SIZE = Pattern.compile("\\s*(\\d+)\\s*[xXхХ*]\\s*(\\d+)\\s*");
+	private static DialogService dialogService = new IdeDialogService();
 
 	private MarkdownTableActions() {
+	}
+
+	interface DialogService {
+		String askTableSize(com.intellij.openapi.project.Project project);
+		void showError(com.intellij.openapi.project.Project project, String message);
+	}
+
+	static void setDialogServiceForTests(DialogService service) {
+		dialogService = service == null ? new IdeDialogService() : service;
+	}
+
+	private static final class IdeDialogService implements DialogService {
+		@Override
+		public String askTableSize(com.intellij.openapi.project.Project project) {
+			return Messages.showInputDialog(
+				project,
+				"Введите размер: столбцы x строки данных, например 3x4.",
+				"Новая Markdown-таблица",
+				Messages.getQuestionIcon(),
+				"3x3",
+				null
+			);
+		}
+
+		@Override
+		public void showError(com.intellij.openapi.project.Project project, String message) {
+			Messages.showErrorDialog(project, message, "Markdown Table Editor");
+		}
 	}
 
 	public abstract static class Base extends AnAction implements DumbAware {
@@ -45,6 +74,23 @@ public final class MarkdownTableActions {
 	public static final class Align extends Base {
 		public Align() {
 			super(MarkdownTableCore.Action.ALIGN);
+		}
+	}
+
+	public static final class TabAlign extends AnAction implements DumbAware {
+		@Override
+		public void actionPerformed(AnActionEvent event) {
+			MarkdownTableEditor.run(event.getData(CommonDataKeys.EDITOR), event.getProject(), MarkdownTableCore.Action.ALIGN, true);
+		}
+
+		@Override
+		public void update(AnActionEvent event) {
+			event.getPresentation().setEnabled(MarkdownTableEditor.isInsidePotentialTable(event.getData(CommonDataKeys.EDITOR)));
+		}
+
+		@Override
+		public ActionUpdateThread getActionUpdateThread() {
+			return ActionUpdateThread.EDT;
 		}
 	}
 
@@ -141,28 +187,21 @@ public final class MarkdownTableActions {
 	public static final class InsertTable extends AnAction implements DumbAware {
 		@Override
 		public void actionPerformed(AnActionEvent event) {
-			String value = Messages.showInputDialog(
-				event.getProject(),
-				"Введите размер: столбцы x строки данных, например 3x4.",
-				"Новая Markdown-таблица",
-				Messages.getQuestionIcon(),
-				"3x3",
-				null
-			);
+			String value = dialogService.askTableSize(event.getProject());
 			if (value == null) {
 				return;
 			}
 
 			Matcher matcher = TABLE_SIZE.matcher(value);
 			if (!matcher.matches()) {
-				Messages.showErrorDialog(event.getProject(), "Введите размер в формате 3x4.", "Markdown Table Editor");
+				dialogService.showError(event.getProject(), "Введите размер в формате 3x4.");
 				return;
 			}
 
 			int columns = Integer.parseInt(matcher.group(1));
 			int dataRows = Integer.parseInt(matcher.group(2));
 			if (columns < 1 || columns > 50 || dataRows < 0 || dataRows > 200) {
-				Messages.showErrorDialog(event.getProject(), "Допустимо: 1-50 столбцов и 0-200 строк данных.", "Markdown Table Editor");
+				dialogService.showError(event.getProject(), "Допустимо: 1-50 столбцов и 0-200 строк данных.");
 				return;
 			}
 

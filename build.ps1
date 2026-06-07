@@ -17,7 +17,7 @@ function Write-JavacArgs([string]$Path, [string[]]$Lines) {
 }
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Version = "0.4.1"
+$Version = "0.5.0"
 $PluginName = "MarkdownTableEditorIdea"
 $BuildDir = Join-Path $ProjectRoot "build"
 $ClassesDir = Join-Path $BuildDir "classes"
@@ -86,14 +86,23 @@ if ($Tests) {
 		"-target"
 		"21"
 		"-cp"
-		"`"$(Convert-ToJavacPath $ClassesDir)`""
+		"`"$(Convert-ToJavacPath $ClassesDir)$([IO.Path]::PathSeparator)$Classpath`""
 		"-d"
 		"`"$(Convert-ToJavacPath $TestClassesDir)`""
 	) + ($Tests | ForEach-Object { "`"$_`"" })
 	Write-JavacArgs $TestArgsFile $TestArgs
 
 	javac "@$TestArgsFile"
-	java -cp "$ClassesDir$([IO.Path]::PathSeparator)$TestClassesDir" name.krot.markdowntableidea.core.MarkdownTableCoreSmoke
+
+	$TestRunArgsFile = Join-Path $BuildDir "java-test.args"
+	$TestRuntimeClasspath = "$(Convert-ToJavacPath $ClassesDir)$([IO.Path]::PathSeparator)$(Convert-ToJavacPath $TestClassesDir)$([IO.Path]::PathSeparator)$Classpath"
+	$TestRunArgs = @(
+		"-cp"
+		"`"$TestRuntimeClasspath`""
+		"name.krot.markdowntableidea.core.MarkdownTableCoreSmoke"
+	)
+	Write-JavacArgs $TestRunArgsFile $TestRunArgs
+	java "@$TestRunArgsFile"
 }
 
 if (Test-Path -LiteralPath $ZipPath) {

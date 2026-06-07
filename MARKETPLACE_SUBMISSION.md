@@ -4,10 +4,10 @@ Status: package is prepared, but initial Marketplace submission requires the own
 
 ## Artifact
 
-- Version: `0.4.1`
-- ZIP: `build/MarkdownTableEditorIdea-0.4.1.zip`
-- GitHub release: `https://github.com/krotname/IdeaMarkdownTableEditor/releases/tag/v0.4.1`
-- Download URL: `https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v0.4.1/MarkdownTableEditorIdea-0.4.1.zip`
+- Version: `0.5.0`
+- ZIP: `build/MarkdownTableEditorIdea-0.5.0.zip`
+- GitHub release: `https://github.com/krotname/IdeaMarkdownTableEditor/releases/tag/v0.5.0`
+- Download URL: `https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v0.5.0/MarkdownTableEditorIdea-0.5.0.zip`
 
 ## Plugin metadata
 
@@ -31,7 +31,7 @@ Edit Markdown pipe tables directly in JetBrains IDEs: align with Tab, sort rows,
 2. Open `Upload plugin` / `Add new plugin`.
 3. Select or create the Vendor profile.
 4. Accept the JetBrains Marketplace Developer Agreement if prompted.
-5. Upload `build/MarkdownTableEditorIdea-0.4.1.zip`.
+5. Upload `build/MarkdownTableEditorIdea-0.5.0.zip`.
 6. Choose MIT/open-source license and provide the license URL above.
 7. Provide the source code URL above.
 8. Submit for review.

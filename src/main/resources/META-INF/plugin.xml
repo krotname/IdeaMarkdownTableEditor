@@ -2,7 +2,7 @@
 	<id>name.krot.markdown-table-editor-idea</id>
 	<name>Markdown Table Editor</name>
 	<vendor email="krotname@users.noreply.github.com" url="https://github.com/krotname">krotname</vendor>
-	<version>0.4.1</version>
+	<version>0.5.0</version>
 	<idea-version since-build="261" until-build="261.*"/>
 
 	<description><![CDATA[
@@ -19,24 +19,29 @@
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>Improved CSV/TSV parsing coverage and handling of quoted fields.</li>
-			<li>Added regression tests for sorting, generated tables, descriptor metadata, CSV quotes, CRLF, and invalid input.</li>
-			<li>Prepared Marketplace metadata for version 0.4.1.</li>
+			<li>Added a dedicated Tab action and changed Align Table to Ctrl+Alt+A.</li>
+			<li>Improved CSV/TSV conversion from selected text or the current block.</li>
+			<li>Improved caret positioning, unwrapped table formatting, sorting stability, and regression coverage.</li>
+			<li>Updated documentation, demo assets, and Marketplace metadata for version 0.5.0.</li>
 		</ul>
 	]]></change-notes>
 
 	<depends>com.intellij.modules.platform</depends>
 
 	<extensions defaultExtensionNs="com.intellij">
-		<editorActionHandler action="EditorTab" implementationClass="name.krot.markdowntableidea.MarkdownTableTabHandler" order="last"/>
+		<editorActionHandler action="EditorTab" implementationClass="name.krot.markdowntableidea.MarkdownTableTabHandler" order="first"/>
 	</extensions>
 
 	<actions>
+		<action id="MarkdownTableEditor.TabAlign" class="name.krot.markdowntableidea.MarkdownTableActions$TabAlign" text="Tab: Align Markdown Table" description="Align the Markdown table at the caret">
+			<keyboard-shortcut keymap="$default" first-keystroke="TAB"/>
+		</action>
+
 		<group id="MarkdownTableEditor.Group" text="Markdown Table Editor" popup="true">
 			<add-to-group group-id="ToolsMenu" anchor="last"/>
 			<add-to-group group-id="EditorPopupMenu" anchor="last"/>
 			<action id="MarkdownTableEditor.Align" class="name.krot.markdowntableidea.MarkdownTableActions$Align" text="Align Table" description="Align the Markdown table at the caret">
-				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt M"/>
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt A"/>
 			</action>
 			<action id="MarkdownTableEditor.NextCell" class="name.krot.markdowntableidea.MarkdownTableActions$NextCell" text="Next Cell" description="Move to the next Markdown table cell"/>
 			<action id="MarkdownTableEditor.PreviousCell" class="name.krot.markdowntableidea.MarkdownTableActions$PreviousCell" text="Previous Cell" description="Move to the previous Markdown table cell"/>

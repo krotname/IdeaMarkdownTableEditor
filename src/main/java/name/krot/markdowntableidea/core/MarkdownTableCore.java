@@ -49,11 +49,39 @@ public final class MarkdownTableCore {
 		final List<Align> alignments = new ArrayList<>();
 		int columns;
 		int separatorRow = -1;
+		boolean leadingPipe = true;
+		boolean trailingPipe = true;
 	}
 
 	private static final class FormatResult {
 		final List<String> lines = new ArrayList<>();
-		final List<List<Integer>> starts = new ArrayList<>();
+		int targetRow;
+		int targetColumn;
+		int targetColumnOffset;
+	}
+
+	private static final class SortKey {
+		final boolean numeric;
+		final double number;
+		final String foldedText;
+		final String text;
+
+		SortKey(boolean numeric, double number, String foldedText, String text) {
+			this.numeric = numeric;
+			this.number = number;
+			this.foldedText = foldedText;
+			this.text = text;
+		}
+	}
+
+	private static final class SortEntry {
+		final Row row;
+		final SortKey key;
+
+		SortEntry(Row row, SortKey key) {
+			this.row = row;
+			this.key = key;
+		}
 	}
 
 	private MarkdownTableCore() {
@@ -190,8 +218,8 @@ public final class MarkdownTableCore {
 				break;
 		}
 
-		FormatResult formatted = formatTable(table);
-		setResultFromFormat(result, formatted, targetRow, targetColumn);
+		FormatResult formatted = formatTable(table, targetRow, targetColumn);
+		setResultFromFormat(result, formatted);
 		result.ok = true;
 		result.changed = true;
 		return result;
@@ -206,8 +234,8 @@ public final class MarkdownTableCore {
 		}
 
 		Table table = tableFromCells(rows);
-		FormatResult formatted = formatTable(table);
-		setResultFromFormat(result, formatted, 0, 0);
+		FormatResult formatted = formatTable(table, 0, 0);
+		setResultFromFormat(result, formatted);
 		result.ok = true;
 		result.changed = true;
 		return result;
@@ -235,8 +263,8 @@ public final class MarkdownTableCore {
 		}
 
 		Table table = tableFromCells(rows);
-		FormatResult formatted = formatTable(table);
-		setResultFromFormat(result, formatted, dataRows > 0 ? 2 : 0, 0);
+		FormatResult formatted = formatTable(table, dataRows > 0 ? 2 : 0, 0);
+		setResultFromFormat(result, formatted);
 		result.ok = true;
 		result.changed = true;
 		return result;
@@ -368,11 +396,24 @@ public final class MarkdownTableCore {
 
 	private static Table parseTable(List<String> lines) {
 		Table table = new Table();
+		int leadingPipeRows = 0;
+		int trailingPipeRows = 0;
 		for (String line : lines) {
 			Row row = new Row();
 			row.cells.addAll(splitCells(line));
 			table.columns = Math.max(table.columns, row.cells.size());
 			table.rows.add(row);
+			if (startsWithUnescapedPipe(line)) {
+				leadingPipeRows++;
+			}
+			if (endsWithUnescapedPipe(trim(line))) {
+				trailingPipeRows++;
+			}
+		}
+
+		if (!lines.isEmpty()) {
+			table.leadingPipe = leadingPipeRows * 2 >= lines.size();
+			table.trailingPipe = trailingPipeRows * 2 >= lines.size();
 		}
 
 		for (int i = 0; i < table.rows.size(); i++) {
@@ -630,7 +671,7 @@ public final class MarkdownTableCore {
 		return spaces(leftPad) + cell + spaces(rightPad);
 	}
 
-	private static FormatResult formatTable(Table table) {
+	private static FormatResult formatTable(Table table, int targetRow, int targetColumn) {
 		List<Integer> widths = new ArrayList<>();
 		for (int i = 0; i < table.columns; i++) {
 			widths.add(3);
@@ -646,26 +687,44 @@ public final class MarkdownTableCore {
 		}
 
 		FormatResult result = new FormatResult();
-		for (Row row : table.rows) {
-			StringBuilder line = new StringBuilder("|");
-			List<Integer> starts = new ArrayList<>();
+		result.targetRow = targetRow < table.rows.size() ? targetRow : 0;
+		result.targetColumn = targetColumn < table.columns ? targetColumn : 0;
+
+		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			StringBuilder line = new StringBuilder(table.leadingPipe ? "|" : "");
 
 			for (int column = 0; column < table.columns; column++) {
+				if (column > 0) {
+					line.append(" |");
+				}
+				if (table.leadingPipe || column > 0) {
+					line.append(' ');
+				}
+
 				if (row.separator) {
 					String value = separatorCell(table.alignments.get(column), widths.get(column));
-					line.append(' ').append(value).append(" |");
-					starts.add(Math.max(line.length() - value.length() - 2, 0));
+					int valueStart = line.length();
+					line.append(value);
+					if (rowIndex == result.targetRow && column == result.targetColumn) {
+						result.targetColumnOffset = valueStart;
+					}
 				} else {
 					int[] contentOffset = new int[1];
 					String value = paddedCell(row.cells.get(column), table.alignments.get(column), widths.get(column), contentOffset);
-					int cellStart = line.length() + 1;
-					line.append(' ').append(value).append(" |");
-					starts.add(cellStart + contentOffset[0]);
+					int cellStart = line.length();
+					line.append(value);
+					if (rowIndex == result.targetRow && column == result.targetColumn) {
+						result.targetColumnOffset = cellStart + contentOffset[0];
+					}
+				}
+
+				if (table.trailingPipe && column + 1 == table.columns) {
+					line.append(" |");
 				}
 			}
 
 			result.lines.add(line.toString());
-			result.starts.add(starts);
 		}
 
 		return result;
@@ -794,34 +853,57 @@ public final class MarkdownTableCore {
 			return table.rows.indexOf(currentRow);
 		}
 
-		List<Row> dataRows = table.rows.subList(firstDataRow, table.rows.size());
-		Comparator<Row> comparator = (left, right) -> compareCells(left.cells.get(column), right.cells.get(column));
-		if (!ascending) {
-			comparator = comparator.reversed();
+		List<SortEntry> entries = new ArrayList<>(table.rows.size() - firstDataRow);
+		for (int rowIndex = firstDataRow; rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			entries.add(new SortEntry(row, makeSortKey(row.cells.get(column))));
 		}
-		dataRows.sort(comparator);
 
-		int targetRow = table.rows.indexOf(currentRow);
-		return targetRow >= 0 ? targetRow : firstDataRow;
+		Comparator<SortEntry> comparator = (left, right) -> {
+			int compared = compareSortKeys(left.key, right.key);
+			return ascending ? compared : -compared;
+		};
+		entries.sort(comparator);
+
+		int targetRow = firstDataRow;
+		for (int i = 0; i < entries.size(); i++) {
+			SortEntry entry = entries.get(i);
+			int rowIndex = firstDataRow + i;
+			table.rows.set(rowIndex, entry.row);
+			if (entry.row == currentRow) {
+				targetRow = rowIndex;
+			}
+		}
+		return targetRow;
 	}
 
-	private static int compareCells(String left, String right) {
-		String leftValue = trim(left);
-		String rightValue = trim(right);
-		Double leftNumber = parseNumber(leftValue);
-		Double rightNumber = parseNumber(rightValue);
-		if (leftNumber != null && rightNumber != null) {
-			int numeric = Double.compare(leftNumber, rightNumber);
+	private static SortKey makeSortKey(String value) {
+		String text = trim(value);
+		Double number = parseNumber(text);
+		return new SortKey(number != null, number == null ? 0 : number, foldCaseForSort(text), text);
+	}
+
+	private static int compareSortKeys(SortKey left, SortKey right) {
+		if (left.numeric && right.numeric) {
+			int numeric = Double.compare(left.number, right.number);
 			if (numeric != 0) {
 				return numeric;
 			}
 		}
 
-		int text = leftValue.compareToIgnoreCase(rightValue);
+		int text = left.foldedText.compareTo(right.foldedText);
 		if (text != 0) {
 			return text;
 		}
-		return leftValue.compareTo(rightValue);
+		return left.text.compareTo(right.text);
+	}
+
+	private static String foldCaseForSort(String value) {
+		char[] chars = value.toCharArray();
+		for (int i = 0; i < chars.length; i++) {
+			chars[i] = Character.toLowerCase(Character.toUpperCase(chars[i]));
+		}
+		return new String(chars);
 	}
 
 	private static Double parseNumber(String value) {
@@ -835,17 +917,10 @@ public final class MarkdownTableCore {
 		}
 	}
 
-	private static void setResultFromFormat(EditResult result, FormatResult formatted, int row, int column) {
+	private static void setResultFromFormat(EditResult result, FormatResult formatted) {
 		result.lines = formatted.lines;
-		result.targetRow = row < formatted.starts.size() ? row : 0;
-		result.targetColumn = column;
-
-		if (!formatted.starts.isEmpty() && result.targetRow < formatted.starts.size()) {
-			List<Integer> rowStarts = formatted.starts.get(result.targetRow);
-			if (result.targetColumn >= rowStarts.size()) {
-				result.targetColumn = rowStarts.isEmpty() ? 0 : rowStarts.size() - 1;
-			}
-			result.targetColumnOffset = rowStarts.isEmpty() ? 0 : rowStarts.get(result.targetColumn);
-		}
+		result.targetRow = formatted.targetRow;
+		result.targetColumn = formatted.targetColumn;
+		result.targetColumnOffset = formatted.targetColumnOffset;
 	}
 }

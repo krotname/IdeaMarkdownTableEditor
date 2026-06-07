@@ -1,0 +1,104 @@
+# Markdown Table Editor for IntelliJ IDEA
+
+Markdown Table Editor turns IntelliJ IDEA into a convenient Markdown table editor.
+Paste a messy table from someone else or from an AI tool, press `Tab`, and the plugin aligns the columns, preserves Markdown formatting,
+and helps you quickly rearrange rows, columns, and data directly in the IDE.
+
+## Demo
+
+![Markdown table alignment example in IntelliJ IDEA](docs/demo.gif)
+
+The GIF is built from real IntelliJ IDEA screenshots on Windows: a regular `.md` file is open, and the `Align Table` command is triggered with `Ctrl+Alt+A`.
+
+## Why Use It
+
+- You do not need to leave IntelliJ IDEA for a separate Markdown editor just to fix tables.
+- Large pipe tables stay readable as plain text.
+- `Tab`, sorting, and row or column operations save manual spacing work.
+- CSV/TSV text can be converted into a clean Markdown table quickly.
+- Commands are available from the `Tools` menu, the editor context menu, and IDE action search.
+
+## Features
+
+- `Tab` inside a Markdown table aligns the table.
+- Outside Markdown tables, `Tab` keeps working as the normal IDE indent action.
+- Align the table around the caret.
+- Move to the next or previous cell.
+- Insert, delete, and move rows.
+- Insert, delete, and move columns.
+- Sort rows by the current column in ascending or descending order.
+- Convert selected CSV/TSV text or the current CSV/TSV block into a Markdown table.
+- Insert a new table with a selected number of columns and rows.
+- Preserve Markdown alignment markers: `---`, `:---`, `---:`, `:---:`.
+- Correctly handle escaped pipes: `\|`.
+
+## Installation
+
+1. Download the ZIP archive from the latest release: https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest
+2. Open IntelliJ IDEA.
+3. Go to `Settings | Plugins`.
+4. Click the gear icon and choose `Install Plugin from Disk...`.
+5. Select the downloaded ZIP file.
+
+The plugin is packaged as a dynamic plugin and is designed to install without restarting the IDE in compatible IntelliJ IDEA versions. If the IDE asks for a restart, the platform has detected a loading or unloading limitation in the current session.
+
+## Commands
+
+Commands are available from `Tools > Markdown Table Editor` and from the editor context menu.
+
+| Command                                        | What It Does                                                         |
+| ---------------------------------------------- | -------------------------------------------------------------------- |
+| `Tab: Align Markdown Table`                    | Aligns the table at the caret; outside tables it works as normal Tab |
+| `Align Table`                                  | Aligns the current Markdown table                                    |
+| `Next Cell` / `Previous Cell`                  | Moves the caret between cells                                        |
+| `Insert Row Below` / `Delete Row`              | Adds or deletes a row                                                |
+| `Insert Column Right` / `Delete Column`        | Adds or deletes a column                                             |
+| `Move Row Up` / `Move Row Down`                | Moves the current row                                                |
+| `Move Column Left` / `Move Column Right`       | Moves the current column                                             |
+| `Sort Rows Ascending` / `Sort Rows Descending` | Sorts rows by the current column                                     |
+| `Convert CSV/TSV to Table`                     | Converts selected CSV/TSV or the current block to a Markdown table   |
+| `Insert New Table`                             | Inserts a new table with the requested size                          |
+
+For example, select `Name,Score` and the next line `Anna,10`, or place the caret inside such a block.
+Run `Tools > Markdown Table Editor > Convert CSV/TSV to Table`.
+You will get a Markdown table with `Name` and `Score` columns.
+
+Default keyboard shortcuts:
+
+| Command                      | Shortcut     |
+| ---------------------------- | ------------ |
+| `Tab: Align Markdown Table`  | `Tab`        |
+| `Align Table`                | `Ctrl+Alt+A` |
+
+You can assign shortcuts for the other commands in `Settings | Keymap`.
+
+## Build and Tests
+
+You need JDK 21 and a local IntelliJ IDEA `2026.1.x` installation.
+
+```powershell
+.\build.ps1
+```
+
+By default, the script looks for the IDE here:
+
+```text
+C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3
+```
+
+If IntelliJ IDEA is installed elsewhere, pass the path explicitly:
+
+```powershell
+.\build.ps1 -IdeaHome "D:\Apps\JetBrains\IntelliJ IDEA 2026.1.3"
+```
+
+The built ZIP appears in the `build` directory.
+The script also compiles and runs core smoke tests when test sources exist in `src\test\java`.
+
+To copy the plugin directly into the local plugins directory:
+
+```powershell
+.\install.ps1
+```
+
+Important: `install.ps1` copies files into the IDE profile. If IntelliJ IDEA is already running, installing the ZIP through `Settings | Plugins | Install Plugin from Disk...` is better for dynamic loading without restart.

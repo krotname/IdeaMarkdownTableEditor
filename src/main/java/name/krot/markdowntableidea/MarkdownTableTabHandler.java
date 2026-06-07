@@ -18,7 +18,7 @@ public final class MarkdownTableTabHandler extends EditorActionHandler {
 
 	@Override
 	protected boolean isEnabledForCaret(Editor editor, Caret caret, DataContext dataContext) {
-		return original == null || original.isEnabled(editor, caret, dataContext);
+		return MarkdownTableEditor.isInsidePotentialTable(editor) || original == null || original.isEnabled(editor, caret, dataContext);
 	}
 
 	@Override

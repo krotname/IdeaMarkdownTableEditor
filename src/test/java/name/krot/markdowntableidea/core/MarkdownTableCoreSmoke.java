@@ -1,5 +1,7 @@
 package name.krot.markdowntableidea.core;
 
+import name.krot.markdowntableidea.MarkdownTableEditorScenarios;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -11,9 +13,14 @@ public final class MarkdownTableCoreSmoke {
 	public static void main(String[] args) throws Exception {
 		String pluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
 		expectContains("dynamic plugin descriptor", pluginXml, "require-restart=\"false\"");
-		expectContains("plugin version", pluginXml, "<version>0.4.1</version>");
+		expectContains("plugin version", pluginXml, "<version>0.5.0</version>");
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
+		expectContains("tab handler runs before default tab processors", pluginXml, "order=\"first\"");
+		expectContains("tab shortcut action descriptor", pluginXml, "MarkdownTableEditor.TabAlign");
+		expectContains("tab shortcut action key", pluginXml, "first-keystroke=\"TAB\"");
+		expectContains("align shortcut matches documentation", pluginXml, "first-keystroke=\"ctrl alt A\"");
+		expectNotContains("align shortcut no longer uses old ctrl alt m", pluginXml, "ctrl alt M");
 		expectContains("sort action descriptor", pluginXml, "MarkdownTableEditor.SortAscending");
 		expectContains("csv action descriptor", pluginXml, "MarkdownTableEditor.ConvertCsvTsv");
 		expectContains("insert table action descriptor", pluginXml, "MarkdownTableEditor.InsertTable");
@@ -140,6 +147,40 @@ public final class MarkdownTableCoreSmoke {
 			"| Bob  |   3 |"
 		));
 
+		MarkdownTableCore.EditResult sortTarget = MarkdownTableCore.apply(
+			List.of(
+				"| Name | Score |",
+				"| --- | ---: |",
+				"| Anna | 42 |",
+				"| Dmitry | 7 |",
+				"| Chen | 100 |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.SORT_ASCENDING
+		);
+		expectTrue("sort target ok", sortTarget.ok);
+		expectInt("sort target follows current row", sortTarget.targetRow, 3);
+
+		expectLines("sort rows ascending keeps stable ties", MarkdownTableCore.apply(
+			List.of(
+				"| Name | Score |",
+				"| --- | ---: |",
+				"| Anna | 2 |",
+				"| Boris | 10 |",
+				"| Chen | 2 |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.SORT_ASCENDING
+		).lines, List.of(
+			"| Name  | Score |",
+			"| ----- | ----: |",
+			"| Anna  |     2 |",
+			"| Chen  |     2 |",
+			"| Boris |    10 |"
+		));
+
 		expectLines("sort rows ascending decimal numbers", MarkdownTableCore.apply(
 			List.of(
 				"| Item | Value |",
@@ -183,6 +224,13 @@ public final class MarkdownTableCoreSmoke {
 			"| Bob  | QA        | pipe \\| escaped |"
 		));
 
+		expectLines("quoted csv to markdown table", MarkdownTableCore.fromDelimited("Name,Note\nAnna,\"A, B\"\nBob,\"said \"\"hi\"\"\"").lines, List.of(
+			"| Name | Note      |",
+			"| ---- | --------- |",
+			"| Anna | A, B      |",
+			"| Bob  | said \"hi\" |"
+		));
+
 		expectLines("csv escaped quotes and crlf", MarkdownTableCore.fromDelimited(
 			"Name,Quote,Raw\r\n" +
 				"Anna,\"He said \"\"Hi\"\"\",a\"b\r\n" +
@@ -193,6 +241,19 @@ public final class MarkdownTableCoreSmoke {
 			"| ---- | ------------ | --- |",
 			"| Anna | He said \"Hi\" | a\"b |",
 			"| Bob  | line break   | x   |"
+		));
+
+		expectLines("csv crlf and multiline quoted cell", MarkdownTableCore.fromDelimited("Name,Note\r\nAnna,\"line 1\r\nline 2\"\r\nBob,done\r\n").lines, List.of(
+			"| Name | Note          |",
+			"| ---- | ------------- |",
+			"| Anna | line 1 line 2 |",
+			"| Bob  | done          |"
+		));
+
+		expectLines("delimiter ignores commas inside quotes", MarkdownTableCore.fromDelimited("Name\tNote\nAnna\t\"A,B\"").lines, List.of(
+			"| Name | Note |",
+			"| ---- | ---- |",
+			"| Anna | A,B  |"
 		));
 
 		expectLines("tsv to markdown table", MarkdownTableCore.fromDelimited("Name\tScore\nAnna\t10\nBob\t2").lines, List.of(
@@ -207,6 +268,13 @@ public final class MarkdownTableCoreSmoke {
 			"| ---- | ------------ |",
 			"| Anna | uses, commas |",
 			"| Bob  | keeps tabs   |"
+		));
+
+		expectLines("tsv to table pads uneven rows", MarkdownTableCore.fromDelimited("A\tB\tC\n1\t2\n3\t4\t5").lines, List.of(
+			"| A   | B   | C   |",
+			"| --- | --- | --- |",
+			"| 1   | 2   |     |",
+			"| 3   | 4   | 5   |"
 		));
 
 		MarkdownTableCore.EditResult largeFishCsv = MarkdownTableCore.fromDelimited(
@@ -252,6 +320,13 @@ public final class MarkdownTableCoreSmoke {
 			"|          |          |          |",
 			"|          |          |          |"
 		));
+		MarkdownTableCore.EditResult created = MarkdownTableCore.newTable(3, 2);
+		expectTrue("new table target ok", created.ok);
+		expectInt("new table target row", created.targetRow, 2);
+		expectInt("new table target column", created.targetColumn, 0);
+		MarkdownTableCore.EditResult headerOnlyTable = MarkdownTableCore.newTable(1, 0);
+		expectTrue("new table without data ok", headerOnlyTable.ok);
+		expectInt("new table without data target row", headerOnlyTable.targetRow, 0);
 
 		List<String> unwrapped = List.of(
 			"Name | Age",
@@ -261,15 +336,17 @@ public final class MarkdownTableCoreSmoke {
 		expectInt("unwrapped cursor first cell", MarkdownTableCore.columnFromCursor(unwrapped.get(2), 1), 0);
 		expectInt("unwrapped cursor second cell", MarkdownTableCore.columnFromCursor(unwrapped.get(2), 7), 1);
 		expectLines("unwrapped align", MarkdownTableCore.apply(unwrapped, 2, 1, MarkdownTableCore.Action.ALIGN).lines, List.of(
-			"| Name | Age |",
-			"| ---- | --: |",
-			"| Anna |  20 |"
+			"Name | Age",
+			"---- | --:",
+			"Anna |  20"
 		));
 
 		String escaped = "| a \\| b | c |";
 		expectTrue("escaped pipe potential", MarkdownTableCore.isPotentialTableLine(escaped));
 		expectTrue("only escaped pipe is not table", !MarkdownTableCore.isPotentialTableLine("a \\| b"));
+		expectTrue("double escaped pipe is table", MarkdownTableCore.isPotentialTableLine("a \\\\| b"));
 		expectInt("escaped pipe cursor", MarkdownTableCore.columnFromCursor(escaped, escaped.indexOf("c")), 1);
+		expectInt("cursor with leading spaces and pipe", MarkdownTableCore.columnFromCursor("  | a | b |", 8), 1);
 		expectLines("escaped pipe align", MarkdownTableCore.apply(
 			List.of(
 				"| H | X |",
@@ -300,6 +377,23 @@ public final class MarkdownTableCoreSmoke {
 			"| ---- | ----- |",
 			"| тест | 1     |",
 			"| 表   | 22    |"
+		));
+
+		expectLines("alignment variants", MarkdownTableCore.apply(
+			List.of(
+				"| Left | Center | Right | Plain |",
+				"| :--- | :---: | ---: | --- |",
+				"| a | b | c | d |",
+				"| long | wide | 123 | text |"
+			),
+			2,
+			0,
+			MarkdownTableCore.Action.ALIGN
+		).lines, List.of(
+			"| Left | Center | Right | Plain |",
+			"| :--- | :----: | ----: | ----- |",
+			"| a    |   b    |     c | d     |",
+			"| long |  wide  |   123 | text  |"
 		));
 
 		MarkdownTableCore.EditResult largeFishTable = MarkdownTableCore.apply(
@@ -469,6 +563,21 @@ public final class MarkdownTableCoreSmoke {
 			"| 1   |"
 		));
 
+		expectLines("move row up blocked by separator", MarkdownTableCore.apply(
+			List.of(
+				"| A |",
+				"| --- |",
+				"| 1 |"
+			),
+			2,
+			0,
+			MarkdownTableCore.Action.MOVE_ROW_UP
+		).lines, List.of(
+			"| A   |",
+			"| --- |",
+			"| 1   |"
+		));
+
 		expectLines("move row down", MarkdownTableCore.apply(
 			List.of(
 				"| A |",
@@ -486,7 +595,23 @@ public final class MarkdownTableCoreSmoke {
 			"| 1   |"
 		));
 
+		expectLines("delete only column keeps table", MarkdownTableCore.apply(
+			List.of(
+				"| A |",
+				"| --- |",
+				"| 1 |"
+			),
+			2,
+			0,
+			MarkdownTableCore.Action.DELETE_COLUMN
+		).lines, List.of(
+			"| A   |",
+			"| --- |",
+			"| 1   |"
+		));
+
 		failures += MarkdownTableCoreScenarios.run();
+		failures += MarkdownTableEditorScenarios.run();
 
 		if (failures != 0) {
 			System.err.println(failures + " test(s) failed");
