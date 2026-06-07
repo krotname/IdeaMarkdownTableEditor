@@ -1,0 +1,40 @@
+<idea-plugin>
+	<id>name.krot.markdown-table-editor-idea</id>
+	<name>Markdown Table Editor</name>
+	<vendor email="krotname@users.noreply.github.com" url="https://github.com/krotname">krotname</vendor>
+	<version>0.1.0</version>
+	<idea-version since-build="261" until-build="261.*"/>
+
+	<description><![CDATA[
+		Редактор Markdown-таблиц с вертикальными чертами для IntelliJ IDEA. Нажмите Tab внутри Markdown-таблицы, чтобы выровнять ее, или используйте команды редактирования таблиц из меню Tools и контекстного меню редактора.
+	]]></description>
+
+	<depends>com.intellij.modules.platform</depends>
+
+	<extensions defaultExtensionNs="com.intellij">
+		<postStartupActivity implementation="name.krot.markdowntableidea.MarkdownTableStartupActivity"/>
+	</extensions>
+
+	<actions>
+		<group id="MarkdownTableEditor.Group" text="Markdown Table Editor" popup="true">
+			<add-to-group group-id="ToolsMenu" anchor="last"/>
+			<add-to-group group-id="EditorPopupMenu" anchor="last"/>
+			<action id="MarkdownTableEditor.Align" class="name.krot.markdowntableidea.MarkdownTableActions$Align" text="Align Table" description="Align the Markdown table at the caret">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt M"/>
+			</action>
+			<action id="MarkdownTableEditor.NextCell" class="name.krot.markdowntableidea.MarkdownTableActions$NextCell" text="Next Cell" description="Move to the next Markdown table cell"/>
+			<action id="MarkdownTableEditor.PreviousCell" class="name.krot.markdowntableidea.MarkdownTableActions$PreviousCell" text="Previous Cell" description="Move to the previous Markdown table cell"/>
+			<separator/>
+			<action id="MarkdownTableEditor.InsertRowBelow" class="name.krot.markdowntableidea.MarkdownTableActions$InsertRowBelow" text="Insert Row Below" description="Insert a Markdown table row below the current row"/>
+			<action id="MarkdownTableEditor.DeleteRow" class="name.krot.markdowntableidea.MarkdownTableActions$DeleteRow" text="Delete Row" description="Delete the current Markdown table row"/>
+			<separator/>
+			<action id="MarkdownTableEditor.InsertColumnRight" class="name.krot.markdowntableidea.MarkdownTableActions$InsertColumnRight" text="Insert Column Right" description="Insert a Markdown table column to the right"/>
+			<action id="MarkdownTableEditor.DeleteColumn" class="name.krot.markdowntableidea.MarkdownTableActions$DeleteColumn" text="Delete Column" description="Delete the current Markdown table column"/>
+			<separator/>
+			<action id="MarkdownTableEditor.MoveRowUp" class="name.krot.markdowntableidea.MarkdownTableActions$MoveRowUp" text="Move Row Up" description="Move the current Markdown table row up"/>
+			<action id="MarkdownTableEditor.MoveRowDown" class="name.krot.markdowntableidea.MarkdownTableActions$MoveRowDown" text="Move Row Down" description="Move the current Markdown table row down"/>
+			<action id="MarkdownTableEditor.MoveColumnLeft" class="name.krot.markdowntableidea.MarkdownTableActions$MoveColumnLeft" text="Move Column Left" description="Move the current Markdown table column left"/>
+			<action id="MarkdownTableEditor.MoveColumnRight" class="name.krot.markdowntableidea.MarkdownTableActions$MoveColumnRight" text="Move Column Right" description="Move the current Markdown table column right"/>
+		</group>
+	</actions>
+</idea-plugin>
