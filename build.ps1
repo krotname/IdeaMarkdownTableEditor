@@ -17,7 +17,7 @@ function Write-JavacArgs([string]$Path, [string[]]$Lines) {
 }
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Version = "0.4.0"
+$Version = "0.4.1"
 $PluginName = "MarkdownTableEditorIdea"
 $BuildDir = Join-Path $ProjectRoot "build"
 $ClassesDir = Join-Path $BuildDir "classes"

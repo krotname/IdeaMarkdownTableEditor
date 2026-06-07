@@ -492,7 +492,8 @@ public final class MarkdownTableCore {
 				continue;
 			}
 
-			if (ch == '"') {
+			if (ch == '"' && isBlank(cell)) {
+				cell.setLength(0);
 				inQuotes = true;
 			} else if (ch == delimiter) {
 				row.add(cell.toString());
@@ -519,19 +520,39 @@ public final class MarkdownTableCore {
 		int tabs = 0;
 		int commas = 0;
 		boolean inQuotes = false;
+		boolean cellBlank = true;
 		for (int i = 0; i < text.length(); i++) {
 			char ch = text.charAt(i);
-			if (ch == '"') {
-				inQuotes = !inQuotes;
-			} else if (!inQuotes && ch == '\n') {
-				break;
-			} else if (!inQuotes && ch == '\t') {
+			if (inQuotes) {
+				if (ch == '"' && i + 1 < text.length() && text.charAt(i + 1) == '"') {
+					i++;
+				} else if (ch == '"') {
+					inQuotes = false;
+				}
+			} else if (ch == '"' && cellBlank) {
+				inQuotes = true;
+			} else if (ch == '\t') {
 				tabs++;
-			} else if (!inQuotes && ch == ',') {
+				cellBlank = true;
+			} else if (ch == ',') {
 				commas++;
+				cellBlank = true;
+			} else if (ch == '\r' || ch == '\n') {
+				cellBlank = true;
+			} else if (!isSpace(ch)) {
+				cellBlank = false;
 			}
 		}
 		return tabs > commas ? '\t' : ',';
+	}
+
+	private static boolean isBlank(StringBuilder value) {
+		for (int i = 0; i < value.length(); i++) {
+			if (!isSpace(value.charAt(i))) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static void addDelimitedRow(List<List<String>> rows, List<String> row) {

@@ -31,7 +31,7 @@ Markdown Table Editor делает это прямо в IDE:
 
 ## Установка
 
-1. Скачайте `MarkdownTableEditorIdea-0.4.0.zip` из раздела Releases.
+1. Скачайте `MarkdownTableEditorIdea-0.4.1.zip` из раздела Releases.
 2. Откройте IntelliJ IDEA.
 3. Перейдите в `Settings | Plugins`.
 4. Нажмите на шестеренку и выберите `Install Plugin from Disk...`.
@@ -85,10 +85,10 @@ Bob,QA,7
 Результат:
 
 ```markdown
-| Name | Role      | Score |
+| Name | Role    | Score |
 | ---- | --------- | ----- |
-| Anna | Developer | 10    |
-| Bob  | QA        | 7     |
+| Anna | Developer   | 10    |
+| Bob  | QA            | 7     |
 ```
 
 ### Вставить новую таблицу
@@ -98,3 +98,7 @@ Bob,QA,7
 ## Совместимость
 
 Текущая версия ориентирована на IntelliJ IDEA `2026.1.x` и собирается без Gradle, напрямую против локальной установки IntelliJ IDEA.
+
+## Лицензия
+
+Проект распространяется под лицензией MIT. Исходный код доступен на GitHub: `https://github.com/krotname/IdeaMarkdownTableEditor`.

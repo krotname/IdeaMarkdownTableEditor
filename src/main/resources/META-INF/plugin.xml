@@ -1,13 +1,29 @@
-<idea-plugin require-restart="false">
+<idea-plugin require-restart="false" url="https://github.com/krotname/IdeaMarkdownTableEditor">
 	<id>name.krot.markdown-table-editor-idea</id>
 	<name>Markdown Table Editor</name>
 	<vendor email="krotname@users.noreply.github.com" url="https://github.com/krotname">krotname</vendor>
-	<version>0.4.0</version>
+	<version>0.4.1</version>
 	<idea-version since-build="261" until-build="261.*"/>
 
 	<description><![CDATA[
-		Редактор Markdown-таблиц с вертикальными чертами для IntelliJ IDEA. Нажмите Tab внутри Markdown-таблицы, чтобы выровнять ее, или используйте команды редактирования таблиц из меню Tools и контекстного меню редактора.
+		<p>Markdown Table Editor keeps Markdown pipe tables readable directly in JetBrains IDE editors.</p>
+		<ul>
+			<li>Align Markdown tables with Tab.</li>
+			<li>Sort data rows by the current column.</li>
+			<li>Convert CSV/TSV text to Markdown tables.</li>
+			<li>Insert a new Markdown table by size.</li>
+			<li>Edit rows and columns without leaving the file.</li>
+		</ul>
+		<p>RU: Редактор Markdown-таблиц с вертикальными чертами. Нажмите Tab внутри таблицы, чтобы выровнять ее, или используйте команды из меню Tools.</p>
 	]]></description>
+
+	<change-notes><![CDATA[
+		<ul>
+			<li>Improved CSV/TSV parsing coverage and handling of quoted fields.</li>
+			<li>Added regression tests for sorting, generated tables, descriptor metadata, CSV quotes, CRLF, and invalid input.</li>
+			<li>Prepared Marketplace metadata for version 0.4.1.</li>
+		</ul>
+	]]></change-notes>
 
 	<depends>com.intellij.modules.platform</depends>
 

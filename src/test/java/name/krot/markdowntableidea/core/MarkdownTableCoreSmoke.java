@@ -5,17 +5,22 @@ import java.nio.file.Path;
 import java.util.List;
 
 public final class MarkdownTableCoreSmoke {
+	private static int checks;
 	private static int failures;
 
 	public static void main(String[] args) throws Exception {
 		String pluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
-		expectContains("dynamic plugin descriptor", pluginXml, "<idea-plugin require-restart=\"false\">");
-		expectContains("plugin version", pluginXml, "<version>0.4.0</version>");
+		expectContains("dynamic plugin descriptor", pluginXml, "require-restart=\"false\"");
+		expectContains("plugin version", pluginXml, "<version>0.4.1</version>");
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
 		expectContains("sort action descriptor", pluginXml, "MarkdownTableEditor.SortAscending");
 		expectContains("csv action descriptor", pluginXml, "MarkdownTableEditor.ConvertCsvTsv");
 		expectContains("insert table action descriptor", pluginXml, "MarkdownTableEditor.InsertTable");
+		expectContains("marketplace english description", pluginXml, "Markdown Table Editor keeps Markdown pipe tables readable");
+		expectContains("marketplace change notes", pluginXml, "<change-notes><![CDATA[");
+		expectTrue("plugin icon exists", Files.exists(Path.of("src", "main", "resources", "META-INF", "pluginIcon.svg")));
+		expectTrue("license exists", Files.exists(Path.of("LICENSE")));
 		expectNotContains("no startup activity descriptor", pluginXml, "postStartupActivity");
 
 		List<String> input = List.of(
@@ -135,6 +140,38 @@ public final class MarkdownTableCoreSmoke {
 			"| Bob  |   3 |"
 		));
 
+		expectLines("sort rows ascending decimal numbers", MarkdownTableCore.apply(
+			List.of(
+				"| Item | Value |",
+				"| --- | ---: |",
+				"| A | -1.5 |",
+				"| B | 10 |",
+				"| C | 2.25 |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.SORT_ASCENDING
+		).lines, List.of(
+			"| Item | Value |",
+			"| ---- | ----: |",
+			"| A    |  -1.5 |",
+			"| C    |  2.25 |",
+			"| B    |    10 |"
+		));
+
+		expectLines("sort table without data rows", MarkdownTableCore.apply(
+			List.of(
+				"| H |",
+				"| --- |"
+			),
+			0,
+			0,
+			MarkdownTableCore.Action.SORT_ASCENDING
+		).lines, List.of(
+			"| H   |",
+			"| --- |"
+		));
+
 		expectLines("csv to markdown table", MarkdownTableCore.fromDelimited("""
 			Name,Role,Note
 			Anna,Developer,"uses, commas"
@@ -146,6 +183,18 @@ public final class MarkdownTableCoreSmoke {
 			"| Bob  | QA        | pipe \\| escaped |"
 		));
 
+		expectLines("csv escaped quotes and crlf", MarkdownTableCore.fromDelimited(
+			"Name,Quote,Raw\r\n" +
+				"Anna,\"He said \"\"Hi\"\"\",a\"b\r\n" +
+				"\r\n" +
+				"Bob,\"line\r\nbreak\",x"
+		).lines, List.of(
+			"| Name | Quote        | Raw |",
+			"| ---- | ------------ | --- |",
+			"| Anna | He said \"Hi\" | a\"b |",
+			"| Bob  | line break   | x   |"
+		));
+
 		expectLines("tsv to markdown table", MarkdownTableCore.fromDelimited("Name\tScore\nAnna\t10\nBob\t2").lines, List.of(
 			"| Name | Score |",
 			"| ---- | ----- |",
@@ -153,7 +202,17 @@ public final class MarkdownTableCoreSmoke {
 			"| Bob  | 2     |"
 		));
 
+		expectLines("tsv with commas", MarkdownTableCore.fromDelimited("Name\tNote\nAnna\tuses, commas\nBob\tkeeps tabs").lines, List.of(
+			"| Name | Note         |",
+			"| ---- | ------------ |",
+			"| Anna | uses, commas |",
+			"| Bob  | keeps tabs   |"
+		));
+
 		expectTrue("plain text is not csv", !MarkdownTableCore.fromDelimited("just a note").ok);
+		expectTrue("empty csv is rejected", !MarkdownTableCore.fromDelimited("  \r\n  ").ok);
+		expectTrue("invalid table size is rejected", !MarkdownTableCore.newTable(0, 2).ok);
+		expectTrue("negative table size is rejected", !MarkdownTableCore.newTable(2, -1).ok);
 
 		expectLines("new table by size", MarkdownTableCore.newTable(3, 2).lines, List.of(
 			"| Column 1 | Column 2 | Column 3 |",
@@ -357,34 +416,39 @@ public final class MarkdownTableCoreSmoke {
 			System.exit(1);
 		}
 
-		System.out.println("Core smoke tests passed");
+		System.out.println("Core smoke tests passed (" + checks + " checks)");
 	}
 
 	private static void expectTrue(String name, boolean value) {
+		checks++;
 		if (!value) {
 			fail(name, "expected true");
 		}
 	}
 
 	private static void expectInt(String name, int actual, int expected) {
+		checks++;
 		if (actual != expected) {
 			fail(name, "expected " + expected + ", got " + actual);
 		}
 	}
 
 	private static void expectLines(String name, List<String> actual, List<String> expected) {
+		checks++;
 		if (!actual.equals(expected)) {
 			fail(name, "expected:\n" + String.join("\n", expected) + "\nactual:\n" + String.join("\n", actual));
 		}
 	}
 
 	private static void expectContains(String name, String actual, String expected) {
+		checks++;
 		if (!actual.contains(expected)) {
 			fail(name, "expected to contain: " + expected);
 		}
 	}
 
 	private static void expectNotContains(String name, String actual, String unexpected) {
+		checks++;
 		if (actual.contains(unexpected)) {
 			fail(name, "expected not to contain: " + unexpected);
 		}
