@@ -36,8 +36,8 @@ public final class MarkdownTableTabHandler extends EditorActionHandler {
 	}
 
 	@Override
-	public boolean isEnabled(Editor editor, DataContext dataContext) {
-		return original == null || original.isEnabled(editor, dataContext);
+	protected boolean isEnabledForCaret(Editor editor, Caret caret, DataContext dataContext) {
+		return original == null || original.isEnabled(editor, caret, dataContext);
 	}
 
 	@Override
