@@ -56,7 +56,14 @@ jobs:
           $zipPath = Join-Path $downloadDir "idea.zip"
           curl.exe --fail --location --output $zipPath $ideaUrl
           Expand-Archive -LiteralPath $zipPath -DestinationPath $extractDir -Force
-          $ideaHome = Get-ChildItem -LiteralPath $extractDir -Directory | Select-Object -First 1
+          if (Test-Path -LiteralPath (Join-Path $extractDir "lib")) {
+            $ideaHome = Get-Item -LiteralPath $extractDir
+          }
+          else {
+            $ideaHome = Get-ChildItem -LiteralPath $extractDir -Directory | Where-Object {
+              Test-Path -LiteralPath (Join-Path $_.FullName "lib")
+            } | Select-Object -First 1
+          }
           if (-not $ideaHome) {
             throw "IntelliJ IDEA SDK was not extracted."
           }
