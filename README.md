@@ -51,6 +51,31 @@ GIF собран из реальных скриншотов IDE JetBrains под
 
 Плагин собран как dynamic plugin и рассчитан на установку без перезапуска IDE в совместимых версиях продуктов JetBrains. Если сама IDE попросит перезапуск, значит платформа обнаружила ограничение загрузки или выгрузки в текущей сессии.
 
+## Совместимость
+
+Плагин собран в bytecode Java 17 и заявляет совместимость с IntelliJ Platform `223+` без верхней границы `until-build`.
+Нижняя поддерживаемая линейка IDE JetBrains: `2022.3+`. Это первая линейка IntelliJ Platform, для которой JetBrains указывает Java 17 как runtime платформы.
+
+| IntelliJ Platform | Build branch | Статус                                                             |
+| ----------------- | ------------ | ------------------------------------------------------------------ |
+| 2022.3            | `223`        | минимальная поддерживаемая версия                                  |
+| 2023.1            | `231`        | поддерживается                                                     |
+| 2023.2            | `232`        | поддерживается                                                     |
+| 2023.3            | `233`        | поддерживается                                                     |
+| 2024.1            | `241`        | поддерживается                                                     |
+| 2024.2+           | `242+`       | поддерживается за счёт bytecode Java 17 и открытой верхней границы |
+
+Marketplace вычисляет конкретные версии продуктов по `since-build="223"` и зависимости только от `com.intellij.modules.platform`.
+
+| Продукт JetBrains | Минимальная версия по Marketplace |
+| ----------------- | --------------------------------- |
+| IntelliJ IDEA Community/Ultimate | 2022.3+ |
+| WebStorm, PyCharm, PhpStorm, GoLand, CLion, Rider, RubyMine | 2022.3+ |
+| DataGrip, DataSpell, MPS, AppCode | 2022.3+ |
+| Android Studio | Giraffe / 2022.3.1 Beta 1+ |
+| RustRover | 2024.1+ |
+| Gateway, JetBrains Client, Code With Me Guest | 1.0+ |
+
 ## Публикация
 
 - Страница версий JetBrains Marketplace: https://plugins.jetbrains.com/plugin/32159-markdown-table-editor/edit/versions
@@ -87,46 +112,56 @@ GIF собран из реальных скриншотов IDE JetBrains под
 
 ## Сборка и тесты
 
-Нужен JDK 21. IntelliJ Platform SDK для сборки скачивается Gradle IntelliJ Platform plugin.
+Нужен JDK 17. IntelliJ Platform SDK `2022.3` для сборки скачивается Gradle IntelliJ Platform plugin.
 
-```powershell
+```cmd
 .\gradlew.bat check buildPlugin
 ```
 
 Готовый ZIP появится в папке `build/distributions`.
 Если локально установлена IDE JetBrains и не хочется ждать скачивания платформы, можно передать путь:
 
-```powershell
+```cmd
 .\gradlew.bat check buildPlugin -PplatformLocalPath="C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3"
 ```
 
 Для Marketplace-проверки совместимости:
 
-```powershell
+```cmd
 .\gradlew.bat verifyPlugin
 ```
 
 В GitHub Actions verifier дополнительно берет recommended IDEs. Локально это можно включить явно:
 
-```powershell
+```cmd
 .\gradlew.bat verifyPlugin -PverifyRecommendedIdes=true
 ```
 
+Для отчета покрытия JaCoCo:
+
+```cmd
+.\gradlew.bat jacocoTestReport
+```
+
+HTML-отчет появится в `build/reports/coverage/html`.
+
 Полный релизный build:
 
-```powershell
+```cmd
 .\gradlew.bat clean check verifyPlugin buildPlugin
+```
+
+Для явной релизной версии передайте Gradle property; без нее Gradle читает `VERSION`.
+`plugin.xml` и Marketplace-документ генерируются из этого же значения, а готовый Marketplace-файл появляется в `build/release/MARKETPLACE_SUBMISSION.md`.
+
+```cmd
+.\gradlew.bat clean check verifyPlugin buildPlugin "-PpluginVersion=x.y.z"
 ```
 
 Для быстрой локальной сборки без Plugin Verifier:
 
-```powershell
+```cmd
 .\gradlew.bat clean check buildPlugin
 ```
 
 Для локальной установки используйте готовый ZIP из `build/distributions` через `Settings | Plugins | Install Plugin from Disk...`.
-
-## Лицензия
-
-Код плагина распространяется по лицензии MIT. Полный текст лицензии находится в [LICENSE](LICENSE).
-Сторонние build-инструменты перечислены в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

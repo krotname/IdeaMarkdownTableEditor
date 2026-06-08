@@ -2,6 +2,7 @@
 .gradle/
 .intellijPlatform/
 build/
+verification-*/
 *.class
 *.zip
 *.iml

@@ -51,6 +51,31 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 
 The plugin is packaged as a dynamic plugin and is designed to install without restarting compatible JetBrains IDEs. If the IDE asks for a restart, the platform has detected a loading or unloading limitation in the current session.
 
+## Compatibility
+
+The plugin is built with Java 17 bytecode and declares compatibility with IntelliJ Platform `223+` without an `until-build` upper bound.
+The minimum supported JetBrains IDE line is `2022.3+`. This is the first IntelliJ Platform line that JetBrains documents as using Java 17 as the platform runtime.
+
+| IntelliJ Platform | Build branch | Status                                                      |
+| ----------------- | ------------ | ----------------------------------------------------------- |
+| 2022.3            | `223`        | minimum supported version                                   |
+| 2023.1            | `231`        | supported                                                   |
+| 2023.2            | `232`        | supported                                                   |
+| 2023.3            | `233`        | supported                                                   |
+| 2024.1            | `241`        | supported                                                   |
+| 2024.2+           | `242+`       | supported via Java 17 bytecode and open-ended compatibility |
+
+Marketplace derives exact product versions from `since-build="223"` and the platform-only `com.intellij.modules.platform` dependency.
+
+| JetBrains product | Marketplace minimum version |
+| ----------------- | --------------------------- |
+| IntelliJ IDEA Community/Ultimate | 2022.3+ |
+| WebStorm, PyCharm, PhpStorm, GoLand, CLion, Rider, RubyMine | 2022.3+ |
+| DataGrip, DataSpell, MPS, AppCode | 2022.3+ |
+| Android Studio | Giraffe / 2022.3.1 Beta 1+ |
+| RustRover | 2024.1+ |
+| Gateway, JetBrains Client, Code With Me Guest | 1.0+ |
+
 ## Publication
 
 - JetBrains Marketplace versions page: https://plugins.jetbrains.com/plugin/32159-markdown-table-editor/edit/versions
@@ -78,55 +103,65 @@ You will get a Markdown table with `Name` and `Score` columns.
 
 Default keyboard shortcuts:
 
-| Command                      | Shortcut     |
-| ---------------------------- | ------------ |
-| `Tab: Align Markdown Table`  | `Tab`        |
-| `Align Table`                | `Ctrl+Alt+A` |
+| Command                     | Shortcut     |
+| --------------------------- | ------------ |
+| `Tab: Align Markdown Table` | `Tab`        |
+| `Align Table`               | `Ctrl+Alt+A` |
 
 You can assign shortcuts for the other commands in `Settings | Keymap`.
 
 ## Build and Tests
 
-You need JDK 21. The IntelliJ Platform SDK used for compilation is downloaded by the Gradle IntelliJ Platform plugin.
+You need JDK 17. The IntelliJ Platform SDK `2022.3` used for compilation is downloaded by the Gradle IntelliJ Platform plugin.
 
-```powershell
+```cmd
 .\gradlew.bat check buildPlugin
 ```
 
 The built ZIP appears in `build/distributions`.
 If a JetBrains IDE is installed locally and you do not want to wait for the platform download, pass its path:
 
-```powershell
+```cmd
 .\gradlew.bat check buildPlugin -PplatformLocalPath="C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3"
 ```
 
 For Marketplace compatibility verification:
 
-```powershell
+```cmd
 .\gradlew.bat verifyPlugin
 ```
 
 In GitHub Actions, the verifier also uses recommended IDEs. Locally, enable that explicitly with:
 
-```powershell
+```cmd
 .\gradlew.bat verifyPlugin -PverifyRecommendedIdes=true
 ```
 
+For JaCoCo coverage:
+
+```cmd
+.\gradlew.bat jacocoTestReport
+```
+
+The HTML report is written to `build/reports/coverage/html`.
+
 Full release build:
 
-```powershell
+```cmd
 .\gradlew.bat clean check verifyPlugin buildPlugin
+```
+
+For an explicit release version, pass the Gradle property; without it, Gradle reads `VERSION`.
+`plugin.xml` and the Marketplace document are generated from the same value, and the ready-to-use Marketplace file is written to `build/release/MARKETPLACE_SUBMISSION.md`.
+
+```cmd
+.\gradlew.bat clean check verifyPlugin buildPlugin "-PpluginVersion=x.y.z"
 ```
 
 For a faster local build without Plugin Verifier:
 
-```powershell
+```cmd
 .\gradlew.bat clean check buildPlugin
 ```
 
 For local installation, use the ZIP from `build/distributions` through `Settings | Plugins | Install Plugin from Disk...`.
-
-## License
-
-The plugin code is distributed under the MIT License. The full license text is in [LICENSE](LICENSE).
-Third-party build tooling is listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -691,22 +691,179 @@ public final class MarkdownTableCore {
 		return table.separatorRow > 0;
 	}
 
-	private static boolean isCjkCodePoint(int cp) {
-		return (cp >= 0x1100 && cp <= 0x115F) ||
-			(cp >= 0x2E80 && cp <= 0xA4CF) ||
+	private static boolean isWideCodePoint(int cp) {
+		return cp == 0x2329 || cp == 0x232A ||
+			(cp >= 0x1100 && cp <= 0x115F) ||
+			(cp >= 0x2E80 && cp <= 0xA4CF && cp != 0x303F) ||
 			(cp >= 0xAC00 && cp <= 0xD7A3) ||
 			(cp >= 0xF900 && cp <= 0xFAFF) ||
-			(cp >= 0xFE10 && cp <= 0xFE6F) ||
+			(cp >= 0xFE10 && cp <= 0xFE19) ||
+			(cp >= 0xFE30 && cp <= 0xFE6F) ||
 			(cp >= 0xFF00 && cp <= 0xFF60) ||
-			(cp >= 0xFFE0 && cp <= 0xFFE6);
+			(cp >= 0xFFE0 && cp <= 0xFFE6) ||
+			(cp >= 0x20000 && cp <= 0x3FFFD);
+	}
+
+	private static boolean isEmojiPresentationCodePoint(int cp) {
+		return (cp >= 0x1F000 && cp <= 0x1FAFF) ||
+			(cp >= 0x231A && cp <= 0x231B) ||
+			(cp >= 0x23E9 && cp <= 0x23EC) ||
+			cp == 0x23F0 || cp == 0x23F3 ||
+			(cp >= 0x25FD && cp <= 0x25FE) ||
+			(cp >= 0x2614 && cp <= 0x2615) ||
+			(cp >= 0x2648 && cp <= 0x2653) ||
+			cp == 0x267F || cp == 0x2693 || cp == 0x26A1 ||
+			(cp >= 0x26AA && cp <= 0x26AB) ||
+			(cp >= 0x26BD && cp <= 0x26BE) ||
+			(cp >= 0x26C4 && cp <= 0x26C5) ||
+			cp == 0x26CE || cp == 0x26D4 || cp == 0x26EA ||
+			(cp >= 0x26F2 && cp <= 0x26F3) ||
+			cp == 0x26F5 || cp == 0x26FA || cp == 0x26FD ||
+			cp == 0x2705 || (cp >= 0x270A && cp <= 0x270B) ||
+			cp == 0x2728 || cp == 0x274C || cp == 0x274E ||
+			(cp >= 0x2753 && cp <= 0x2755) ||
+			cp == 0x2757 || (cp >= 0x2795 && cp <= 0x2797) ||
+			cp == 0x27B0 || cp == 0x27BF ||
+			(cp >= 0x2B1B && cp <= 0x2B1C) ||
+			cp == 0x2B50 || cp == 0x2B55 ||
+			cp == 0x3030 || cp == 0x303D || cp == 0x3297 || cp == 0x3299;
+	}
+
+	private static boolean isEmojiVariationBase(int cp) {
+		return isEmojiPresentationCodePoint(cp) ||
+			cp == 0x00A9 || cp == 0x00AE || cp == 0x203C || cp == 0x2049 ||
+			cp == 0x2122 || cp == 0x2139 ||
+			(cp >= 0x2194 && cp <= 0x2199) ||
+			(cp >= 0x21A9 && cp <= 0x21AA) ||
+			cp == 0x2328 || cp == 0x23CF ||
+			(cp >= 0x23ED && cp <= 0x23EF) ||
+			(cp >= 0x23F1 && cp <= 0x23F2) ||
+			(cp >= 0x23F8 && cp <= 0x23FA) ||
+			cp == 0x24C2 || (cp >= 0x25AA && cp <= 0x25AB) ||
+			cp == 0x25B6 || cp == 0x25C0 ||
+			(cp >= 0x25FB && cp <= 0x25FE) ||
+			(cp >= 0x2600 && cp <= 0x27BF) ||
+			(cp >= 0x2934 && cp <= 0x2935) ||
+			(cp >= 0x2B05 && cp <= 0x2B07) ||
+			(cp >= 0x2B1B && cp <= 0x2B1C) ||
+			cp == 0x2B50 || cp == 0x2B55 ||
+			cp == 0x3030 || cp == 0x303D || cp == 0x3297 || cp == 0x3299;
+	}
+
+	private static boolean isVariationSelector(int cp) {
+		return (cp >= 0xFE00 && cp <= 0xFE0F) || (cp >= 0xE0100 && cp <= 0xE01EF);
+	}
+
+	private static boolean isEmojiModifier(int cp) {
+		return cp >= 0x1F3FB && cp <= 0x1F3FF;
+	}
+
+	private static boolean isEmojiTag(int cp) {
+		return cp >= 0xE0020 && cp <= 0xE007F;
+	}
+
+	private static boolean isRegionalIndicator(int cp) {
+		return cp >= 0x1F1E6 && cp <= 0x1F1FF;
+	}
+
+	private static boolean isKeycapBase(int cp) {
+		return cp == '#' || cp == '*' || (cp >= '0' && cp <= '9');
+	}
+
+	private static boolean isCombiningCodePoint(int cp) {
+		int type = Character.getType(cp);
+		return type == Character.NON_SPACING_MARK ||
+			type == Character.COMBINING_SPACING_MARK ||
+			type == Character.ENCLOSING_MARK;
+	}
+
+	private static boolean isZeroWidthCodePoint(int cp) {
+		return cp == 0 ||
+			cp == 0x200C || cp == 0x200D ||
+			cp == 0x20E3 ||
+			cp == 0xFEFF ||
+			Character.getType(cp) == Character.FORMAT ||
+			isCombiningCodePoint(cp) ||
+			isVariationSelector(cp) ||
+			isEmojiModifier(cp) ||
+			isEmojiTag(cp);
+	}
+
+	private static int codePointDisplayWidth(int cp) {
+		if (isZeroWidthCodePoint(cp)) {
+			return 0;
+		}
+		return isWideCodePoint(cp) || isEmojiPresentationCodePoint(cp) ? 2 : 1;
+	}
+
+	private static int skipClusterModifiers(String text, int offset, int baseCodePoint, int[] clusterWidth) {
+		while (offset < text.length()) {
+			int cp = text.codePointAt(offset);
+			if (!isVariationSelector(cp) && !isCombiningCodePoint(cp) && !isEmojiModifier(cp) && !isEmojiTag(cp)) {
+				break;
+			}
+			if (cp == 0xFE0F && isEmojiVariationBase(baseCodePoint)) {
+				clusterWidth[0] = Math.max(clusterWidth[0], 2);
+			}
+			offset += Character.charCount(cp);
+		}
+		return offset;
+	}
+
+	private static int skipKeycapCluster(String text, int offset) {
+		int next = offset;
+		while (next < text.length() && isVariationSelector(text.codePointAt(next))) {
+			next += Character.charCount(text.codePointAt(next));
+		}
+		if (next < text.length() && text.codePointAt(next) == 0x20E3) {
+			return next + Character.charCount(0x20E3);
+		}
+		return -1;
 	}
 
 	private static int displayWidth(String text) {
 		int width = 0;
 		for (int offset = 0; offset < text.length();) {
 			int cp = text.codePointAt(offset);
-			width += isCjkCodePoint(cp) ? 2 : 1;
 			offset += Character.charCount(cp);
+
+			if (isZeroWidthCodePoint(cp)) {
+				continue;
+			}
+
+			if (isKeycapBase(cp)) {
+				int keycapEnd = skipKeycapCluster(text, offset);
+				if (keycapEnd != -1) {
+					width += 2;
+					offset = keycapEnd;
+					continue;
+				}
+			}
+
+			if (isRegionalIndicator(cp) && offset < text.length()) {
+				int next = text.codePointAt(offset);
+				if (isRegionalIndicator(next)) {
+					width += 2;
+					offset += Character.charCount(next);
+					continue;
+				}
+			}
+
+			int[] clusterWidth = { codePointDisplayWidth(cp) };
+			offset = skipClusterModifiers(text, offset, cp, clusterWidth);
+			boolean joined = false;
+			while (offset < text.length() && text.codePointAt(offset) == 0x200D) {
+				joined = true;
+				offset += Character.charCount(0x200D);
+				if (offset >= text.length()) {
+					break;
+				}
+				int joinedCp = text.codePointAt(offset);
+				offset += Character.charCount(joinedCp);
+				clusterWidth[0] = Math.max(clusterWidth[0], codePointDisplayWidth(joinedCp));
+				offset = skipClusterModifiers(text, offset, joinedCp, clusterWidth);
+			}
+			width += joined && clusterWidth[0] > 0 ? Math.max(clusterWidth[0], 2) : clusterWidth[0];
 		}
 		return width;
 	}
@@ -988,19 +1145,148 @@ public final class MarkdownTableCore {
 			}
 		}
 
-		int text = left.foldedText.compareTo(right.foldedText);
+		int text = compareCodePointOrder(left.foldedText, right.foldedText);
 		if (text != 0) {
 			return text;
 		}
-		return left.text.compareTo(right.text);
+		return compareCodePointOrder(left.text, right.text);
 	}
 
 	private static String foldCaseForSort(String value) {
-		char[] chars = value.toCharArray();
-		for (int i = 0; i < chars.length; i++) {
-			chars[i] = Character.toLowerCase(Character.toUpperCase(chars[i]));
+		StringBuilder folded = new StringBuilder(value.length());
+		for (int offset = 0; offset < value.length();) {
+			int cp = value.codePointAt(offset);
+			offset += Character.charCount(cp);
+			appendSortCodePoint(folded, cp);
 		}
-		return new String(chars);
+		return folded.toString();
+	}
+
+	private static int compareCodePointOrder(String left, String right) {
+		int leftOffset = 0;
+		int rightOffset = 0;
+		while (leftOffset < left.length() && rightOffset < right.length()) {
+			int leftCp = left.codePointAt(leftOffset);
+			int rightCp = right.codePointAt(rightOffset);
+			if (leftCp != rightCp) {
+				return Integer.compare(leftCp, rightCp);
+			}
+			leftOffset += Character.charCount(leftCp);
+			rightOffset += Character.charCount(rightCp);
+		}
+		if (leftOffset < left.length()) {
+			return 1;
+		}
+		if (rightOffset < right.length()) {
+			return -1;
+		}
+		return 0;
+	}
+
+	private static void appendSortCodePoint(StringBuilder folded, int cp) {
+		if (isSortIgnorableCodePoint(cp)) {
+			return;
+		}
+
+		switch (cp) {
+			case 0x00C0: case 0x00C1: case 0x00C2: case 0x00C3: case 0x00C4: case 0x00C5:
+			case 0x00E0: case 0x00E1: case 0x00E2: case 0x00E3: case 0x00E4: case 0x00E5:
+				folded.append('a');
+				return;
+			case 0x00C6: case 0x00E6:
+				folded.append("ae");
+				return;
+			case 0x00C7: case 0x00E7:
+				folded.append('c');
+				return;
+			case 0x00D0: case 0x00F0:
+				folded.append('d');
+				return;
+			case 0x00C8: case 0x00C9: case 0x00CA: case 0x00CB:
+			case 0x00E8: case 0x00E9: case 0x00EA: case 0x00EB:
+				folded.append('e');
+				return;
+			case 0x00CC: case 0x00CD: case 0x00CE: case 0x00CF:
+			case 0x00EC: case 0x00ED: case 0x00EE: case 0x00EF:
+				folded.append('i');
+				return;
+			case 0x00D1: case 0x00F1:
+				folded.append('n');
+				return;
+			case 0x00D2: case 0x00D3: case 0x00D4: case 0x00D5: case 0x00D6: case 0x00D8:
+			case 0x00F2: case 0x00F3: case 0x00F4: case 0x00F5: case 0x00F6: case 0x00F8:
+				folded.append('o');
+				return;
+			case 0x00D9: case 0x00DA: case 0x00DB: case 0x00DC:
+			case 0x00F9: case 0x00FA: case 0x00FB: case 0x00FC:
+				folded.append('u');
+				return;
+			case 0x00DD: case 0x00FD: case 0x00FF:
+				folded.append('y');
+				return;
+			case 0x00DE: case 0x00FE:
+				folded.append("th");
+				return;
+			case 0x00DF:
+				folded.append("ss");
+				return;
+			default:
+				folded.appendCodePoint(foldCaseCodePoint(cp));
+		}
+	}
+
+	private static boolean isSortIgnorableCodePoint(int cp) {
+		return isCombiningCodePoint(cp) ||
+			isVariationSelector(cp) ||
+			isEmojiModifier(cp) ||
+			isEmojiTag(cp) ||
+			Character.getType(cp) == Character.FORMAT;
+	}
+
+	private static int foldCaseCodePoint(int cp) {
+		if (cp >= 'A' && cp <= 'Z') {
+			return cp + ('a' - 'A');
+		}
+		if (cp >= 0x00C0 && cp <= 0x00D6) {
+			return cp + 0x20;
+		}
+		if (cp >= 0x00D8 && cp <= 0x00DE) {
+			return cp + 0x20;
+		}
+		if (cp == 0x0178) {
+			return 0x00FF;
+		}
+		if (cp >= 0x0391 && cp <= 0x03A1) {
+			return cp + 0x20;
+		}
+		if (cp >= 0x03A3 && cp <= 0x03AB) {
+			return cp + 0x20;
+		}
+		if (cp >= 0x0400 && cp <= 0x040F) {
+			return cp + 0x50;
+		}
+		if (cp >= 0x0410 && cp <= 0x042F) {
+			return cp + 0x20;
+		}
+
+		switch (cp) {
+			case 0x0386:
+				return 0x03AC;
+			case 0x0388:
+				return 0x03AD;
+			case 0x0389:
+				return 0x03AE;
+			case 0x038A:
+				return 0x03AF;
+			case 0x038C:
+				return 0x03CC;
+			case 0x038E:
+				return 0x03CD;
+			case 0x038F:
+				return 0x03CE;
+			default:
+				return cp;
+		}
 	}
 
 	private static Double parseNumber(String value) {

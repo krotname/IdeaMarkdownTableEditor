@@ -38,17 +38,19 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javax.swing.JComponent;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public final class MarkdownTableEditorScenarios {
 	private static final ActionManager TEST_ACTION_MANAGER = new TestActionManager();
-	private static int checks;
-	private static int failures;
 
 	private MarkdownTableEditorScenarios() {
 	}
 
-	public static int run() {
-		checks = 0;
-		failures = 0;
+	public static void run() {
 		MarkdownTableEditor.setCommandRunnerForTests((project, name, change) -> change.run());
 		MarkdownTableActions.setDialogServiceForTests(new TestDialogService());
 		try {
@@ -60,13 +62,6 @@ public final class MarkdownTableEditorScenarios {
 			MarkdownTableEditor.setCommandRunnerForTests(null);
 			MarkdownTableActions.setDialogServiceForTests(null);
 		}
-
-		if (failures == 0) {
-			System.out.println("Editor integration scenarios passed (" + checks + " checks)");
-		} else {
-			System.err.println(failures + " editor integration scenario(s) failed");
-		}
-		return failures;
 	}
 
 	private static void editorRunScenarios() {
@@ -276,43 +271,23 @@ public final class MarkdownTableEditorScenarios {
 	}
 
 	private static void expectTrue(String name, boolean value) {
-		checks++;
-		if (!value) {
-			fail(name, "expected true");
-		}
+		assertTrue(value, name);
 	}
 
 	private static void expectInt(String name, int actual, int expected) {
-		checks++;
-		if (actual != expected) {
-			fail(name, "expected " + expected + ", got " + actual);
-		}
+		assertEquals(expected, actual, name);
 	}
 
 	private static void expectString(String name, String actual, String expected) {
-		checks++;
-		if (!actual.equals(expected)) {
-			fail(name, "expected:\n" + expected + "\nactual:\n" + actual);
-		}
+		assertEquals(expected, actual, name);
 	}
 
 	private static void expectContains(String name, String actual, String expected) {
-		checks++;
-		if (!actual.contains(expected)) {
-			fail(name, "expected to contain: " + expected + "\nactual:\n" + actual);
-		}
+		assertTrue(actual.contains(expected), () -> name + " expected to contain: " + expected + "\nactual:\n" + actual);
 	}
 
 	private static void expectSame(String name, Object actual, Object expected) {
-		checks++;
-		if (actual != expected) {
-			fail(name, "expected same value");
-		}
-	}
-
-	private static void fail(String name, String message) {
-		failures++;
-		System.err.println("editor scenario " + name + " failed: " + message);
+		assertSame(expected, actual, name);
 	}
 
 	private static final class RecordingHandler extends EditorActionHandler {
@@ -387,6 +362,11 @@ public final class MarkdownTableEditorScenarios {
 		}
 
 		@Override
+		public JComponent createButtonToolbar(String place, ActionGroup group) {
+			return null;
+		}
+
+		@Override
 		public AnAction getActionOrStub(String id) {
 			return null;
 		}
@@ -401,6 +381,10 @@ public final class MarkdownTableEditorScenarios {
 
 		@Override
 		public void addAnActionListener(AnActionListener listener) {
+		}
+
+		@Override
+		public void removeAnActionListener(AnActionListener listener) {
 		}
 
 		@Override

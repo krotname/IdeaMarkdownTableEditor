@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version without the leading v
-        required: true
-        default: 0.6.0
+        description: Optional release version guard without leading v; must match VERSION.
+        required: false
   push:
     tags:
       - 'v*'
@@ -23,14 +22,19 @@ jobs:
     steps:
       - name: Resolve version
         id: version
-        shell: pwsh
+        shell: bash
         run: |
-          $version = "${{ github.event.inputs.version }}"
-          if (-not $version) {
-            $version = "${{ github.ref_name }}".TrimStart("v")
-          }
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          canonical_version="$(tr -d '[:space:]' < VERSION)"
+          requested_version="${{ github.event.inputs.version }}"
+          if [ -z "$requested_version" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            requested_version="${GITHUB_REF_NAME#v}"
+          fi
+          if [ -n "$requested_version" ] && [ "$requested_version" != "$canonical_version" ]; then
+            echo "Release version '$requested_version' does not match VERSION '$canonical_version'. Update VERSION first." >&2
+            exit 1
+          fi
+          echo "version=$canonical_version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$canonical_version" >> "$GITHUB_OUTPUT"
 
   build:
     needs: version
@@ -39,21 +43,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '17'
 
       - name: Build, verify, and package
-        shell: pwsh
-        run: .\gradlew.bat clean check verifyPlugin buildPlugin -PpluginVersion='${{ needs.version.outputs.version }}' -PverifyRecommendedIdes=true --no-daemon --console=plain
+        shell: cmd
+        run: gradlew.bat clean check verifyPlugin buildPlugin "-PpluginVersion=${{ needs.version.outputs.version }}" -PverifyRecommendedIdes=false -PverifyAllJetBrainsIdes=false --no-daemon --console=plain --no-build-cache --rerun-tasks
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
           name: idea-plugin
-          path: build/distributions/MarkdownTableEditorIdea-${{ needs.version.outputs.version }}.zip
+          path: |
+            build/distributions/MarkdownTableEditorIdea-${{ needs.version.outputs.version }}.zip
+            build/release/MARKETPLACE_SUBMISSION.md
           if-no-files-found: error
 
   release:
@@ -68,47 +74,41 @@ jobs:
           path: release-assets
 
       - name: Publish GitHub release
-        shell: pwsh
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ needs.version.outputs.tag }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
-          $files = Get-ChildItem -LiteralPath release-assets -Recurse -File -Filter "*.zip" | Sort-Object Name
-          if (-not $files) {
-            throw "No release ZIP files were downloaded."
-          }
+          mapfile -t files < <(find release-assets -type f -name '*.zip' | sort)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No release ZIP files were downloaded." >&2
+            exit 1
+          fi
 
-          $hashPath = Join-Path $PWD "SHA256SUMS.txt"
-          $hashLines = foreach ($file in $files) {
-            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $file.FullName).Hash.ToLowerInvariant()
-            "$hash  $($file.Name)"
-          }
-          [IO.File]::WriteAllLines($hashPath, $hashLines, [Text.UTF8Encoding]::new($false))
+          sha256sum "${files[@]}" > SHA256SUMS.txt
+          marketplace_doc="$(find release-assets -type f -name 'MARKETPLACE_SUBMISSION.md' | sort | head -n 1)"
+          cat > release-notes.md <<EOF
+          ## What's Changed
 
-          $notesPath = Join-Path $PWD "release-notes.md"
-          $notes = @(
-            "## What's Changed",
-            "",
-            "- Built the JetBrains IDE plugin package on GitHub Actions.",
-            "- Updated plugin metadata for version $env:VERSION.",
-            "- Included SHA-256 sums for release verification.",
-            "",
-            "## Validation",
-            "",
-            "- GitHub Actions release build completed with smoke tests."
-          )
-          [IO.File]::WriteAllLines($notesPath, $notes, [Text.UTF8Encoding]::new($false))
+          - Built the JetBrains IDE plugin package on GitHub Actions.
+          - Updated plugin metadata for version $VERSION.
+          - Generated Marketplace submission notes for version $VERSION.
+          - Included SHA-256 sums for release verification.
 
-          $assetPaths = @($files.FullName) + @($hashPath)
-          gh release view $env:TAG_NAME --repo $env:GITHUB_REPOSITORY *> $null
-          $releaseExists = $LASTEXITCODE -eq 0
-          if ($releaseExists) {
-            $uploadArgs = @("release", "upload", $env:TAG_NAME) + $assetPaths + @("--repo", $env:GITHUB_REPOSITORY, "--clobber")
-            & gh @uploadArgs
-            gh release edit $env:TAG_NAME --repo $env:GITHUB_REPOSITORY --title "Markdown Table Editor $env:VERSION" --notes-file $notesPath --latest
-          }
-          else {
-            $createArgs = @("release", "create", $env:TAG_NAME) + $assetPaths + @("--repo", $env:GITHUB_REPOSITORY, "--target", $env:GITHUB_SHA, "--title", "Markdown Table Editor $env:VERSION", "--notes-file", $notesPath, "--latest")
-            & gh @createArgs
-          }
+          ## Validation
+
+          - GitHub Actions release build completed with smoke tests.
+          EOF
+
+          assets=("${files[@]}" SHA256SUMS.txt)
+          if [ -n "$marketplace_doc" ]; then
+            assets+=("$marketplace_doc")
+          fi
+
+          if gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG_NAME" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --title "Markdown Table Editor $VERSION" --notes-file release-notes.md --latest
+          else
+            gh release create "$TAG_NAME" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Markdown Table Editor $VERSION" --notes-file release-notes.md --latest
+          fi

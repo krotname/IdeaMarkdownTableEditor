@@ -2,8 +2,8 @@
 	<id>name.krot.markdown-table-editor-idea</id>
 	<name>Markdown Table Editor</name>
 	<vendor email="krotname@users.noreply.github.com" url="https://github.com/krotname">krotname</vendor>
-	<version>0.7.0</version>
-	<idea-version since-build="242"/>
+	<version>@PLUGIN_VERSION@</version>
+	<idea-version since-build="223"/>
 
 	<description><![CDATA[
 		<p>Markdown Table Editor keeps Markdown pipe tables readable directly in JetBrains IDE editors.</p>
@@ -14,15 +14,15 @@
 			<li>Insert a new Markdown table by size.</li>
 			<li>Edit rows and columns without leaving the file.</li>
 		</ul>
-		<p>RU: Редактор Markdown-таблиц с вертикальными чертами. Нажмите Tab внутри таблицы, чтобы выровнять ее, или используйте команды из меню Tools.</p>
+		<p>Compatible with IntelliJ Platform 2022.3+ / build 223+ JetBrains IDEs, including IntelliJ IDEA, Android Studio, WebStorm, PyCharm, PhpStorm, GoLand, CLion, Rider, RubyMine, DataGrip, DataSpell, RustRover, and other platform-based IDEs.</p>
+		<p>RU: Редактор Markdown-таблиц с вертикальными чертами. Совместим с IDE JetBrains на IntelliJ Platform 2022.3+ / build 223+: IntelliJ IDEA, Android Studio, WebStorm, PyCharm, PhpStorm, GoLand, CLion, Rider, RubyMine, DataGrip, DataSpell, RustRover и другими IDE на платформе. Нажмите Tab внутри таблицы, чтобы выровнять ее, или используйте команды из меню Tools.</p>
 	]]></description>
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>Declared platform-only compatibility for JetBrains IDEs based on IntelliJ Platform 2024.2 and newer.</li>
-			<li>Verified compatibility across the major JetBrains IDE family, including IntelliJ IDEA, Android Studio, WebStorm, PyCharm, PhpStorm, GoLand, CLion, Rider, and RubyMine.</li>
-			<li>Fixed table actions so adjacent pipe-looking text before or after a table is not included in the edited table block.</li>
-			<li>Updated Marketplace metadata and verification notes for version 0.7.0.</li>
+			<li>Improved Markdown table alignment for Unicode text, CJK wide characters, emoji clusters, variation selectors, combining marks, keycaps, flags, and zero-width joiner sequences.</li>
+			<li>Made row sorting deterministic for Unicode text by comparing code points after shared case folding and accent handling.</li>
+			<li>Declared compatibility with IntelliJ Platform 2022.3 and newer Java 17 based JetBrains IDEs.</li>
 		</ul>
 	]]></change-notes>
 

@@ -6,27 +6,17 @@ package name.krot.markdowntableidea.core;
 import java.util.ArrayList;
 import java.util.List;
 
-final class MarkdownTableCoreScenarios {
-	private static int checks;
-	private static int failures;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+final class MarkdownTableCoreScenarios {
 	private MarkdownTableCoreScenarios() {
 	}
 
-	static int run() {
-		checks = 0;
-		failures = 0;
-
+	static void run() {
 		editorCommandScenarios();
 		delimitedScenarios();
 		largeDataScenarios();
-
-		if (failures == 0) {
-			System.out.println("Scenario unit tests passed (" + checks + " checks)");
-		} else {
-			System.err.println(failures + " scenario test(s) failed");
-		}
-		return failures;
 	}
 
 	private static void editorCommandScenarios() {
@@ -269,35 +259,18 @@ final class MarkdownTableCoreScenarios {
 	}
 
 	private static void expectTrue(String name, boolean value) {
-		checks++;
-		if (!value) {
-			fail(name, "expected true");
-		}
+		assertTrue(value, name);
 	}
 
 	private static void expectInt(String name, int actual, int expected) {
-		checks++;
-		if (actual != expected) {
-			fail(name, "expected " + expected + ", got " + actual);
-		}
+		assertEquals(expected, actual, name);
 	}
 
 	private static void expectLines(String name, List<String> actual, List<String> expected) {
-		checks++;
-		if (!actual.equals(expected)) {
-			fail(name, "expected:\n" + String.join("\n", expected) + "\nactual:\n" + String.join("\n", actual));
-		}
+		assertEquals(expected, actual, name);
 	}
 
 	private static void expectContains(String name, String actual, String expected) {
-		checks++;
-		if (!actual.contains(expected)) {
-			fail(name, "expected to contain: " + expected);
-		}
-	}
-
-	private static void fail(String name, String message) {
-		failures++;
-		System.err.println("scenario " + name + " failed: " + message);
+		assertTrue(actual.contains(expected), () -> name + " expected to contain: " + expected);
 	}
 }

@@ -1,14 +1,20 @@
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+import org.gradle.testing.jacoco.tasks.JacocoReport
 import java.util.zip.ZipFile
 
 plugins {
 	java
+	jacoco
 	id("org.jetbrains.intellij.platform")
 }
 
@@ -35,9 +41,86 @@ abstract class VerifyPackagedLicense : DefaultTask() {
 	}
 }
 
+abstract class GenerateMarketplaceSubmission : DefaultTask() {
+	@get:InputFile
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val templateFile: RegularFileProperty
+
+	@get:OutputFile
+	abstract val outputFile: RegularFileProperty
+
+	@get:Input
+	abstract val pluginVersion: Property<String>
+
+	@TaskAction
+	fun generate() {
+		val version = pluginVersion.get()
+		val template = templateFile.asFile.get().readText(Charsets.UTF_8)
+		check(template.contains("@PLUGIN_VERSION@")) {
+			"MARKETPLACE_SUBMISSION.md must contain @PLUGIN_VERSION@ placeholders."
+		}
+		val generatedFile = outputFile.asFile.get()
+		generatedFile.parentFile.mkdirs()
+		generatedFile.writeText(template.replace("@PLUGIN_VERSION@", version), Charsets.UTF_8)
+	}
+}
+
+abstract class VerifyReleaseMetadata : DefaultTask() {
+	@get:InputFile
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val sourcePluginXmlFile: RegularFileProperty
+
+	@get:InputFile
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val processedPluginXmlFile: RegularFileProperty
+
+	@get:InputFile
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val generatedMarketplaceSubmissionFile: RegularFileProperty
+
+	@get:Input
+	abstract val pluginVersion: Property<String>
+
+	@TaskAction
+	fun verify() {
+		val version = pluginVersion.get()
+		logger.lifecycle("Verifying release metadata for version $version.")
+		val sourcePluginXml = sourcePluginXmlFile.asFile.get().readText(Charsets.UTF_8)
+		check(sourcePluginXml.contains("<version>@PLUGIN_VERSION@</version>")) {
+			"Source plugin.xml must keep @PLUGIN_VERSION@ as the only version placeholder."
+		}
+
+		val processedFile = processedPluginXmlFile.asFile.get()
+		logger.lifecycle("Checking processed plugin descriptor: ${processedFile.absolutePath}")
+		val processedPluginXml = processedFile.readText(Charsets.UTF_8)
+		check(processedPluginXml.contains("<version>$version</version>")) {
+			"Processed plugin.xml must contain release version $version."
+		}
+		check(!processedPluginXml.contains("@PLUGIN_VERSION@")) {
+			"Processed plugin.xml still contains @PLUGIN_VERSION@."
+		}
+
+		val generatedMarketplace = generatedMarketplaceSubmissionFile.asFile.get().readText(Charsets.UTF_8)
+		check(generatedMarketplace.contains("Version: `$version`")) {
+			"Generated Marketplace submission must contain release version $version."
+		}
+		check(generatedMarketplace.contains("MarkdownTableEditorIdea-$version.zip")) {
+			"Generated Marketplace submission must point at the release ZIP for $version."
+		}
+		check(!generatedMarketplace.contains("@PLUGIN_VERSION@")) {
+			"Generated Marketplace submission still contains @PLUGIN_VERSION@."
+		}
+	}
+}
+
 val pluginVersion = providers.gradleProperty("pluginVersion")
-	.orElse(providers.provider { file("VERSION").readText().trim() })
-val platformVersion = providers.gradleProperty("platformVersion").orElse("2024.2")
+	.orElse(providers.provider { file("VERSION").readText(Charsets.UTF_8).trim() })
+	.map { it.trim() }
+val resolvedPluginVersion = pluginVersion.get()
+check(Regex("""\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?""").matches(resolvedPluginVersion)) {
+	"pluginVersion must be a semantic version, got '$resolvedPluginVersion'."
+}
+val platformVersion = providers.gradleProperty("platformVersion").orElse("2022.3")
 val platformLocalPath = providers.gradleProperty("platformLocalPath")
 	.orElse("")
 val verifyRecommendedIdes = providers.gradleProperty("verifyRecommendedIdes")
@@ -49,13 +132,10 @@ val verifyCurrentIde = providers.gradleProperty("verifyCurrentIde")
 val verifyAllJetBrainsIdes = providers.gradleProperty("verifyAllJetBrainsIdes")
 	.map { it.toBoolean() }
 	.orElse(false)
-val verificationIdeVersion = providers.gradleProperty("verificationIdeVersion").orElse("2024.2")
+val verificationIdeVersion = providers.gradleProperty("verificationIdeVersion").orElse("2022.3.3")
 val androidStudioVerificationIdeVersion = providers.gradleProperty("androidStudioVerificationIdeVersion").orElse("2024.2.2.13")
 val baselineJetBrainsIdeVerificationTypes = listOf(
-	IntelliJPlatformType.IntellijIdeaCommunity,
-	IntelliJPlatformType.WebStorm,
-	IntelliJPlatformType.PyCharmCommunity,
-	IntelliJPlatformType.CLion
+	IntelliJPlatformType.IntellijIdeaCommunity
 )
 val allJetBrainsIdeVerificationTypes = listOf(
 	IntelliJPlatformType.AndroidStudio,
@@ -77,19 +157,27 @@ val jetBrainsIdeVerificationTypes = if (verifyAllJetBrainsIdes.get()) {
 }
 
 group = "name.krot"
-version = pluginVersion.get()
+version = resolvedPluginVersion
 
 base {
 	archivesName = "MarkdownTableEditorIdea"
 }
 
+jacoco {
+	toolVersion = "0.8.13"
+}
+
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+		languageVersion = JavaLanguageVersion.of(17)
 	}
 }
 
 dependencies {
+	testImplementation(platform("org.junit:junit-bom:6.1.0"))
+	testImplementation("org.junit.jupiter:junit-jupiter")
+	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
 	intellijPlatform {
 		if (platformLocalPath.get().isNotBlank()) {
 			local(platformLocalPath.get())
@@ -107,7 +195,7 @@ intellijPlatform {
 		version = pluginVersion
 
 		ideaVersion {
-			sinceBuild = "242"
+			sinceBuild = "223"
 			untilBuild = provider { null }
 		}
 	}
@@ -141,11 +229,55 @@ intellijPlatform {
 
 tasks.withType<JavaCompile>().configureEach {
 	options.encoding = "UTF-8"
-	options.release = 21
+	options.release = 17
+}
+
+val sourcePluginXmlPath = layout.projectDirectory.file("src/main/resources/META-INF/plugin.xml")
+val processedPluginXmlPath = layout.buildDirectory.file("resources/main/META-INF/plugin.xml")
+val marketplaceSubmissionTemplate = layout.projectDirectory.file("MARKETPLACE_SUBMISSION.md")
+val generatedMarketplaceSubmission = layout.buildDirectory.file("release/MARKETPLACE_SUBMISSION.md")
+val goldenFixtureFile = layout.projectDirectory.file("test-fixtures/markdown-table-core-golden.json")
+val coreCoverageClassDirectories = layout.buildDirectory.dir("instrumented/instrumentCode").map {
+	fileTree(it) {
+		include("name/krot/markdowntableidea/core/MarkdownTableCore*.class")
+	}
+}
+val coreCoverageSourceDirectories = files("src/main/java")
+val coreCoverageExecutionData = layout.buildDirectory.file("jacoco/test.exec")
+
+val generateMarketplaceSubmission by tasks.registering(GenerateMarketplaceSubmission::class) {
+	group = "distribution"
+	description = "Generates JetBrains Marketplace submission notes with the resolved plugin version."
+	templateFile.set(marketplaceSubmissionTemplate)
+	outputFile.set(generatedMarketplaceSubmission)
+	pluginVersion.set(resolvedPluginVersion)
+}
+
+val verifyReleaseMetadata by tasks.registering(VerifyReleaseMetadata::class) {
+	group = LifecycleBasePlugin.VERIFICATION_GROUP
+	description = "Checks generated plugin and Marketplace metadata use the resolved release version."
+	dependsOn(tasks.named("processResources"))
+	dependsOn(generateMarketplaceSubmission)
+	sourcePluginXmlFile.set(sourcePluginXmlPath)
+	processedPluginXmlFile.set(processedPluginXmlPath)
+	generatedMarketplaceSubmissionFile.set(generatedMarketplaceSubmission)
+	pluginVersion.set(resolvedPluginVersion)
 }
 
 tasks.named<Test>("test") {
-	failOnNoDiscoveredTests = false
+	useJUnitPlatform()
+	include("**/*Smoke.class", "**/*Test.class", "**/*Tests.class")
+	failOnNoDiscoveredTests = true
+	inputs.file(goldenFixtureFile).withPathSensitivity(PathSensitivity.RELATIVE)
+	systemProperty("pluginVersion", resolvedPluginVersion)
+	workingDir = projectDir
+	classpath += fileTree(intellijPlatform.platformPath) {
+		include("lib/*.jar")
+	}
+	extensions.configure(JacocoTaskExtension::class) {
+		isIncludeNoLocationClasses = true
+		excludes = listOf("jdk.internal.*")
+	}
 }
 
 val jarTask = tasks.named<Jar>("jar") {
@@ -164,18 +296,45 @@ val verifyPackagedLicense by tasks.registering(VerifyPackagedLicense::class) {
 	jarFile.set(pluginJarArchive)
 }
 
-val smokeTest by tasks.registering(JavaExec::class) {
-	group = LifecycleBasePlugin.VERIFICATION_GROUP
-	description = "Runs Markdown Table Editor smoke tests."
-	dependsOn(tasks.named("testClasses"))
-	mainClass = "name.krot.markdowntableidea.core.MarkdownTableCoreSmoke"
-	classpath = sourceSets["test"].runtimeClasspath + fileTree(intellijPlatform.platformPath) {
-		include("lib/*.jar")
+tasks.named<JacocoReport>("jacocoTestReport") {
+	dependsOn(tasks.named("test"))
+	classDirectories.setFrom(coreCoverageClassDirectories)
+	sourceDirectories.setFrom(coreCoverageSourceDirectories)
+	additionalSourceDirs.setFrom(coreCoverageSourceDirectories)
+	executionData.setFrom(coreCoverageExecutionData)
+	reports {
+		xml.required.set(true)
+		xml.outputLocation.set(layout.buildDirectory.file("reports/coverage/jacoco.xml"))
+		csv.required.set(true)
+		csv.outputLocation.set(layout.buildDirectory.file("reports/coverage/jacoco.csv"))
+		html.required.set(true)
+		html.outputLocation.set(layout.buildDirectory.dir("reports/coverage/html"))
 	}
-	workingDir = projectDir
+}
+
+tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+	dependsOn(tasks.named("test"))
+	classDirectories.setFrom(coreCoverageClassDirectories)
+	sourceDirectories.setFrom(coreCoverageSourceDirectories)
+	executionData.setFrom(coreCoverageExecutionData)
+	violationRules {
+		rule {
+			limit {
+				counter = "LINE"
+				value = "COVEREDRATIO"
+				minimum = "0.90".toBigDecimal()
+			}
+		}
+	}
 }
 
 tasks.named("check") {
-	dependsOn(smokeTest)
 	dependsOn(verifyPackagedLicense)
+	dependsOn(verifyReleaseMetadata)
+	dependsOn(tasks.named("jacocoTestReport"))
+	dependsOn(tasks.named("jacocoTestCoverageVerification"))
+}
+
+tasks.named("buildPlugin") {
+	dependsOn(generateMarketplaceSubmission)
 }

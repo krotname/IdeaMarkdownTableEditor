@@ -9,17 +9,28 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-public final class MarkdownTableCoreSmoke {
-	private static int checks;
-	private static int failures;
+import org.junit.jupiter.api.Test;
 
-	public static void main(String[] args) throws Exception {
-		String pluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public final class MarkdownTableCoreSmoke {
+	@Test
+	void coreSmokeScenarios() throws Exception {
+		String sourcePluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
+		Path processedPluginXmlPath = Path.of("build", "resources", "main", "META-INF", "plugin.xml");
+		expectTrue("processed plugin descriptor exists", Files.exists(processedPluginXmlPath));
+		String pluginXml = Files.readString(processedPluginXmlPath);
 		String projectVersion = Files.readString(Path.of("VERSION")).trim();
+		String releaseVersion = System.getProperty("pluginVersion", projectVersion);
 		expectContains("dynamic plugin descriptor", pluginXml, "require-restart=\"false\"");
-		expectContains("plugin version matches VERSION", pluginXml, "<version>" + projectVersion + "</version>");
-		expectContains("plugin compatibility starts at IDEA 2024.2", pluginXml, "<idea-version since-build=\"242\"");
-		expectNotContains("plugin compatibility is not limited to 242.*", pluginXml, "until-build=\"242.*\"");
+		expectContains("source plugin version is generated", sourcePluginXml, "<version>@PLUGIN_VERSION@</version>");
+		expectNotContains("source plugin version is not pinned to VERSION", sourcePluginXml, "<version>" + projectVersion + "</version>");
+		expectContains("plugin version matches release version", pluginXml, "<version>" + releaseVersion + "</version>");
+		expectNotContains("plugin version placeholder is replaced", pluginXml, "@PLUGIN_VERSION@");
+		expectContains("plugin compatibility starts at IDEA 2022.3", pluginXml, "<idea-version since-build=\"223\"");
+		expectNotContains("plugin compatibility is not limited to 223.*", pluginXml, "until-build=\"223.*\"");
 		expectNotContains("plugin compatibility has no upper build cap", pluginXml, "until-build=\"");
 		expectContains("plugin uses platform-only dependency", pluginXml, "<depends>com.intellij.modules.platform</depends>");
 		expectNotContains("plugin has no Java module dependency", pluginXml, "<depends>com.intellij.modules.java</depends>");
@@ -39,6 +50,7 @@ public final class MarkdownTableCoreSmoke {
 		expectTrue("plugin icon exists", Files.exists(Path.of("src", "main", "resources", "META-INF", "pluginIcon.svg")));
 		expectTrue("license exists", Files.exists(Path.of("LICENSE")));
 		expectNotContains("no startup activity descriptor", pluginXml, "postStartupActivity");
+		MarkdownTableGoldenFixtures.run();
 
 		List<String> input = List.of(
 			"| Name | Age |",
@@ -662,54 +674,27 @@ public final class MarkdownTableCoreSmoke {
 			"| 1   |"
 		));
 
-		failures += MarkdownTableCoreScenarios.run();
-		failures += MarkdownTableEditorScenarios.run();
-
-		if (failures != 0) {
-			System.err.println(failures + " test(s) failed");
-			System.exit(1);
-		}
-
-		System.out.println("Core smoke tests passed (" + checks + " checks)");
+		MarkdownTableCoreScenarios.run();
+		MarkdownTableEditorScenarios.run();
 	}
 
 	private static void expectTrue(String name, boolean value) {
-		checks++;
-		if (!value) {
-			fail(name, "expected true");
-		}
+		assertTrue(value, name);
 	}
 
 	private static void expectInt(String name, int actual, int expected) {
-		checks++;
-		if (actual != expected) {
-			fail(name, "expected " + expected + ", got " + actual);
-		}
+		assertEquals(expected, actual, name);
 	}
 
 	private static void expectLines(String name, List<String> actual, List<String> expected) {
-		checks++;
-		if (!actual.equals(expected)) {
-			fail(name, "expected:\n" + String.join("\n", expected) + "\nactual:\n" + String.join("\n", actual));
-		}
+		assertEquals(expected, actual, name);
 	}
 
 	private static void expectContains(String name, String actual, String expected) {
-		checks++;
-		if (!actual.contains(expected)) {
-			fail(name, "expected to contain: " + expected);
-		}
+		assertTrue(actual.contains(expected), () -> name + " expected to contain: " + expected);
 	}
 
 	private static void expectNotContains(String name, String actual, String unexpected) {
-		checks++;
-		if (actual.contains(unexpected)) {
-			fail(name, "expected not to contain: " + unexpected);
-		}
-	}
-
-	private static void fail(String name, String message) {
-		failures++;
-		System.err.println(name + " failed: " + message);
+		assertFalse(actual.contains(unexpected), () -> name + " expected not to contain: " + unexpected);
 	}
 }
