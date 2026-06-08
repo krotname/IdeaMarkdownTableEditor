@@ -1,5 +1,10 @@
 # Markdown Table Editor для JetBrains IDEs
 
+[![Release](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/release.yml/badge.svg)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/release.yml)
+[![codecov](https://codecov.io/gh/krotname/IdeaMarkdownTableEditor/branch/main/graph/badge.svg)](https://codecov.io/gh/krotname/IdeaMarkdownTableEditor)
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159-markdown-table-editor?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
+[![License](https://img.shields.io/github/license/krotname/IdeaMarkdownTableEditor)](LICENSE)
+
 Markdown Table Editor превращает IDE JetBrains на IntelliJ Platform в удобный редактор Markdown-таблиц.
 Берёте чужую косую таблицу или сгенерированную ИИ, жмете `Tab`, а плагин выровняет колонки, сохранит Markdown-разметку
 и поможет быстро переставлять строки, колонки и данные прямо в IDE.
