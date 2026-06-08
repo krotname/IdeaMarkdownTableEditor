@@ -1,8 +1,9 @@
 # Markdown Table Editor для JetBrains IDEs
 
-[![Release](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/release.yml/badge.svg)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/release.yml)
-[![codecov](https://codecov.io/gh/krotname/IdeaMarkdownTableEditor/branch/main/graph/badge.svg)](https://codecov.io/gh/krotname/IdeaMarkdownTableEditor)
-[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159-markdown-table-editor?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
+[![CI](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/krotname/IdeaMarkdownTableEditor?label=release)](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest)
+[![Core coverage](https://img.shields.io/badge/core%20coverage-90.75%25-brightgreen)](build.gradle.kts)
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![License](https://img.shields.io/github/license/krotname/IdeaMarkdownTableEditor)](LICENSE)
 
 Markdown Table Editor превращает IDE JetBrains на IntelliJ Platform в удобный редактор Markdown-таблиц.
