@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 krotname
+
 package name.krot.markdowntableidea;
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
@@ -7,12 +10,12 @@ import com.intellij.openapi.actionSystem.ActionPopupMenu;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.ActionUiKind;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.KeyboardShortcut;
 import com.intellij.openapi.actionSystem.Presentation;
 import com.intellij.openapi.actionSystem.TimerListener;
+import com.intellij.openapi.actionSystem.ex.AnActionListener;
 import com.intellij.openapi.extensions.PluginId;
 import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.CaretModel;
@@ -253,7 +256,7 @@ public final class MarkdownTableEditorScenarios {
 	}
 
 	private static AnActionEvent event(TestEditor editor, Presentation presentation) {
-		return new AnActionEvent(context(editor), presentation, "test", ActionUiKind.NONE, null, 0, TEST_ACTION_MANAGER);
+		return new AnActionEvent(null, context(editor), "test", presentation, TEST_ACTION_MANAGER, 0);
 	}
 
 	@SuppressWarnings("removal")
@@ -394,6 +397,10 @@ public final class MarkdownTableEditorScenarios {
 
 		@Override
 		public void removeTimerListener(TimerListener listener) {
+		}
+
+		@Override
+		public void addAnActionListener(AnActionListener listener) {
 		}
 
 		@Override

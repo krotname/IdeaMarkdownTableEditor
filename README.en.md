@@ -1,18 +1,22 @@
-# Markdown Table Editor for IntelliJ IDEA
+# Markdown Table Editor for JetBrains IDEs
 
-Markdown Table Editor turns IntelliJ IDEA into a convenient Markdown table editor.
+Markdown Table Editor turns JetBrains IDEs on the IntelliJ Platform into convenient Markdown table editors.
 Paste a messy table from someone else or from an AI tool, press `Tab`, and the plugin aligns the columns, preserves Markdown formatting,
 and helps you quickly rearrange rows, columns, and data directly in the IDE.
 
+## Related Projects
+
+- Notepad++ version: [NppMarkdownTableEditor](https://github.com/krotname/NppMarkdownTableEditor)
+
 ## Demo
 
-![Markdown table alignment example in IntelliJ IDEA](docs/demo.gif)
+![Markdown table alignment example in a JetBrains IDE](docs/demo.gif)
 
-The GIF is built from real IntelliJ IDEA screenshots on Windows: a regular `.md` file is open, and the `Align Table` command is triggered with `Ctrl+Alt+A`.
+The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md` file is open, and the `Align Table` command is triggered with `Ctrl+Alt+A`.
 
 ## Why Use It
 
-- You do not need to leave IntelliJ IDEA for a separate Markdown editor just to fix tables.
+- You do not need to leave your JetBrains IDE for a separate Markdown editor just to fix tables.
 - Large pipe tables stay readable as plain text.
 - `Tab`, sorting, and row or column operations save manual spacing work.
 - CSV/TSV text can be converted into a clean Markdown table quickly.
@@ -35,12 +39,16 @@ The GIF is built from real IntelliJ IDEA screenshots on Windows: a regular `.md`
 ## Installation
 
 1. Download the ZIP archive from the latest release: https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest
-2. Open IntelliJ IDEA.
+2. Open a compatible JetBrains IDE.
 3. Go to `Settings | Plugins`.
 4. Click the gear icon and choose `Install Plugin from Disk...`.
 5. Select the downloaded ZIP file.
 
-The plugin is packaged as a dynamic plugin and is designed to install without restarting the IDE in compatible IntelliJ IDEA versions. If the IDE asks for a restart, the platform has detected a loading or unloading limitation in the current session.
+The plugin is packaged as a dynamic plugin and is designed to install without restarting compatible JetBrains IDEs. If the IDE asks for a restart, the platform has detected a loading or unloading limitation in the current session.
+
+## Publication
+
+- JetBrains Marketplace versions page: https://plugins.jetbrains.com/plugin/32159-markdown-table-editor/edit/versions
 
 ## Commands
 
@@ -81,7 +89,7 @@ You need JDK 21. The IntelliJ Platform SDK used for compilation is downloaded by
 ```
 
 The built ZIP appears in `build/distributions`.
-If IDEA is installed locally and you do not want to wait for the platform download, pass its path:
+If a JetBrains IDE is installed locally and you do not want to wait for the platform download, pass its path:
 
 ```powershell
 .\gradlew.bat check buildPlugin -PplatformLocalPath="C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3"
