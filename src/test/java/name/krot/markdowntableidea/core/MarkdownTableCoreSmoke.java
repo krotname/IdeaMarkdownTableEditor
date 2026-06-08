@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 krotname
+
 package name.krot.markdowntableidea.core;
 
 import name.krot.markdowntableidea.MarkdownTableEditorScenarios;
