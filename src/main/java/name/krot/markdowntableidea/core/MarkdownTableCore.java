@@ -161,6 +161,22 @@ public final class MarkdownTableCore {
 			return result;
 		}
 
+		if (row >= lines.size()) {
+			row = lines.size() - 1;
+		}
+		if (row < 0) {
+			row = 0;
+		}
+
+		TableRange tableRange = findTableRange(lines, row);
+		if (!tableRange.found) {
+			result.message = "No Markdown table found";
+			return result;
+		}
+
+		lines = lines.subList(tableRange.firstRow, tableRange.lastRow + 1);
+		row -= tableRange.firstRow;
+
 		Table table = parseTable(lines);
 		if (!isMarkdownTable(table)) {
 			result.message = "No Markdown table found";

@@ -37,13 +37,44 @@ abstract class VerifyPackagedLicense : DefaultTask() {
 
 val pluginVersion = providers.gradleProperty("pluginVersion")
 	.orElse(providers.provider { file("VERSION").readText().trim() })
-val platformVersion = providers.gradleProperty("platformVersion").orElse("2026.1.3")
-val defaultLocalPlatformPath = "C:\\Program Files\\JetBrains\\IntelliJ IDEA 2026.1.3"
+val platformVersion = providers.gradleProperty("platformVersion").orElse("2024.2")
 val platformLocalPath = providers.gradleProperty("platformLocalPath")
-	.orElse(providers.provider { defaultLocalPlatformPath.takeIf { file(it).exists() } ?: "" })
+	.orElse("")
 val verifyRecommendedIdes = providers.gradleProperty("verifyRecommendedIdes")
 	.map { it.toBoolean() }
 	.orElse(providers.environmentVariable("GITHUB_ACTIONS").map { it.equals("true", ignoreCase = true) }.orElse(false))
+val verifyCurrentIde = providers.gradleProperty("verifyCurrentIde")
+	.map { it.toBoolean() }
+	.orElse(false)
+val verifyAllJetBrainsIdes = providers.gradleProperty("verifyAllJetBrainsIdes")
+	.map { it.toBoolean() }
+	.orElse(false)
+val verificationIdeVersion = providers.gradleProperty("verificationIdeVersion").orElse("2024.2")
+val androidStudioVerificationIdeVersion = providers.gradleProperty("androidStudioVerificationIdeVersion").orElse("2024.2.2.13")
+val baselineJetBrainsIdeVerificationTypes = listOf(
+	IntelliJPlatformType.IntellijIdeaCommunity,
+	IntelliJPlatformType.WebStorm,
+	IntelliJPlatformType.PyCharmCommunity,
+	IntelliJPlatformType.CLion
+)
+val allJetBrainsIdeVerificationTypes = listOf(
+	IntelliJPlatformType.AndroidStudio,
+	IntelliJPlatformType.IntellijIdeaCommunity,
+	IntelliJPlatformType.IntellijIdeaUltimate,
+	IntelliJPlatformType.WebStorm,
+	IntelliJPlatformType.PyCharmCommunity,
+	IntelliJPlatformType.PyCharmProfessional,
+	IntelliJPlatformType.PhpStorm,
+	IntelliJPlatformType.GoLand,
+	IntelliJPlatformType.CLion,
+	IntelliJPlatformType.Rider,
+	IntelliJPlatformType.RubyMine
+)
+val jetBrainsIdeVerificationTypes = if (verifyAllJetBrainsIdes.get()) {
+	allJetBrainsIdeVerificationTypes
+} else {
+	baselineJetBrainsIdeVerificationTypes
+}
 
 group = "name.krot"
 version = pluginVersion.get()
@@ -83,8 +114,24 @@ intellijPlatform {
 
 	pluginVerification {
 		ides {
-			create(IntelliJPlatformType.IntellijIdeaCommunity, "2024.2")
-			current()
+			jetBrainsIdeVerificationTypes.forEach {
+				val version = if (it == IntelliJPlatformType.AndroidStudio) {
+					androidStudioVerificationIdeVersion.get()
+				} else {
+					verificationIdeVersion.get()
+				}
+				create(it, version) {
+					if (it == IntelliJPlatformType.AndroidStudio) {
+						useInstaller = false
+					}
+					if (it == IntelliJPlatformType.Rider) {
+						useInstaller = false
+					}
+				}
+			}
+			if (verifyCurrentIde.get()) {
+				current()
+			}
 			if (verifyRecommendedIdes.get()) {
 				recommended()
 			}

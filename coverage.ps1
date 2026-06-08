@@ -1,5 +1,6 @@
 param(
-	[string]$IdeaHome = "C:\Program Files\JetBrains\IntelliJ IDEA 2026.1.3",
+	[string]$IdeaHome = "",
+	[string]$PlatformVersion = "2024.2",
 	[string]$JacocoVersion = "0.8.13"
 )
 
@@ -33,6 +34,35 @@ function Download-FileIfMissing([string]$Path, [string]$Url) {
 	Invoke-WebRequest -Uri $Url -OutFile $Path
 }
 
+function Find-IntelliJPlatformHome([string]$Version) {
+	$names = @("ideaIC-$Version-win", "ideaIU-$Version-win")
+	$roots = @()
+	if ($env:USERPROFILE) {
+		$roots += Join-Path $env:USERPROFILE ".gradle\caches"
+	}
+	$roots += "D:\JetBrainsIdeCache\ides"
+
+	foreach ($root in $roots) {
+		if (-not (Test-Path -LiteralPath $root)) {
+			continue
+		}
+		foreach ($name in $names) {
+			$match = Get-ChildItem -Path $root -Directory -Recurse -Filter $name -ErrorAction SilentlyContinue |
+				Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "lib") } |
+				Select-Object -First 1
+			if ($match) {
+				return $match.FullName
+			}
+		}
+	}
+
+	$fallback = "C:\Program Files\JetBrains\IntelliJ IDEA $Version"
+	if (Test-Path -LiteralPath (Join-Path $fallback "lib")) {
+		return $fallback
+	}
+	return ""
+}
+
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BuildDir = Join-Path $ProjectRoot "build"
 $CoverageWorkDir = Join-Path $BuildDir "coverage"
@@ -47,8 +77,12 @@ $ExecPath = Join-Path $CoverageWorkDir "jacoco.exec"
 $SummaryJsonPath = Join-Path $ReportsDir "summary.json"
 $SummaryMarkdownPath = Join-Path $ReportsDir "coverage-summary.md"
 
-if (-not (Test-Path -LiteralPath $IdeaHome)) {
-	throw "IntelliJ IDEA home not found: $IdeaHome"
+if (-not $IdeaHome) {
+	$IdeaHome = Find-IntelliJPlatformHome $PlatformVersion
+}
+
+if (-not $IdeaHome -or -not (Test-Path -LiteralPath $IdeaHome)) {
+	throw "IntelliJ IDEA home not found. Provide -IdeaHome or run Gradle once to populate the IntelliJ Platform $PlatformVersion cache."
 }
 
 if (Test-Path -LiteralPath $CoverageWorkDir) {

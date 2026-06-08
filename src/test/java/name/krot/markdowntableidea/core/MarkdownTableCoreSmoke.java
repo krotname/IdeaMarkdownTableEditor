@@ -21,6 +21,9 @@ public final class MarkdownTableCoreSmoke {
 		expectContains("plugin compatibility starts at IDEA 2024.2", pluginXml, "<idea-version since-build=\"242\"");
 		expectNotContains("plugin compatibility is not limited to 242.*", pluginXml, "until-build=\"242.*\"");
 		expectNotContains("plugin compatibility has no upper build cap", pluginXml, "until-build=\"");
+		expectContains("plugin uses platform-only dependency", pluginXml, "<depends>com.intellij.modules.platform</depends>");
+		expectNotContains("plugin has no Java module dependency", pluginXml, "<depends>com.intellij.modules.java</depends>");
+		expectNotContains("plugin has no IDEA-specific dependency", pluginXml, "<depends>com.intellij.modules.idea</depends>");
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
 		expectContains("tab handler runs before default tab processors", pluginXml, "order=\"first\"");
@@ -70,6 +73,15 @@ public final class MarkdownTableCoreSmoke {
 		expectInt("adjacent pipe range end", adjacentTable.lastRow, 3);
 		expectTrue("adjacent pipe text before rejected", !MarkdownTableCore.findTableRange(adjacentPipeText, 0).found);
 		expectTrue("adjacent pipe text after rejected", !MarkdownTableCore.findTableRange(adjacentPipeText, 4).found);
+		MarkdownTableCore.EditResult adjacentApply = MarkdownTableCore.apply(adjacentPipeText, 3, 0, MarkdownTableCore.Action.ALIGN);
+		expectTrue("adjacent pipe apply ok", adjacentApply.ok);
+		expectLines("adjacent pipe apply excludes text", adjacentApply.lines, List.of(
+			"| H   | V   |",
+			"| --- | --- |",
+			"| a   | b   |"
+		));
+		expectTrue("adjacent pipe text before apply rejected", !MarkdownTableCore.apply(adjacentPipeText, 0, 0, MarkdownTableCore.Action.ALIGN).ok);
+		expectTrue("adjacent pipe text after apply rejected", !MarkdownTableCore.apply(adjacentPipeText, 4, 0, MarkdownTableCore.Action.ALIGN).ok);
 
 		MarkdownTableCore.EditResult next = MarkdownTableCore.apply(input, 3, 1, MarkdownTableCore.Action.NEXT_CELL);
 		expectTrue("next cell ok", next.ok);

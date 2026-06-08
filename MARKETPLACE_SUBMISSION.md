@@ -4,10 +4,10 @@ Status: package is prepared, but initial Marketplace submission requires the own
 
 ## Artifact
 
-- Version: `0.6.0`
-- ZIP: `build/distributions/MarkdownTableEditorIdea-0.6.0.zip`
-- GitHub release: `https://github.com/krotname/IdeaMarkdownTableEditor/releases/tag/v0.6.0`
-- Download URL: `https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v0.6.0/MarkdownTableEditorIdea-0.6.0.zip`
+- Version: `0.7.0`
+- ZIP: `build/distributions/MarkdownTableEditorIdea-0.7.0.zip`
+- GitHub release: `https://github.com/krotname/IdeaMarkdownTableEditor/releases/tag/v0.7.0`
+- Download URL: `https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v0.7.0/MarkdownTableEditorIdea-0.7.0.zip`
 
 ## Plugin metadata
 
@@ -20,6 +20,9 @@ Status: package is prepared, but initial Marketplace submission requires the own
 - License URL: `https://github.com/krotname/IdeaMarkdownTableEditor/blob/main/LICENSE`
 - Suggested tags: `Markdown`, `Tables`, `Documentation`, `Editor`
 - Suggested category: `Code tools`
+- Compatibility baseline: JetBrains IDEs based on IntelliJ Platform `242` / `2024.2` and newer
+- Required platform module: `com.intellij.modules.platform`
+- Verification matrix: Android Studio, IntelliJ IDEA Community/Ultimate, WebStorm, PyCharm Community/Professional, PhpStorm, GoLand, CLion, Rider, RubyMine
 
 ## Short description
 
@@ -31,7 +34,7 @@ Edit Markdown pipe tables directly in JetBrains IDEs: align with Tab, sort rows,
 2. Open `Upload plugin` / `Add new plugin`.
 3. Select or create the Vendor profile.
 4. Accept the JetBrains Marketplace Developer Agreement if prompted.
-5. Upload `build/distributions/MarkdownTableEditorIdea-0.6.0.zip`.
+5. Upload `build/distributions/MarkdownTableEditorIdea-0.7.0.zip`.
 6. Choose MIT/open-source license and provide the license URL above.
 7. Provide the source code URL above.
 8. Submit for review.

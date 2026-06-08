@@ -2,7 +2,7 @@
 	<id>name.krot.markdown-table-editor-idea</id>
 	<name>Markdown Table Editor</name>
 	<vendor email="krotname@users.noreply.github.com" url="https://github.com/krotname">krotname</vendor>
-	<version>0.6.0</version>
+	<version>0.7.0</version>
 	<idea-version since-build="242"/>
 
 	<description><![CDATA[
@@ -19,11 +19,10 @@
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>Added a dedicated Tab action and changed Align Table to Ctrl+Alt+A.</li>
-			<li>Improved CSV/TSV conversion from selected text or the current block.</li>
-			<li>Unified Java and C++ table-core behavior, including stable row targeting and UTF-aware sorting coverage.</li>
-			<li>Improved caret positioning, unwrapped table formatting, sorting stability, and regression coverage.</li>
-			<li>Updated documentation, demo assets, Marketplace metadata, and GitHub Actions release packaging for version 0.6.0.</li>
+			<li>Declared platform-only compatibility for JetBrains IDEs based on IntelliJ Platform 2024.2 and newer.</li>
+			<li>Verified compatibility across the major JetBrains IDE family, including IntelliJ IDEA, Android Studio, WebStorm, PyCharm, PhpStorm, GoLand, CLion, Rider, and RubyMine.</li>
+			<li>Fixed table actions so adjacent pipe-looking text before or after a table is not included in the edited table block.</li>
+			<li>Updated Marketplace metadata and verification notes for version 0.7.0.</li>
 		</ul>
 	]]></change-notes>
 
