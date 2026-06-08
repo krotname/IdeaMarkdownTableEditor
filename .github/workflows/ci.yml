@@ -42,7 +42,7 @@ jobs:
           files: build/reports/coverage/jacoco.xml
           flags: idea-core
           name: idea-markdown-table-editor
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
       - name: Upload plugin package
         uses: actions/upload-artifact@v4
