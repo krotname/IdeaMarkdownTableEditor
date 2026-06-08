@@ -71,6 +71,8 @@ public final class MarkdownTableCoreSmoke {
 		MarkdownTableCore.EditResult plainPipe = MarkdownTableCore.apply(List.of("Use A | B in text"), 0, 0, MarkdownTableCore.Action.ALIGN);
 		expectTrue("plain pipe is not table", !plainPipe.ok);
 		expectTrue("plain pipe keeps empty result", plainPipe.lines.isEmpty());
+		expectTrue("pipe-only separator is not table", !MarkdownTableCore.findTableRange(List.of("| A | B |", "|   |   |", "| 1 | 2 |"), 2).found);
+		expectTrue("equals short separator is table", MarkdownTableCore.findTableRange(List.of("| A | B |", "| === | === |", "| 1 | 2 |"), 2).found);
 
 		List<String> adjacentPipeText = List.of(
 			"Use A | B in text",
@@ -374,6 +376,8 @@ public final class MarkdownTableCoreSmoke {
 		expectContains("huge generated csv keeps quotes", hugeCsvText, "quote \"ok\"");
 
 		expectTrue("plain text is not csv", !MarkdownTableCore.fromDelimited("just a note").ok);
+		expectTrue("plain multiline text is not csv", !MarkdownTableCore.fromDelimited("first line\nsecond line").ok);
+		expectTrue("single quoted comma cell is not csv", !MarkdownTableCore.fromDelimited("\"just, a note\"").ok);
 		expectTrue("empty csv is rejected", !MarkdownTableCore.fromDelimited("  \r\n  ").ok);
 		expectTrue("invalid table size is rejected", !MarkdownTableCore.newTable(0, 2).ok);
 		expectTrue("negative table size is rejected", !MarkdownTableCore.newTable(2, -1).ok);

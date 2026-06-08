@@ -138,7 +138,7 @@ public final class MarkdownTableEditor {
 			return false;
 		}
 
-		Range range = selectedOrCurrentBlock(editor);
+		Range range = selectedOrCurrentDelimitedBlock(editor);
 		if (range.start >= range.end) {
 			if (!quiet) {
 				Messages.showInfoMessage(project, "Select CSV/TSV text or put the caret inside a CSV/TSV block first.", COMMAND_NAME);
@@ -228,7 +228,7 @@ public final class MarkdownTableEditor {
 		return new LineRange(firstLine + tableRange.firstRow, firstLine + tableRange.lastRow);
 	}
 
-	private static Range selectedOrCurrentBlock(Editor editor) {
+	private static Range selectedOrCurrentDelimitedBlock(Editor editor) {
 		SelectionModel selection = editor.getSelectionModel();
 		if (selection.hasSelection()) {
 			return new Range(selection.getSelectionStart(), selection.getSelectionEnd());
@@ -241,17 +241,43 @@ public final class MarkdownTableEditor {
 
 		int currentOffset = Math.min(editor.getCaretModel().getOffset(), Math.max(document.getTextLength() - 1, 0));
 		int currentLine = document.getLineNumber(currentOffset);
+		if (!isDelimitedLine(getLineText(document, currentLine))) {
+			return new Range(0, 0);
+		}
+
 		int firstLine = currentLine;
-		while (firstLine > 0 && !getLineText(document, firstLine - 1).isBlank()) {
+		while (firstLine > 0 && isDelimitedLine(getLineText(document, firstLine - 1))) {
 			firstLine--;
 		}
 
 		int lastLine = currentLine;
-		while (lastLine + 1 < document.getLineCount() && !getLineText(document, lastLine + 1).isBlank()) {
+		while (lastLine + 1 < document.getLineCount() && isDelimitedLine(getLineText(document, lastLine + 1))) {
 			lastLine++;
 		}
 
+		if (lastLine == firstLine) {
+			return new Range(0, 0);
+		}
 		return new Range(document.getLineStartOffset(firstLine), document.getLineEndOffset(lastLine));
+	}
+
+	private static boolean isDelimitedLine(String line) {
+		boolean inQuotes = false;
+		for (int i = 0; i < line.length(); i++) {
+			char ch = line.charAt(i);
+			if (inQuotes) {
+				if (ch == '"' && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+					i++;
+				} else if (ch == '"') {
+					inQuotes = false;
+				}
+			} else if (ch == '"') {
+				inQuotes = true;
+			} else if (ch == ',' || ch == '\t') {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static String chooseEol(Document document, int firstLine, int lastLine) {

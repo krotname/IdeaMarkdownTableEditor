@@ -122,6 +122,17 @@ public final class MarkdownTableEditorScenarios {
 		expectString("current block table", blockCsv.text(),
 			"top\n\n| Name | Note |\n| ---- | ---- |\n| Anna | A\\|B |\n\nbottom");
 
+		TestEditor inlineBlockCsv = new TestEditor("top\nName,Score\nAnna,10\nbottom", false, true);
+		inlineBlockCsv.setCaretAt("Anna");
+		expectTrue("convert current csv block skips adjacent text", MarkdownTableEditor.convertDelimited(inlineBlockCsv.editor, null, true));
+		expectString("inline current block table", inlineBlockCsv.text(),
+			"top\n| Name | Score |\n| ---- | ----- |\n| Anna | 10    |\nbottom");
+
+		TestEditor singleCommaLine = new TestEditor("just, a note", false, true);
+		singleCommaLine.setCaretAt("note");
+		expectTrue("single comma line is not auto-converted", !MarkdownTableEditor.convertDelimited(singleCommaLine.editor, null, true));
+		expectString("single comma line unchanged", singleCommaLine.text(), "just, a note");
+
 		TestEditor invalidCsv = new TestEditor("just a note", false, true);
 		invalidCsv.setCaretAt("note");
 		expectTrue("plain text is not converted", !MarkdownTableEditor.convertDelimited(invalidCsv.editor, null, true));

@@ -92,11 +92,19 @@ jobs:
           sha256sum "${files[@]}" > SHA256SUMS.txt
           marketplace_doc="$(find release-assets -type f -name 'MARKETPLACE_SUBMISSION.md' | sort | head -n 1)"
           cat > release-notes.md <<EOF
+          ## Builds / Downloads
+
+          - [MarkdownTableEditorIdea-$VERSION.zip](https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v$VERSION/MarkdownTableEditorIdea-$VERSION.zip)
+          - [SHA256SUMS.txt](https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v$VERSION/SHA256SUMS.txt)
+          - [MARKETPLACE_SUBMISSION.md](https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v$VERSION/MARKETPLACE_SUBMISSION.md)
+
           ## What's Changed
 
           - Built the JetBrains IDE plugin package on GitHub Actions.
-          - Updated plugin metadata for version $VERSION.
-          - Generated Marketplace submission notes for version $VERSION.
+          - Convert CSV/TSV directly from the current multi-line block when there is no selection.
+          - Avoid converting adjacent plain text, single comma notes, quoted comma-only cells, and plain multi-line text as CSV.
+          - Reject pipe-only separator rows while still accepting dash and equals Markdown separator rules.
+          - Added shared Java/C++ golden fixture coverage for escaped JSON Unicode, multilingual width, and emoji cluster alignment.
           - Included SHA-256 sums for release verification.
 
           ## Validation

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/krotname/IdeaMarkdownTableEditor?label=release)](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest)
-[![Core coverage](https://img.shields.io/badge/core%20coverage-90.75%25-brightgreen)](build.gradle.kts)
+[![Core coverage](https://img.shields.io/badge/core%20coverage-91.14%25-brightgreen)](build.gradle.kts)
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![License](https://img.shields.io/github/license/krotname/IdeaMarkdownTableEditor)](LICENSE)
 
@@ -38,6 +38,7 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 - Insert, delete, and move columns.
 - Sort rows by the current column in ascending or descending order.
 - Convert selected CSV/TSV text or the current CSV/TSV block into a Markdown table.
+- CSV/TSV block detection ignores commas inside quotes and does not capture adjacent plain text.
 - Insert a new table with a selected number of columns and rows.
 - Preserve Markdown alignment markers: `---`, `:---`, `---:`, `:---:`.
 - Correctly handle escaped pipes: `\|`.

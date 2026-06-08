@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/krotname/IdeaMarkdownTableEditor?label=release)](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest)
-[![Core coverage](https://img.shields.io/badge/core%20coverage-90.75%25-brightgreen)](build.gradle.kts)
+[![Core coverage](https://img.shields.io/badge/core%20coverage-91.14%25-brightgreen)](build.gradle.kts)
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![License](https://img.shields.io/github/license/krotname/IdeaMarkdownTableEditor)](LICENSE)
 
@@ -38,6 +38,7 @@ GIF собран из реальных скриншотов IDE JetBrains под
 - Вставка, удаление и перемещение колонок.
 - Сортировка строк по текущей колонке по возрастанию или убыванию.
 - Конвертация выделенного CSV/TSV-текста или текущего CSV/TSV-блока в Markdown-таблицу.
+- Определение CSV/TSV-блока игнорирует запятые внутри кавычек и не захватывает соседний обычный текст.
 - Вставка новой таблицы с выбранным числом колонок и строк.
 - Сохранение Markdown-маркеров выравнивания: `---`, `:---`, `---:`, `:---:`.
 - Корректная обработка escaped pipes: `\|`.
@@ -68,14 +69,14 @@ GIF собран из реальных скриншотов IDE JetBrains под
 
 Marketplace вычисляет конкретные версии продуктов по `since-build="223"` и зависимости только от `com.intellij.modules.platform`.
 
-| Продукт JetBrains | Минимальная версия по Marketplace |
-| ----------------- | --------------------------------- |
-| IntelliJ IDEA Community/Ultimate | 2022.3+ |
-| WebStorm, PyCharm, PhpStorm, GoLand, CLion, Rider, RubyMine | 2022.3+ |
-| DataGrip, DataSpell, MPS, AppCode | 2022.3+ |
-| Android Studio | Giraffe / 2022.3.1 Beta 1+ |
-| RustRover | 2024.1+ |
-| Gateway, JetBrains Client, Code With Me Guest | 1.0+ |
+| Продукт JetBrains                                           | Минимальная версия по Marketplace |
+| ----------------------------------------------------------- | --------------------------------- |
+| IntelliJ IDEA Community/Ultimate                            | 2022.3+                           |
+| WebStorm, PyCharm, PhpStorm, GoLand, CLion, Rider, RubyMine | 2022.3+                           |
+| DataGrip, DataSpell, MPS, AppCode                           | 2022.3+                           |
+| Android Studio                                              | Giraffe / 2022.3.1 Beta 1+        |
+| RustRover                                                   | 2024.1+                           |
+| Gateway, JetBrains Client, Code With Me Guest               | 1.0+                              |
 
 ## Публикация
 

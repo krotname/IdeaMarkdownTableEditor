@@ -425,13 +425,17 @@ public final class MarkdownTableCore {
 			return false;
 		}
 
+		boolean hasRule = false;
 		for (int i = 1; i < value.length(); i++) {
 			char ch = value.charAt(i);
+			if (ch == '-' || ch == '=') {
+				hasRule = true;
+			}
 			if (ch != '-' && ch != '=' && ch != '|' && ch != ':' && !isSpace(ch)) {
 				return false;
 			}
 		}
-		return true;
+		return hasRule;
 	}
 
 	private static Align parseAlignment(String cell) {
@@ -580,7 +584,7 @@ public final class MarkdownTableCore {
 		if (value.isEmpty()) {
 			return Collections.emptyList();
 		}
-		if (!value.contains(",") && !value.contains("\t") && !value.contains("\n") && !value.contains("\r")) {
+		if (!hasDelimiterOutsideQuotes(value)) {
 			return Collections.emptyList();
 		}
 
@@ -663,6 +667,30 @@ public final class MarkdownTableCore {
 			}
 		}
 		return tabs > commas ? '\t' : ',';
+	}
+
+	private static boolean hasDelimiterOutsideQuotes(String text) {
+		boolean inQuotes = false;
+		boolean cellBlank = true;
+		for (int i = 0; i < text.length(); i++) {
+			char ch = text.charAt(i);
+			if (inQuotes) {
+				if (ch == '"' && i + 1 < text.length() && text.charAt(i + 1) == '"') {
+					i++;
+				} else if (ch == '"') {
+					inQuotes = false;
+				}
+			} else if (ch == '"' && cellBlank) {
+				inQuotes = true;
+			} else if (ch == '\t' || ch == ',') {
+				return true;
+			} else if (ch == '\r' || ch == '\n') {
+				cellBlank = true;
+			} else if (!isSpace(ch)) {
+				cellBlank = false;
+			}
+		}
+		return false;
 	}
 
 	private static boolean isBlank(StringBuilder value) {

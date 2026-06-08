@@ -20,9 +20,10 @@
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>Improved Markdown table alignment for Unicode text, CJK wide characters, emoji clusters, variation selectors, combining marks, keycaps, flags, and zero-width joiner sequences.</li>
-			<li>Made row sorting deterministic for Unicode text by comparing code points after shared case folding and accent handling.</li>
-			<li>Declared compatibility with IntelliJ Platform 2022.3 and newer Java 17 based JetBrains IDEs.</li>
+			<li>Convert CSV/TSV directly from the current multi-line block when there is no selection.</li>
+			<li>Avoid converting adjacent plain text, single comma notes, quoted comma-only cells, and plain multi-line text as CSV.</li>
+			<li>Reject pipe-only separator rows while still accepting dash and equals Markdown separator rules.</li>
+			<li>Added shared Java/C++ golden fixture coverage for escaped JSON Unicode, multilingual width, and emoji cluster alignment.</li>
 		</ul>
 	]]></change-notes>
 
@@ -49,7 +50,7 @@
 			<action id="MarkdownTableEditor.SortAscending" class="name.krot.markdowntableidea.MarkdownTableActions$SortAscending" text="Sort Rows Ascending" description="Sort Markdown table data rows by the current column"/>
 			<action id="MarkdownTableEditor.SortDescending" class="name.krot.markdowntableidea.MarkdownTableActions$SortDescending" text="Sort Rows Descending" description="Sort Markdown table data rows by the current column descending"/>
 			<separator/>
-			<action id="MarkdownTableEditor.ConvertCsvTsv" class="name.krot.markdowntableidea.MarkdownTableActions$ConvertCsvTsv" text="Convert CSV/TSV to Table" description="Convert selected CSV or TSV text to a Markdown table"/>
+			<action id="MarkdownTableEditor.ConvertCsvTsv" class="name.krot.markdowntableidea.MarkdownTableActions$ConvertCsvTsv" text="Convert CSV/TSV to Table" description="Convert selected CSV/TSV text or the current CSV/TSV block to a Markdown table"/>
 			<action id="MarkdownTableEditor.InsertTable" class="name.krot.markdowntableidea.MarkdownTableActions$InsertTable" text="Insert New Table" description="Insert a new Markdown table by size"/>
 			<separator/>
 			<action id="MarkdownTableEditor.InsertRowBelow" class="name.krot.markdowntableidea.MarkdownTableActions$InsertRowBelow" text="Insert Row Below" description="Insert a Markdown table row below the current row"/>
