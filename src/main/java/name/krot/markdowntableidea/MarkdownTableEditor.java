@@ -102,6 +102,40 @@ public final class MarkdownTableEditor {
 		return true;
 	}
 
+	public static boolean formatAllTables(Document document) {
+		if (document == null || !document.isWritable() || document.getLineCount() == 0) {
+			return false;
+		}
+
+		List<TableReplacement> replacements = new ArrayList<>();
+		for (LineRange tableRange : findAllTableLineRanges(document)) {
+			List<String> tableLines = new ArrayList<>();
+			for (int line = tableRange.firstLine; line <= tableRange.lastLine; line++) {
+				tableLines.add(getLineText(document, line));
+			}
+
+			MarkdownTableCore.EditResult edit = MarkdownTableCore.apply(tableLines, 0, 0, MarkdownTableCore.Action.ALIGN);
+			if (!edit.ok) {
+				continue;
+			}
+
+			int replaceStart = document.getLineStartOffset(tableRange.firstLine);
+			int replaceEnd = document.getLineEndOffset(tableRange.lastLine);
+			String eol = chooseEol(document, tableRange.firstLine, tableRange.lastLine);
+			String replacement = String.join(eol, edit.lines);
+			String original = document.getImmutableCharSequence().subSequence(replaceStart, replaceEnd).toString();
+			if (!replacement.equals(original)) {
+				replacements.add(new TableReplacement(replaceStart, replaceEnd, replacement));
+			}
+		}
+
+		for (int i = replacements.size() - 1; i >= 0; i--) {
+			TableReplacement replacement = replacements.get(i);
+			document.replaceString(replacement.start(), replacement.end(), replacement.text());
+		}
+		return !replacements.isEmpty();
+	}
+
 	public static boolean isInsidePotentialTable(Editor editor) {
 		if (editor == null || editor.isViewer()) {
 			return false;
@@ -219,6 +253,26 @@ public final class MarkdownTableEditor {
 			return null;
 		}
 		return new LineRange(firstLine + tableRange.firstRow, firstLine + tableRange.lastRow);
+	}
+
+	private static List<LineRange> findAllTableLineRanges(Document document) {
+		List<LineRange> ranges = new ArrayList<>();
+		for (int line = 0; line < document.getLineCount();) {
+			if (!MarkdownTableCore.isPotentialTableLine(getLineText(document, line))) {
+				line++;
+				continue;
+			}
+
+			LineRange range = findTableLineRange(document, line);
+			if (range == null) {
+				line++;
+				continue;
+			}
+
+			ranges.add(range);
+			line = range.lastLine + 1;
+		}
+		return ranges;
 	}
 
 	private static Range selectedOrCurrentDelimitedBlock(Editor editor) {
@@ -427,6 +481,9 @@ public final class MarkdownTableEditor {
 	}
 
 	private record LineRange(int firstLine, int lastLine) {
+	}
+
+	private record TableReplacement(int start, int end, String text) {
 	}
 
 	private record InsertText(String text, int caretDelta) {

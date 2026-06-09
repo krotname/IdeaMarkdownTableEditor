@@ -32,6 +32,7 @@
 
 	<extensions defaultExtensionNs="com.intellij">
 		<editorActionHandler action="EditorTab" implementationClass="name.krot.markdowntableidea.MarkdownTableTabHandler" order="first"/>
+		<postFormatProcessor implementation="name.krot.markdowntableidea.MarkdownTableFormatProcessor"/>
 	</extensions>
 
 	<actions>

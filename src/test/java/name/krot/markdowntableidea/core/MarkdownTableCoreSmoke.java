@@ -52,6 +52,7 @@ public final class MarkdownTableCoreSmoke {
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
 		expectContains("tab handler runs before default tab processors", pluginXml, "order=\"first\"");
+		expectContains("markdown tables participate in IDE reformat", pluginXml, "<postFormatProcessor implementation=\"name.krot.markdowntableidea.MarkdownTableFormatProcessor\"");
 		expectContains("plugin declares resource bundle", pluginXml, "<resource-bundle>messages.MarkdownTableEditorBundle</resource-bundle>");
 		expectNotContains("actions do not hardcode English text", pluginXml, "text=\"Align Table\"");
 		expectNotContains("actions do not hardcode English descriptions", pluginXml, "description=\"Align the Markdown table at the caret\"");

@@ -114,6 +114,11 @@ public final class MarkdownTableEditorScenarios {
 		adjacentPipeText.setCaretAt("Use A");
 		expectTrue("adjacent plain pipe text is outside table", !MarkdownTableEditor.isInsidePotentialTable(adjacentPipeText.editor));
 
+		TestEditor allTables = new TestEditor("Intro\n| A | B |\n| --- | --- |\n| 1 | 20 |\n\nText\n| Name | Score |\n| --- | ---: |\n| Bo | 7 |", false, true);
+		expectTrue("format all tables in document", MarkdownTableEditor.formatAllTables(allTables.document.document));
+		expectString("all document tables formatted", allTables.text(),
+			"Intro\n| A   | B   |\n| --- | --- |\n| 1   | 20  |\n\nText\n| Name | Score |\n| ---- | ----: |\n| Bo   |     7 |");
+
 		TestEditor nextCell = new TestEditor("| Name | Age |\n| --- | ---: |\n| Anna | 20 |", false, true);
 		nextCell.setCaretAt("20");
 		expectTrue("run next cell appends row", MarkdownTableEditor.run(nextCell.editor, null, MarkdownTableCore.Action.NEXT_CELL, true));
@@ -251,6 +256,12 @@ public final class MarkdownTableEditorScenarios {
 		expectTrue("base action update visible", presentation.isVisible());
 		align.actionPerformed(event);
 		expectString("base action aligns table", editor.text(), "| A   | B   |\n| --- | --- |\n| 1   | 20  |");
+
+		TestEditor twoTables = new TestEditor("| A | B |\n| --- | --- |\n| 1 | 20 |\n\n| Name | Score |\n| --- | ---: |\n| Bo | 7 |", false, true);
+		twoTables.setCaretAt("20");
+		align.actionPerformed(event(twoTables, new Presentation()));
+		expectString("base action still aligns only current table", twoTables.text(),
+			"| A   | B   |\n| --- | --- |\n| 1   | 20  |\n\n| Name | Score |\n| --- | ---: |\n| Bo | 7 |");
 
 		Presentation hidden = new Presentation();
 		new MarkdownTableActions.Align().update(event(null, hidden));
