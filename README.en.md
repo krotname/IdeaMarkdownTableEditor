@@ -40,6 +40,7 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 - Insert, delete, and move rows.
 - Insert, delete, and move columns.
 - Sort rows by the current column in ascending or descending order.
+- Wrap long cells into continuation rows so wide registries are easier to edit in plain text.
 - Convert selected CSV/TSV text or the current CSV/TSV block into a Markdown table.
 - CSV/TSV block detection ignores commas inside quotes and does not capture adjacent plain text.
 - Insert a new table with a selected number of columns and rows.
@@ -100,6 +101,7 @@ Commands are available from `Tools > Markdown Table Editor` and from the editor 
 | `Move Row Up` / `Move Row Down`                | Moves the current row                                                |
 | `Move Column Left` / `Move Column Right`       | Moves the current column                                             |
 | `Sort Rows Ascending` / `Sort Rows Descending` | Sorts rows by the current column                                     |
+| `Wrap Long Cells`                              | Splits long cells into continuation rows                             |
 | `Convert CSV/TSV to Table`                     | Converts selected CSV/TSV or the current block to a Markdown table   |
 | `Insert New Table`                             | Inserts a new table with the requested size                          |
 
@@ -127,6 +129,7 @@ Except for the contextual `Tab`, commands use `Ctrl+Alt+Shift` with the top numb
 | `Move Column Right`         | `Ctrl+Alt+Shift+]`  |
 | `Sort Rows Ascending`       | `Ctrl+Alt+Shift+=`  |
 | `Sort Rows Descending`      | `Ctrl+Alt+Shift+-`  |
+| `Wrap Long Cells`           | `Ctrl+Alt+Shift+W`  |
 | `Convert CSV/TSV to Table`  | `Ctrl+Alt+Shift+0`  |
 | `Insert New Table`          | `Ctrl+Alt+Shift+\`  |
 

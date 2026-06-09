@@ -22,7 +22,8 @@ public final class MarkdownTableCore {
 		MOVE_COLUMN_LEFT,
 		MOVE_COLUMN_RIGHT,
 		SORT_ASCENDING,
-		SORT_DESCENDING
+		SORT_DESCENDING,
+		WRAP_LONG_CELLS
 	}
 
 	public static final class EditResult {
@@ -270,6 +271,9 @@ public final class MarkdownTableCore {
 				break;
 			case SORT_DESCENDING:
 				targetRow = sortRows(table, column, false, currentRowId, row);
+				break;
+			case WRAP_LONG_CELLS:
+				targetRow = wrapLongCells(table, row);
 				break;
 			case ALIGN:
 				break;
@@ -927,6 +931,218 @@ public final class MarkdownTableCore {
 			width += joined && clusterWidth[0] > 0 ? Math.max(clusterWidth[0], 2) : clusterWidth[0];
 		}
 		return width;
+	}
+
+	private static boolean startsMarkdownLinkAt(String text, int offset) {
+		if (offset >= text.length() || text.charAt(offset) != '[') {
+			return false;
+		}
+
+		int closeBracket = offset + 1;
+		while (closeBracket < text.length()) {
+			if (text.charAt(closeBracket) == ']' && !isEscaped(text, closeBracket)) {
+				break;
+			}
+			closeBracket += Character.charCount(text.codePointAt(closeBracket));
+		}
+		return closeBracket + 1 < text.length() && text.charAt(closeBracket + 1) == '(';
+	}
+
+	private static int markdownLinkEnd(String text, int offset) {
+		int closeBracket = offset + 1;
+		while (closeBracket < text.length()) {
+			if (text.charAt(closeBracket) == ']' && !isEscaped(text, closeBracket)) {
+				break;
+			}
+			closeBracket += Character.charCount(text.codePointAt(closeBracket));
+		}
+		if (closeBracket + 1 >= text.length() || text.charAt(closeBracket + 1) != '(') {
+			return offset + 1;
+		}
+
+		int pos = closeBracket + 2;
+		int depth = 1;
+		while (pos < text.length()) {
+			char ch = text.charAt(pos);
+			if (ch == '(' && !isEscaped(text, pos)) {
+				depth++;
+			} else if (ch == ')' && !isEscaped(text, pos)) {
+				depth--;
+				if (depth == 0) {
+					return pos + 1;
+				}
+			}
+			pos += Character.charCount(text.codePointAt(pos));
+		}
+		return offset + 1;
+	}
+
+	private static int markdownCodeSpanEnd(String text, int offset) {
+		if (offset >= text.length() || text.charAt(offset) != '`') {
+			return offset + 1;
+		}
+
+		int tickCount = 0;
+		while (offset + tickCount < text.length() && text.charAt(offset + tickCount) == '`') {
+			tickCount++;
+		}
+
+		int pos = offset + tickCount;
+		while (pos < text.length()) {
+			if (text.charAt(pos) == '`') {
+				int closingTicks = 0;
+				while (pos + closingTicks < text.length() && text.charAt(pos + closingTicks) == '`') {
+					closingTicks++;
+				}
+				if (closingTicks == tickCount) {
+					return pos + closingTicks;
+				}
+				pos += closingTicks;
+			} else {
+				pos += Character.charCount(text.codePointAt(pos));
+			}
+		}
+		return offset + tickCount;
+	}
+
+	private static int longTokenChunkEnd(String token, int offset, int width) {
+		int targetWidth = Math.max(1, width);
+		int end = offset;
+		int chunkWidth = 0;
+		while (end < token.length()) {
+			int cp = token.codePointAt(end);
+			int after = end + Character.charCount(cp);
+			int codePointWidth = displayWidth(token.substring(end, after));
+			if (end > offset && chunkWidth + codePointWidth > targetWidth) {
+				return end;
+			}
+			chunkWidth += codePointWidth;
+			end = after;
+			if (chunkWidth >= targetWidth) {
+				return end;
+			}
+		}
+		return end > offset ? end : offset + Character.charCount(token.codePointAt(offset));
+	}
+
+	private static void appendWrappedToken(List<String> segments, StringBuilder current, String token, int width) {
+		int tokenWidth = displayWidth(token);
+		int currentWidth = displayWidth(current.toString());
+		int candidateWidth = current.isEmpty() ? tokenWidth : currentWidth + 1 + tokenWidth;
+		if (tokenWidth <= width) {
+			if (!current.isEmpty() && candidateWidth > width) {
+				segments.add(current.toString());
+				current.setLength(0);
+			}
+			if (!current.isEmpty()) {
+				current.append(' ');
+			}
+			current.append(token);
+			return;
+		}
+
+		if (!current.isEmpty()) {
+			segments.add(current.toString());
+			current.setLength(0);
+		}
+
+		for (int offset = 0; offset < token.length();) {
+			int end = longTokenChunkEnd(token, offset, width);
+			String chunk = token.substring(offset, end);
+			if (end < token.length()) {
+				segments.add(chunk);
+			} else {
+				current.append(chunk);
+			}
+			offset = end;
+		}
+	}
+
+	private static List<String> wrapCellSegments(String cell, int width) {
+		String value = trim(cell);
+		if (value.isEmpty()) {
+			return List.of("");
+		}
+
+		List<String> segments = new ArrayList<>();
+		StringBuilder current = new StringBuilder();
+		int offset = 0;
+		while (offset < value.length()) {
+			while (offset < value.length() && isSpace(value.charAt(offset))) {
+				offset++;
+			}
+			if (offset >= value.length()) {
+				break;
+			}
+
+			int end = offset;
+			if (value.charAt(offset) == '`') {
+				end = markdownCodeSpanEnd(value, offset);
+			} else if (startsMarkdownLinkAt(value, offset)) {
+				end = markdownLinkEnd(value, offset);
+			} else {
+				while (end < value.length() && !isSpace(value.charAt(end))) {
+					end += Character.charCount(value.codePointAt(end));
+				}
+			}
+
+			appendWrappedToken(segments, current, value.substring(offset, end), width);
+			offset = end;
+		}
+
+		if (!current.isEmpty()) {
+			segments.add(current.toString());
+		}
+		if (segments.isEmpty()) {
+			segments.add("");
+		}
+		return segments;
+	}
+
+	private static int wrapLongCells(Table table, int originalTargetRow) {
+		if (table.separatorRow == -1) {
+			return originalTargetRow;
+		}
+
+		List<Row> wrappedRows = new ArrayList<>();
+		int wrappedTargetRow = originalTargetRow;
+		int nextId = nextRowId(table);
+		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			if (row.separator || rowIndex <= table.separatorRow) {
+				if (rowIndex == originalTargetRow) {
+					wrappedTargetRow = wrappedRows.size();
+				}
+				wrappedRows.add(row);
+				continue;
+			}
+
+			List<List<String>> cellSegments = new ArrayList<>();
+			int segmentCount = 1;
+			for (int column = 0; column < table.columns; column++) {
+				List<String> segments = wrapCellSegments(row.cells.get(column), 32);
+				cellSegments.add(segments);
+				segmentCount = Math.max(segmentCount, segments.size());
+			}
+
+			if (rowIndex == originalTargetRow) {
+				wrappedTargetRow = wrappedRows.size();
+			}
+
+			for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
+				Row wrapped = new Row();
+				wrapped.id = segmentIndex == 0 ? row.id : nextId++;
+				for (int column = 0; column < table.columns; column++) {
+					List<String> segments = cellSegments.get(column);
+					wrapped.cells.add(segmentIndex < segments.size() ? segments.get(segmentIndex) : "");
+				}
+				wrappedRows.add(wrapped);
+			}
+		}
+
+		table.rows.clear();
+		table.rows.addAll(wrappedRows);
+		return wrappedTargetRow;
 	}
 
 	private static String spaces(int count) {

@@ -169,6 +169,12 @@ public final class MarkdownTableActions {
 		}
 	}
 
+	public static final class WrapLongCells extends Base {
+		public WrapLongCells() {
+			super(MarkdownTableCore.Action.WRAP_LONG_CELLS);
+		}
+	}
+
 	public static final class ConvertCsvTsv extends AnAction implements DumbAware {
 		@Override
 		public void actionPerformed(AnActionEvent event) {

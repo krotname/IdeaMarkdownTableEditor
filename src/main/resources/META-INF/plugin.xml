@@ -22,11 +22,9 @@
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>Added localized action names, menu text, dialogs, and user messages for 20 popular locales.</li>
-			<li>Improved large-table performance by reducing table parsing, display-width, and formatting overhead.</li>
-			<li>Added release-blocking Java/C++ core performance benchmarks to CI.</li>
-			<li>Preserved Java/C++ core parity for trimmed pipe rows, escaped pipes, Unicode/CJK width, CSV/TSV conversion, sorting, and row/column edits.</li>
-			<li>Kept the non-conflicting Tab plus Ctrl+Alt+Shift shortcut scheme from 9.0.0.</li>
+			<li>Added Wrap Long Cells to split very long Markdown table cells into continuation rows for easier plain-text editing.</li>
+			<li>Added Ctrl+Alt+Shift+W as the default shortcut for Wrap Long Cells.</li>
+			<li>Preserved Java/C++ core parity for wrapping, alignment, sorting, CSV/TSV conversion, escaped pipes, and Unicode/CJK width.</li>
 		</ul>
 	]]></change-notes>
 
@@ -46,6 +44,9 @@
 			<add-to-group group-id="EditorPopupMenu" anchor="last"/>
 			<action id="MarkdownTableEditor.Align" class="name.krot.markdowntableidea.MarkdownTableActions$Align">
 				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 1"/>
+			</action>
+			<action id="MarkdownTableEditor.WrapLongCells" class="name.krot.markdowntableidea.MarkdownTableActions$WrapLongCells">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift W"/>
 			</action>
 			<action id="MarkdownTableEditor.NextCell" class="name.krot.markdowntableidea.MarkdownTableActions$NextCell">
 				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 2"/>

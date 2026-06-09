@@ -441,6 +441,46 @@ public final class MarkdownTableCoreSmoke {
 			"Anna |  20"
 		));
 
+		MarkdownTableCore.EditResult wrappedLongCells = MarkdownTableCore.apply(
+			List.of(
+				"| Key | Value |",
+				"| --- | --- |",
+				"| row | alpha beta gamma delta epsilon zeta eta theta |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.WRAP_LONG_CELLS
+		);
+		expectTrue("wrap long cells ok", wrappedLongCells.ok);
+		expectInt("wrap long cells target row", wrappedLongCells.targetRow, 2);
+		expectInt("wrap long cells target column", wrappedLongCells.targetColumn, 1);
+		expectLines("wrap long cells", wrappedLongCells.lines, List.of(
+			"| Key | Value                          |",
+			"| --- | ------------------------------ |",
+			"| row | alpha beta gamma delta epsilon |",
+			"|     | zeta eta theta                 |"
+		));
+
+		MarkdownTableCore.EditResult wrappedProtectedTokens = MarkdownTableCore.apply(
+			List.of(
+				"| Key | Value | Other |",
+				"| --- | --- | --- |",
+				"| protected | before [Codex Desktop registry](<C:/tmp/patch registry.md>) after ``code span with spaces`` alpha beta gamma delta epsilon zeta | empty |",
+				"| empty | | [broken bracket text keeps moving across words |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.WRAP_LONG_CELLS
+		);
+		expectTrue("wrap protected tokens ok", wrappedProtectedTokens.ok);
+		expectTrue("wrap protected tokens expands rows", wrappedProtectedTokens.lines.size() > 5);
+		String wrappedProtectedText = String.join("\n", wrappedProtectedTokens.lines);
+		expectContains("wrap splits long markdown link token", wrappedProtectedText, "[Codex Desktop registry](<C:/tmp");
+		expectContains("wrap keeps markdown link remainder", wrappedProtectedText, "/patch registry.md>)");
+		expectNotContains("wrap no longer keeps overwide markdown link token", wrappedProtectedText, "[Codex Desktop registry](<C:/tmp/patch registry.md>)");
+		expectContains("wrap keeps code span token", wrappedProtectedText, "``code span with spaces``");
+		expectContains("wrap keeps malformed bracket token text", wrappedProtectedText, "[broken");
+
 		String escaped = "| a \\| b | c |";
 		expectTrue("escaped pipe potential", MarkdownTableCore.isPotentialTableLine(escaped));
 		expectTrue("only escaped pipe is not table", !MarkdownTableCore.isPotentialTableLine("a \\| b"));
@@ -746,6 +786,7 @@ public final class MarkdownTableCoreSmoke {
 		LinkedHashMap<String, String> shortcuts = new LinkedHashMap<>();
 		shortcuts.put("MarkdownTableEditor.TabAlign", "TAB");
 		shortcuts.put("MarkdownTableEditor.Align", "ctrl alt shift 1");
+		shortcuts.put("MarkdownTableEditor.WrapLongCells", "ctrl alt shift W");
 		shortcuts.put("MarkdownTableEditor.NextCell", "ctrl alt shift 2");
 		shortcuts.put("MarkdownTableEditor.PreviousCell", "ctrl alt shift 3");
 		shortcuts.put("MarkdownTableEditor.SortAscending", "ctrl alt shift EQUALS");

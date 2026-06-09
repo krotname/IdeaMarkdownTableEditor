@@ -235,9 +235,10 @@ public final class MarkdownTableEditorScenarios {
 			new MarkdownTableActions.MoveColumnLeft(),
 			new MarkdownTableActions.MoveColumnRight(),
 			new MarkdownTableActions.SortAscending(),
-			new MarkdownTableActions.SortDescending()
+			new MarkdownTableActions.SortDescending(),
+			new MarkdownTableActions.WrapLongCells()
 		};
-		expectInt("base action wrappers constructed", baseActions.length, 13);
+		expectInt("base action wrappers constructed", baseActions.length, 14);
 
 		MarkdownTableActions.Align align = new MarkdownTableActions.Align();
 		expectSame("base action update thread", align.getActionUpdateThread(), ActionUpdateThread.EDT);
