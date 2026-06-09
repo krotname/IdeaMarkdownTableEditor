@@ -35,6 +35,10 @@ jobs:
         shell: cmd
         run: gradlew.bat clean check buildPlugin --no-daemon --console=plain --no-build-cache --rerun-tasks
 
+      - name: Core performance benchmarks
+        shell: cmd
+        run: gradlew.bat corePerformance --no-daemon --console=plain --no-build-cache --rerun-tasks
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:

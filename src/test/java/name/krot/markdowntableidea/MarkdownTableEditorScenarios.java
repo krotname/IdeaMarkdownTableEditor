@@ -285,10 +285,10 @@ public final class MarkdownTableEditorScenarios {
 		expectString("cancel keeps document empty", target.text(), "");
 		dialog.nextValue = "bad";
 		insert.actionPerformed(event(target, new Presentation()));
-		expectString("bad size error", dialog.lastError, "Введите размер в формате 3x4.");
+		expectString("bad size error", dialog.lastError, MarkdownTableEditorBundle.message("dialog.insertTable.error.format"));
 		dialog.nextValue = "51x1";
 		insert.actionPerformed(event(target, new Presentation()));
-		expectString("range size error", dialog.lastError, "Допустимо: 1-50 столбцов и 0-200 строк данных.");
+		expectString("range size error", dialog.lastError, MarkdownTableEditorBundle.message("dialog.insertTable.error.range"));
 		dialog.nextValue = "2x1";
 		insert.actionPerformed(event(target, new Presentation()));
 		expectContains("insert action created table", target.text(), "| Column 1 | Column 2 |");

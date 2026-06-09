@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/krotname/IdeaMarkdownTableEditor?label=release)](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest)
-[![Core coverage](https://img.shields.io/badge/core%20coverage-91.93%25-brightgreen)](build.gradle.kts)
+[![Core coverage](https://img.shields.io/badge/core%20coverage-91.60%25-brightgreen)](build.gradle.kts)
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![JetBrains downloads](https://img.shields.io/jetbrains/plugin/d/32159?label=JetBrains%20downloads)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![Website](https://img.shields.io/badge/website-markdowntableeditor.krot.name-0f766e)](https://markdowntableeditor.krot.name/)
@@ -29,6 +29,7 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 - `Tab`, sorting, and row or column operations save manual spacing work.
 - CSV/TSV text can be converted into a clean Markdown table quickly.
 - Commands are available from the `Tools` menu, the editor context menu, and IDE action search.
+- Action names, dialogs, and messages are localized for popular IDE locales.
 
 ## Features
 
@@ -44,6 +45,7 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 - Insert a new table with a selected number of columns and rows.
 - Preserve Markdown alignment markers: `---`, `:---`, `---:`, `:---:`.
 - Correctly handle escaped pipes: `\|`.
+- Large-table operations are optimized and guarded by dedicated CI performance benchmarks.
 
 ## Installation
 
@@ -164,6 +166,12 @@ For JaCoCo coverage:
 ```
 
 The HTML report is written to `build/reports/coverage/html`.
+
+Core performance benchmarks:
+
+```cmd
+.\gradlew.bat corePerformance
+```
 
 Full release build:
 

@@ -237,6 +237,9 @@ val processedPluginXmlPath = layout.buildDirectory.file("resources/main/META-INF
 val marketplaceSubmissionTemplate = layout.projectDirectory.file("MARKETPLACE_SUBMISSION.md")
 val generatedMarketplaceSubmission = layout.buildDirectory.file("release/MARKETPLACE_SUBMISSION.md")
 val goldenFixtureFile = layout.projectDirectory.file("test-fixtures/markdown-table-core-golden.json")
+val corePerformanceThresholdScale = providers.gradleProperty("corePerformanceThresholdScale")
+	.orElse(providers.environmentVariable("CORE_PERFORMANCE_THRESHOLD_SCALE"))
+	.orElse("1.0")
 val coreCoverageClassDirectories = layout.buildDirectory.dir("instrumented/instrumentCode").map {
 	fileTree(it) {
 		include("name/krot/markdowntableidea/core/MarkdownTableCore*.class")
@@ -277,6 +280,24 @@ tasks.named<Test>("test") {
 	extensions.configure(JacocoTaskExtension::class) {
 		isIncludeNoLocationClasses = true
 		excludes = listOf("jdk.internal.*")
+	}
+}
+
+val corePerformance by tasks.registering(Test::class) {
+	group = LifecycleBasePlugin.VERIFICATION_GROUP
+	description = "Runs core performance benchmarks with time thresholds."
+	useJUnitPlatform()
+	include("**/*Performance.class")
+	failOnNoDiscoveredTests = true
+	testClassesDirs = sourceSets["test"].output.classesDirs
+	classpath = sourceSets["test"].runtimeClasspath
+	workingDir = projectDir
+	shouldRunAfter(tasks.named("test"))
+	systemProperty("corePerformanceThresholdScale", corePerformanceThresholdScale.get())
+	outputs.upToDateWhen { false }
+	testLogging {
+		events("passed", "failed", "skipped")
+		showStandardStreams = true
 	}
 }
 

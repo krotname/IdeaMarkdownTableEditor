@@ -36,8 +36,8 @@ public final class MarkdownTableActions {
 		public String askTableSize(com.intellij.openapi.project.Project project) {
 			return Messages.showInputDialog(
 				project,
-				"Введите размер: столбцы x строки данных, например 3x4.",
-				"Новая Markdown-таблица",
+				MarkdownTableEditorBundle.message("dialog.insertTable.prompt"),
+				MarkdownTableEditorBundle.message("dialog.insertTable.title"),
 				Messages.getQuestionIcon(),
 				"3x3",
 				null
@@ -46,7 +46,7 @@ public final class MarkdownTableActions {
 
 		@Override
 		public void showError(com.intellij.openapi.project.Project project, String message) {
-			Messages.showErrorDialog(project, message, "Markdown Table Editor");
+			Messages.showErrorDialog(project, message, MarkdownTableEditorBundle.message("plugin.name"));
 		}
 	}
 
@@ -197,14 +197,14 @@ public final class MarkdownTableActions {
 
 			Matcher matcher = TABLE_SIZE.matcher(value);
 			if (!matcher.matches()) {
-				dialogService.showError(event.getProject(), "Введите размер в формате 3x4.");
+				dialogService.showError(event.getProject(), MarkdownTableEditorBundle.message("dialog.insertTable.error.format"));
 				return;
 			}
 
 			int columns = Integer.parseInt(matcher.group(1));
 			int dataRows = Integer.parseInt(matcher.group(2));
 			if (columns < 1 || columns > 50 || dataRows < 0 || dataRows > 200) {
-				dialogService.showError(event.getProject(), "Допустимо: 1-50 столбцов и 0-200 строк данных.");
+				dialogService.showError(event.getProject(), MarkdownTableEditorBundle.message("dialog.insertTable.error.range"));
 				return;
 			}
 

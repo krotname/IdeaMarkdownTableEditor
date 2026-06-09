@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class MarkdownTableEditor {
-	private static final String COMMAND_NAME = "Markdown Table Editor";
 	private static CommandRunner commandRunner = MarkdownTableEditor::runWriteCommand;
 
 	private MarkdownTableEditor() {
@@ -56,7 +55,7 @@ public final class MarkdownTableEditor {
 		String currentLineText = getLineText(document, currentLine);
 		if (!MarkdownTableCore.isPotentialTableLine(currentLineText)) {
 			if (!quiet) {
-				Messages.showInfoMessage(project, "Put the caret inside a Markdown pipe table first.", COMMAND_NAME);
+				Messages.showInfoMessage(project, MarkdownTableEditorBundle.message("message.putCaretInsideTable"), commandName());
 			}
 			return false;
 		}
@@ -64,7 +63,7 @@ public final class MarkdownTableEditor {
 		LineRange tableRange = findTableLineRange(document, currentLine);
 		if (tableRange == null) {
 			if (!quiet) {
-				Messages.showInfoMessage(project, "Could not edit the Markdown table.", COMMAND_NAME);
+				Messages.showInfoMessage(project, MarkdownTableEditorBundle.message("message.couldNotEditTable"), commandName());
 			}
 			return false;
 		}
@@ -80,7 +79,7 @@ public final class MarkdownTableEditor {
 		MarkdownTableCore.EditResult edit = MarkdownTableCore.apply(tableLines, row, column, action);
 		if (!edit.ok) {
 			if (!quiet) {
-				Messages.showInfoMessage(project, "Could not edit the Markdown table.", COMMAND_NAME);
+				Messages.showInfoMessage(project, MarkdownTableEditorBundle.message("message.couldNotEditTable"), commandName());
 			}
 			return false;
 		}
@@ -98,7 +97,7 @@ public final class MarkdownTableEditor {
 			editor.getScrollingModel().scrollToCaret(ScrollType.MAKE_VISIBLE);
 		};
 
-		commandRunner.run(project, COMMAND_NAME, change);
+		commandRunner.run(project, commandName(), change);
 
 		return true;
 	}
@@ -135,7 +134,7 @@ public final class MarkdownTableEditor {
 		Range range = selectedOrCurrentDelimitedBlock(editor);
 		if (range.start >= range.end) {
 			if (!quiet) {
-				Messages.showInfoMessage(project, "Select CSV/TSV text or put the caret inside a CSV/TSV block first.", COMMAND_NAME);
+				Messages.showInfoMessage(project, MarkdownTableEditorBundle.message("message.selectCsvTsv"), commandName());
 			}
 			return false;
 		}
@@ -144,7 +143,7 @@ public final class MarkdownTableEditor {
 		MarkdownTableCore.EditResult edit = MarkdownTableCore.fromDelimited(source);
 		if (!edit.ok) {
 			if (!quiet) {
-				Messages.showInfoMessage(project, "Could not convert the selected CSV/TSV text.", COMMAND_NAME);
+				Messages.showInfoMessage(project, MarkdownTableEditorBundle.message("message.couldNotConvertCsvTsv"), commandName());
 			}
 			return false;
 		}
@@ -168,7 +167,7 @@ public final class MarkdownTableEditor {
 
 		MarkdownTableCore.EditResult edit = MarkdownTableCore.newTable(columns, dataRows);
 		if (!edit.ok) {
-			Messages.showInfoMessage(project, "Could not create a Markdown table.", COMMAND_NAME);
+			Messages.showInfoMessage(project, MarkdownTableEditorBundle.message("message.couldNotCreateTable"), commandName());
 			return false;
 		}
 
@@ -363,7 +362,7 @@ public final class MarkdownTableEditor {
 			editor.getScrollingModel().scrollToCaret(ScrollType.MAKE_VISIBLE);
 		};
 
-		commandRunner.run(project, COMMAND_NAME, change);
+		commandRunner.run(project, commandName(), change);
 	}
 
 	private static void runWriteCommand(Project project, String name, Runnable change) {
@@ -372,6 +371,10 @@ public final class MarkdownTableEditor {
 		} else {
 			CommandProcessor.getInstance().executeCommand(null, () -> ApplicationManager.getApplication().runWriteAction(change), name, null);
 		}
+	}
+
+	private static String commandName() {
+		return MarkdownTableEditorBundle.message("plugin.name");
 	}
 
 	private static InsertText tableInsertText(Document document, int start, int end, String table, String eol) {

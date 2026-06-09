@@ -10,7 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -50,6 +52,10 @@ public final class MarkdownTableCoreSmoke {
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
 		expectContains("tab handler runs before default tab processors", pluginXml, "order=\"first\"");
+		expectContains("plugin declares resource bundle", pluginXml, "<resource-bundle>messages.MarkdownTableEditorBundle</resource-bundle>");
+		expectNotContains("actions do not hardcode English text", pluginXml, "text=\"Align Table\"");
+		expectNotContains("actions do not hardcode English descriptions", pluginXml, "description=\"Align the Markdown table at the caret\"");
+		expectActionBundleKeys();
 		expectEquals("default action shortcuts", expectedDefaultShortcuts(), readActionShortcuts(processedPluginXmlPath.toFile()));
 		for (String forbiddenShortcut : List.of("ctrl alt A", "ctrl alt LEFT", "ctrl alt RIGHT", "ctrl alt UP", "ctrl alt DOWN", "ctrl alt shift LEFT", "ctrl alt shift RIGHT", "ctrl alt shift F")) {
 			expectNotContains("conflicting shortcut is removed: " + forbiddenShortcut, pluginXml, "first-keystroke=\"" + forbiddenShortcut + "\"");
@@ -720,6 +726,10 @@ public final class MarkdownTableCoreSmoke {
 		assertEquals(expected, actual, name);
 	}
 
+	private static void expectEquals(String name, String expected, String actual) {
+		assertEquals(expected, actual, name);
+	}
+
 	private static void expectLines(String name, List<String> actual, List<String> expected) {
 		assertEquals(expected, actual, name);
 	}
@@ -751,6 +761,46 @@ public final class MarkdownTableCoreSmoke {
 		shortcuts.put("MarkdownTableEditor.MoveColumnLeft", "ctrl alt shift OPEN_BRACKET");
 		shortcuts.put("MarkdownTableEditor.MoveColumnRight", "ctrl alt shift CLOSE_BRACKET");
 		return shortcuts;
+	}
+
+	private static void expectActionBundleKeys() {
+		File[] bundleFiles = Path.of("src", "main", "resources", "messages").toFile().listFiles((dir, name) ->
+			name.startsWith("MarkdownTableEditorBundle") && name.endsWith(".properties"));
+		expectInt("top speaker locale bundle count", bundleFiles == null ? 0 : bundleFiles.length, 20);
+
+		ResourceBundle english = ResourceBundle.getBundle("messages.MarkdownTableEditorBundle", Locale.ROOT);
+		ResourceBundle russian = ResourceBundle.getBundle("messages.MarkdownTableEditorBundle", Locale.forLanguageTag("ru"));
+		expectEquals("english action text", "Align Table", english.getString("action.MarkdownTableEditor.Align.text"));
+		expectEquals("english action description", "Align the Markdown table at the caret", english.getString("action.MarkdownTableEditor.Align.description"));
+		expectEquals("english group text", "Markdown Table Editor", english.getString("group.MarkdownTableEditor.Group.text"));
+		expectEquals("russian action text", "Выровнять таблицу", russian.getString("action.MarkdownTableEditor.Align.text"));
+		expectEquals("russian action description", "Выровнять Markdown-таблицу под курсором", russian.getString("action.MarkdownTableEditor.Align.description"));
+		expectEquals("russian group text", "Редактор Markdown-таблиц", russian.getString("group.MarkdownTableEditor.Group.text"));
+
+		LinkedHashMap<String, String> localizedAlignText = new LinkedHashMap<>();
+		localizedAlignText.put("zh-CN", "对齐表格");
+		localizedAlignText.put("hi", "तालिका संरेखित करें");
+		localizedAlignText.put("es", "Alinear tabla");
+		localizedAlignText.put("ar", "محاذاة الجدول");
+		localizedAlignText.put("fr", "Aligner le tableau");
+		localizedAlignText.put("bn", "টেবিল সারিবদ্ধ করুন");
+		localizedAlignText.put("pt", "Alinhar tabela");
+		localizedAlignText.put("id", "Ratakan tabel");
+		localizedAlignText.put("ur", "جدول سیدھا کریں");
+		localizedAlignText.put("de", "Tabelle ausrichten");
+		localizedAlignText.put("ja", "テーブルを整列");
+		localizedAlignText.put("pcm", "Arrange table");
+		localizedAlignText.put("mr", "तक्ता संरेखित करा");
+		localizedAlignText.put("te", "పట్టికను సరిపరచు");
+		localizedAlignText.put("tr", "Tabloyu hizala");
+		localizedAlignText.put("ta", "அட்டவணையை ஒழுங்குபடுத்து");
+		localizedAlignText.put("yue", "對齊表格");
+		localizedAlignText.put("vi", "Căn chỉnh bảng");
+		for (Map.Entry<String, String> entry : localizedAlignText.entrySet()) {
+			ResourceBundle bundle = ResourceBundle.getBundle("messages.MarkdownTableEditorBundle", Locale.forLanguageTag(entry.getKey()));
+			expectEquals(entry.getKey() + " action text", entry.getValue(), bundle.getString("action.MarkdownTableEditor.Align.text"));
+			expectTrue(entry.getKey() + " action description exists", !bundle.getString("action.MarkdownTableEditor.Align.description").isBlank());
+		}
 	}
 
 	private static Map<String, String> readActionShortcuts(File pluginXmlFile) throws Exception {

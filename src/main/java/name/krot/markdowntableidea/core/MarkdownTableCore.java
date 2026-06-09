@@ -345,6 +345,16 @@ public final class MarkdownTableCore {
 		return value.substring(first, last);
 	}
 
+	private static String trimRange(String value, int first, int last) {
+		while (first < last && isSpace(value.charAt(first))) {
+			first++;
+		}
+		while (last > first && isSpace(value.charAt(last - 1))) {
+			last--;
+		}
+		return value.substring(first, last);
+	}
+
 	private static boolean isEscaped(String line, int pos) {
 		int slashCount = 0;
 		while (pos > slashCount && line.charAt(pos - slashCount - 1) == '\\') {
@@ -357,6 +367,14 @@ public final class MarkdownTableCore {
 		return !line.isEmpty() && line.charAt(line.length() - 1) == '|' && !isEscaped(line, line.length() - 1);
 	}
 
+	private static boolean endsWithUnescapedPipeTrimmed(String line) {
+		int last = line.length();
+		while (last > 0 && isSpace(line.charAt(last - 1))) {
+			last--;
+		}
+		return last > 0 && line.charAt(last - 1) == '|' && !isEscaped(line, last - 1);
+	}
+
 	private static boolean startsWithUnescapedPipe(String line) {
 		int pos = 0;
 		while (pos < line.length() && isSpace(line.charAt(pos))) {
@@ -366,23 +384,32 @@ public final class MarkdownTableCore {
 	}
 
 	private static List<String> splitCells(String line) {
-		String body = trim(line);
-		if (!body.isEmpty() && body.charAt(0) == '|') {
-			body = body.substring(1);
+		int first = 0;
+		while (first < line.length() && isSpace(line.charAt(first))) {
+			first++;
 		}
-		if (endsWithUnescapedPipe(body)) {
-			body = body.substring(0, body.length() - 1);
+
+		int last = line.length();
+		while (last > first && isSpace(line.charAt(last - 1))) {
+			last--;
+		}
+
+		if (first < last && line.charAt(first) == '|') {
+			first++;
+		}
+		if (last > first && line.charAt(last - 1) == '|' && !isEscaped(line, last - 1)) {
+			last--;
 		}
 
 		List<String> cells = new ArrayList<>();
-		int start = 0;
-		for (int i = 0; i < body.length(); i++) {
-			if (body.charAt(i) == '|' && !isEscaped(body, i)) {
-				cells.add(trim(body.substring(start, i)));
+		int start = first;
+		for (int i = first; i < last; i++) {
+			if (line.charAt(i) == '|' && !isEscaped(line, i)) {
+				cells.add(trimRange(line, start, i));
 				start = i + 1;
 			}
 		}
-		cells.add(trim(body.substring(start)));
+		cells.add(trimRange(line, start, last));
 		return cells;
 	}
 
@@ -485,7 +512,7 @@ public final class MarkdownTableCore {
 			if (startsWithUnescapedPipe(line)) {
 				leadingPipeRows++;
 			}
-			if (endsWithUnescapedPipe(trim(line))) {
+			if (endsWithUnescapedPipeTrimmed(line)) {
 				trailingPipeRows++;
 			}
 		}
@@ -799,6 +826,9 @@ public final class MarkdownTableCore {
 	}
 
 	private static boolean isCombiningCodePoint(int cp) {
+		if (cp < 0x0300) {
+			return false;
+		}
 		int type = Character.getType(cp);
 		return type == Character.NON_SPACING_MARK ||
 			type == Character.COMBINING_SPACING_MARK ||
@@ -820,6 +850,9 @@ public final class MarkdownTableCore {
 	private static int codePointDisplayWidth(int cp) {
 		if (isZeroWidthCodePoint(cp)) {
 			return 0;
+		}
+		if (cp < 0x1100) {
+			return 1;
 		}
 		return isWideCodePoint(cp) || isEmojiPresentationCodePoint(cp) ? 2 : 1;
 	}

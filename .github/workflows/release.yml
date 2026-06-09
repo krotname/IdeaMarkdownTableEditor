@@ -54,7 +54,7 @@ jobs:
 
       - name: Build, verify, and package
         shell: cmd
-        run: gradlew.bat clean check verifyPlugin buildPlugin "-PpluginVersion=${{ needs.version.outputs.version }}" -PverifyRecommendedIdes=false -PverifyAllJetBrainsIdes=false --no-daemon --console=plain --no-build-cache --rerun-tasks
+        run: gradlew.bat clean check corePerformance verifyPlugin buildPlugin "-PpluginVersion=${{ needs.version.outputs.version }}" -PverifyRecommendedIdes=false -PverifyAllJetBrainsIdes=false --no-daemon --console=plain --no-build-cache --rerun-tasks
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
@@ -100,18 +100,18 @@ jobs:
 
           ## What's Changed
 
-          - Supersedes 8.5.0 as the current stable release.
-          - Use one non-conflicting default shortcut scheme across JetBrains IDEs and Notepad++: Tab plus Ctrl+Alt+Shift command shortcuts.
+          - Supersedes 9.0.0 as the current stable release.
+          - Added localized action names, menu text, dialogs, and user messages for 20 popular locales.
+          - Improved large-table performance by reducing table parsing, display-width, and formatting overhead.
+          - Added release-blocking Java/C++ core performance benchmarks to CI.
+          - Preserved Java/C++ core parity for trimmed pipe rows, escaped pipes, Unicode/CJK width, CSV/TSV conversion, sorting, and row/column edits.
+          - Kept the non-conflicting Tab plus Ctrl+Alt+Shift shortcut scheme from 9.0.0.
           - Built the JetBrains IDE plugin package on GitHub Actions.
-          - Convert CSV/TSV directly from the current multi-line block when there is no selection.
-          - Avoid converting adjacent plain text, single comma notes, quoted comma-only cells, and plain multi-line text as CSV.
-          - Reject pipe-only separator rows while still accepting dash and equals Markdown separator rules.
-          - Added shared Java/C++ golden fixture coverage for escaped JSON Unicode, multilingual width, and emoji cluster alignment.
           - Included SHA-256 sums for release verification.
 
           ## Validation
 
-          - GitHub Actions release build completed with smoke tests.
+          - GitHub Actions release build completed with smoke tests, coverage checks, baseline Plugin Verifier, and core performance benchmarks.
           EOF
 
           assets=("${files[@]}" SHA256SUMS.txt)

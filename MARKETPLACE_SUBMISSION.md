@@ -33,6 +33,20 @@ Status: release metadata for version `@PLUGIN_VERSION@`; generated from Gradle's
 
 Edit Markdown pipe tables directly in JetBrains IDEs: align with Tab, sort rows, convert CSV/TSV, insert tables by size, and manage rows or columns without leaving the editor.
 
+## Marketplace update text
+
+Use this for the JetBrains Marketplace version notes for `@PLUGIN_VERSION@` if the upload flow asks for release text:
+
+```html
+<ul>
+  <li>Added localized action names, menu text, dialogs, and user messages for 20 popular locales.</li>
+  <li>Improved large-table performance by reducing table parsing, display-width, and formatting overhead.</li>
+  <li>Added release-blocking Java/C++ core performance benchmarks to CI.</li>
+  <li>Preserved Java/C++ core parity for trimmed pipe rows, escaped pipes, Unicode/CJK width, CSV/TSV conversion, sorting, and row/column edits.</li>
+  <li>Kept the non-conflicting Tab plus Ctrl+Alt+Shift shortcut scheme from 9.0.0.</li>
+</ul>
+```
+
 ## Manual submission
 
 1. Log in to JetBrains Marketplace.
