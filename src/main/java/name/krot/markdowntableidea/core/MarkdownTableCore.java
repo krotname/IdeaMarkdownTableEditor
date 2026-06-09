@@ -580,7 +580,7 @@ public final class MarkdownTableCore {
 	}
 
 	private static List<List<String>> parseDelimited(String text) {
-		String value = text == null ? "" : text.strip();
+		String value = trim(text == null ? "" : text);
 		if (value.isEmpty()) {
 			return Collections.emptyList();
 		}

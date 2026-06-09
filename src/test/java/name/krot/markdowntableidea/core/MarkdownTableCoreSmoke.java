@@ -83,6 +83,13 @@ public final class MarkdownTableCoreSmoke {
 		MarkdownTableCore.EditResult plainPipe = MarkdownTableCore.apply(List.of("Use A | B in text"), 0, 0, MarkdownTableCore.Action.ALIGN);
 		expectTrue("plain pipe is not table", !plainPipe.ok);
 		expectTrue("plain pipe keeps empty result", plainPipe.lines.isEmpty());
+		expectTrue("negative row range is rejected", !MarkdownTableCore.findTableRange(input, -1).found);
+		expectLines("negative row and column clamp to first cell", MarkdownTableCore.apply(input, -1, -1, MarkdownTableCore.Action.ALIGN).lines, List.of(
+			"| Name      | Age |",
+			"| --------- | --: |",
+			"| Anna      |  20 |",
+			"| Alexander |   7 |"
+		));
 		expectTrue("pipe-only separator is not table", !MarkdownTableCore.findTableRange(List.of("| A | B |", "|   |   |", "| 1 | 2 |"), 2).found);
 		expectTrue("equals short separator is table", MarkdownTableCore.findTableRange(List.of("| A | B |", "| === | === |", "| 1 | 2 |"), 2).found);
 
@@ -99,6 +106,7 @@ public final class MarkdownTableCoreSmoke {
 		expectInt("adjacent pipe range end", adjacentTable.lastRow, 3);
 		expectTrue("adjacent pipe text before rejected", !MarkdownTableCore.findTableRange(adjacentPipeText, 0).found);
 		expectTrue("adjacent pipe text after rejected", !MarkdownTableCore.findTableRange(adjacentPipeText, 4).found);
+		expectTrue("empty eof line after table rejected", !MarkdownTableCore.findTableRange(List.of("| A |", "| --- |", "| 1 |", ""), 3).found);
 		MarkdownTableCore.EditResult adjacentApply = MarkdownTableCore.apply(adjacentPipeText, 3, 0, MarkdownTableCore.Action.ALIGN);
 		expectTrue("adjacent pipe apply ok", adjacentApply.ok);
 		expectLines("adjacent pipe apply excludes text", adjacentApply.lines, List.of(
@@ -354,6 +362,11 @@ public final class MarkdownTableCoreSmoke {
 			"| 1   | 2   |     |",
 			"| 3   | 4   | 5   |"
 		));
+		expectLines("csv trims surrounding blank lines", MarkdownTableCore.fromDelimited("  \r\nName,Role\r\nAnna,Engineer\r\n  ").lines, List.of(
+			"| Name | Role     |",
+			"| ---- | -------- |",
+			"| Anna | Engineer |"
+		));
 
 		MarkdownTableCore.EditResult largeFishCsv = MarkdownTableCore.fromDelimited(
 			"Name,Story,Score\r\n" +
@@ -392,6 +405,7 @@ public final class MarkdownTableCoreSmoke {
 		expectTrue("single quoted comma cell is not csv", !MarkdownTableCore.fromDelimited("\"just, a note\"").ok);
 		expectTrue("empty csv is rejected", !MarkdownTableCore.fromDelimited("  \r\n  ").ok);
 		expectTrue("invalid table size is rejected", !MarkdownTableCore.newTable(0, 2).ok);
+		expectTrue("negative column count is rejected", !MarkdownTableCore.newTable(-1, 2).ok);
 		expectTrue("negative table size is rejected", !MarkdownTableCore.newTable(2, -1).ok);
 
 		expectLines("new table by size", MarkdownTableCore.newTable(3, 2).lines, List.of(

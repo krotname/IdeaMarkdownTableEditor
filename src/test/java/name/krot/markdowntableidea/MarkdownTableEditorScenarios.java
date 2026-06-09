@@ -85,6 +85,27 @@ public final class MarkdownTableEditorScenarios {
 			"Before\n| Name | Age |\n| ---- | --: |\n| Anna |  20 |\nAfter");
 		expectInt("align caret offset", table.caretOffset(), table.text().indexOf("Anna"));
 
+		TestEditor tableAtStart = new TestEditor("| H | V |\n| --- | --- |\n| a | bb |\nAfter", false, true);
+		tableAtStart.setCaretAt("bb");
+		expectTrue("run replaces table at document start", MarkdownTableEditor.run(tableAtStart.editor, null, MarkdownTableCore.Action.ALIGN, true));
+		expectString("document start replacement", tableAtStart.text(),
+			"| H   | V   |\n| --- | --- |\n| a   | bb  |\nAfter");
+		expectInt("document start replacement caret", tableAtStart.caretOffset(), tableAtStart.text().indexOf("bb"));
+
+		TestEditor tableAtEnd = new TestEditor("Before\r\n| H | V |\r\n| --- | --- |\r\n| aa | b |", false, true);
+		tableAtEnd.setCaretAt("b |");
+		expectTrue("run replaces table at document end", MarkdownTableEditor.run(tableAtEnd.editor, null, MarkdownTableCore.Action.ALIGN, true));
+		expectString("document end replacement keeps crlf", tableAtEnd.text(),
+			"Before\r\n| H   | V   |\r\n| --- | --- |\r\n| aa  | b   |");
+		expectInt("document end replacement caret", tableAtEnd.caretOffset(), tableAtEnd.text().lastIndexOf("b   |"));
+
+		TestEditor mixedEol = new TestEditor("Top\r\n| H | V |\n| --- | --- |\r\n| a | b |\nBottom", false, true);
+		mixedEol.setCaretAt("b |");
+		expectTrue("run replaces table near mixed eol boundary", MarkdownTableEditor.run(mixedEol.editor, null, MarkdownTableCore.Action.ALIGN, true));
+		expectString("mixed eol boundary replacement", mixedEol.text(),
+			"Top\r\n| H   | V   |\n| --- | --- |\n| a   | b   |\nBottom");
+		expectInt("mixed eol boundary caret", mixedEol.caretOffset(), mixedEol.text().lastIndexOf("b   |"));
+
 		TestEditor adjacentPipeText = new TestEditor("Use A | B in text\n| H | V |\n| --- | --- |\n| a | b |\nNext A | B", false, true);
 		adjacentPipeText.setCaretAt("a | b");
 		expectTrue("run aligns table without adjacent pipe text", MarkdownTableEditor.run(adjacentPipeText.editor, null, MarkdownTableCore.Action.ALIGN, true));
@@ -106,6 +127,13 @@ public final class MarkdownTableEditorScenarios {
 		expectTrue("null is not inside table", !MarkdownTableEditor.isInsidePotentialTable(null));
 		expectTrue("viewer is not inside table", !MarkdownTableEditor.isInsidePotentialTable(viewer.editor));
 		expectTrue("empty document is not inside table", !MarkdownTableEditor.isInsidePotentialTable(new TestEditor("", false, true).editor));
+
+		TestEditor eofBlankLine = new TestEditor("| A |\n| --- |\n| 1 |\n", false, true);
+		eofBlankLine.setCaretOffset(eofBlankLine.text().length());
+		String eofBefore = eofBlankLine.text();
+		expectTrue("eof blank line after table is outside table", !MarkdownTableEditor.isInsidePotentialTable(eofBlankLine.editor));
+		expectTrue("run rejects eof blank line after table", !MarkdownTableEditor.run(eofBlankLine.editor, null, MarkdownTableCore.Action.ALIGN, true));
+		expectString("eof blank line leaves table unchanged", eofBlankLine.text(), eofBefore);
 	}
 
 	private static void delimitedAndInsertScenarios() {
@@ -115,6 +143,13 @@ public final class MarkdownTableEditorScenarios {
 		expectString("selected csv table", selectedCsv.text(),
 			"| Name | Score |\r\n| ---- | ----- |\r\n| Anna | 10    |");
 		expectTrue("selection removed after convert", !selectedCsv.hasSelection());
+
+		TestEditor singleLineCsvInCrLfDocument = new TestEditor("intro\r\nName,Score", false, true);
+		int singleLineCsvStart = singleLineCsvInCrLfDocument.text().indexOf("Name");
+		singleLineCsvInCrLfDocument.select(singleLineCsvStart, singleLineCsvInCrLfDocument.text().length());
+		expectTrue("convert single csv line keeps document eol fallback", MarkdownTableEditor.convertDelimited(singleLineCsvInCrLfDocument.editor, null, true));
+		expectString("single csv line uses crlf fallback", singleLineCsvInCrLfDocument.text(),
+			"intro\r\n| Name | Score |\r\n| ---- | ----- |");
 
 		TestEditor blockCsv = new TestEditor("top\n\nName\tNote\nAnna\tA|B\n\nbottom", false, true);
 		blockCsv.setCaretAt("Anna");
@@ -150,10 +185,36 @@ public final class MarkdownTableEditorScenarios {
 			"prefix\n| Column 1 | Column 2 |\n| -------- | -------- |\n|          |          |\n suffix");
 		expectInt("insert middle caret", insertMiddle.caretOffset(), "prefix\n| ".length());
 
+		TestEditor insertAtStart = new TestEditor("suffix", false, true);
+		insertAtStart.setCaretOffset(0);
+		expectTrue("insert table at document start", MarkdownTableEditor.insertTable(insertAtStart.editor, null, 1, 0));
+		expectString("insert start text", insertAtStart.text(),
+			"| Column 1 |\n| -------- |\nsuffix");
+		expectInt("insert start caret", insertAtStart.caretOffset(), "| ".length());
+
+		TestEditor insertAtEnd = new TestEditor("prefix", false, true);
+		insertAtEnd.setCaretOffset(insertAtEnd.text().length());
+		expectTrue("insert table at document end", MarkdownTableEditor.insertTable(insertAtEnd.editor, null, 1, 0));
+		expectString("insert end text", insertAtEnd.text(),
+			"prefix\n| Column 1 |\n| -------- |");
+		expectInt("insert end caret", insertAtEnd.caretOffset(), "prefix\n| ".length());
+
 		TestEditor replaceSelection = new TestEditor("replace", false, true);
 		replaceSelection.select(0, replaceSelection.text().length());
 		expectTrue("insert table replaces selection", MarkdownTableEditor.insertTable(replaceSelection.editor, null, 1, 0));
 		expectString("selection replaced by table", replaceSelection.text(), "| Column 1 |\n| -------- |");
+
+		TestEditor insertAtLastCrLfLine = new TestEditor("first\r\nlast", false, true);
+		insertAtLastCrLfLine.setCaretOffset(insertAtLastCrLfLine.text().length());
+		expectTrue("insert table at last crlf line", MarkdownTableEditor.insertTable(insertAtLastCrLfLine.editor, null, 1, 0));
+		expectString("insert table uses document crlf fallback", insertAtLastCrLfLine.text(),
+			"first\r\nlast\r\n| Column 1 |\r\n| -------- |");
+
+		TestEditor insertAtEmptyFinalCrLfLine = new TestEditor("first\r\n", false, true);
+		insertAtEmptyFinalCrLfLine.setCaretOffset(insertAtEmptyFinalCrLfLine.text().length());
+		expectTrue("insert table at empty final crlf line", MarkdownTableEditor.insertTable(insertAtEmptyFinalCrLfLine.editor, null, 1, 0));
+		expectString("insert table on empty final line avoids extra separator", insertAtEmptyFinalCrLfLine.text(),
+			"first\r\n| Column 1 |\r\n| -------- |");
 
 		TestEditor readOnlyInsert = new TestEditor("x", false, false);
 		expectTrue("insert rejects read-only", !MarkdownTableEditor.insertTable(readOnlyInsert.editor, null, 1, 1));
@@ -553,7 +614,7 @@ public final class MarkdownTableEditorScenarios {
 		}
 
 		private int lineNumber(int offset) {
-			int safeOffset = Math.max(0, Math.min(offset, Math.max(text.length() - 1, 0)));
+			int safeOffset = Math.max(0, Math.min(offset, text.length()));
 			List<Line> lines = lines();
 			for (int i = 0; i < lines.size(); i++) {
 				Line line = lines.get(i);

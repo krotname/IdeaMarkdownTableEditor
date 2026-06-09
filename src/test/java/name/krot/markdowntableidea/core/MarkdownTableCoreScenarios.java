@@ -15,6 +15,8 @@ final class MarkdownTableCoreScenarios {
 
 	static void run() {
 		editorCommandScenarios();
+		malformedTableScenarios();
+		shortColumnScenarios();
 		delimitedScenarios();
 		largeDataScenarios();
 	}
@@ -169,6 +171,128 @@ final class MarkdownTableCoreScenarios {
 			"Name | Age",
 			"---- | --:",
 			"Anna |  20"
+		));
+	}
+
+	private static void malformedTableScenarios() {
+		expectLines("uneven malformed rows align", MarkdownTableCore.apply(
+			List.of(
+				"| H | V | Tail |",
+				"| --- | --- | --- |",
+				"| |",
+				"| short |",
+				"| a | b | c | d |"
+			),
+			3,
+			0,
+			MarkdownTableCore.Action.ALIGN
+		).lines, List.of(
+			"| H     | V   | Tail |     |",
+			"| ----- | --- | ---- | --- |",
+			"|       |     |      |     |",
+			"| short |     |      |     |",
+			"| a     | b   | c    | d   |"
+		));
+
+		List<String> mixedPipeStyle = List.of(
+			"A | B",
+			"| --- | --- |",
+			"| 1 | 2 |",
+			"3 | 4"
+		);
+		MarkdownTableCore.TableRange mixedPipeRange = MarkdownTableCore.findTableRange(mixedPipeStyle, 2);
+		expectTrue("mixed pipe style range found", mixedPipeRange.found);
+		expectInt("mixed pipe style range start", mixedPipeRange.firstRow, 0);
+		expectInt("mixed pipe style range end", mixedPipeRange.lastRow, 3);
+		expectLines("mixed pipe style normalizes majority wrapper", MarkdownTableCore.apply(
+			mixedPipeStyle,
+			2,
+			0,
+			MarkdownTableCore.Action.ALIGN
+		).lines, List.of(
+			"| A   | B   |",
+			"| --- | --- |",
+			"| 1   | 2   |",
+			"| 3   | 4   |"
+		));
+
+		List<String> invalidAlignment = List.of(
+			"| H | V |",
+			"| :---x | --- |",
+			"| a | b |"
+		);
+		expectTrue("invalid alignment row range rejected", !MarkdownTableCore.findTableRange(invalidAlignment, 2).found);
+		expectTrue("invalid alignment row apply rejected", !MarkdownTableCore.apply(invalidAlignment, 2, 0, MarkdownTableCore.Action.ALIGN).ok);
+
+		List<String> blankBreaksTable = List.of(
+			"| H | V |",
+			"| --- | --- |",
+			"| a | b |",
+			"",
+			"| orphan | row |"
+		);
+		MarkdownTableCore.TableRange beforeBlank = MarkdownTableCore.findTableRange(blankBreaksTable, 2);
+		expectTrue("blank line ends malformed table", beforeBlank.found);
+		expectInt("blank line range end", beforeBlank.lastRow, 2);
+		expectTrue("orphan row after blank rejected", !MarkdownTableCore.findTableRange(blankBreaksTable, 4).found);
+	}
+
+	private static void shortColumnScenarios() {
+		MarkdownTableCore.EditResult singleInsert = MarkdownTableCore.apply(
+			List.of(
+				"| H |",
+				"| - |",
+				"| a |"
+			),
+			2,
+			0,
+			MarkdownTableCore.Action.INSERT_COLUMN_RIGHT
+		);
+		expectTrue("single short column insert ok", singleInsert.ok);
+		expectInt("single short column insert target column", singleInsert.targetColumn, 1);
+		expectInt("single short column insert target offset", singleInsert.targetColumnOffset, 8);
+		expectLines("single short column insert", singleInsert.lines, List.of(
+			"| H   |     |",
+			"| --- | --- |",
+			"| a   |     |"
+		));
+
+		MarkdownTableCore.EditResult twoColumnInsert = MarkdownTableCore.apply(
+			List.of(
+				"| A | B |",
+				"| - | - |",
+				"| x | |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.INSERT_COLUMN_RIGHT
+		);
+		expectTrue("two short columns insert ok", twoColumnInsert.ok);
+		expectInt("two short columns insert target column", twoColumnInsert.targetColumn, 2);
+		expectInt("two short columns insert target offset", twoColumnInsert.targetColumnOffset, 14);
+		expectLines("two short columns insert", twoColumnInsert.lines, List.of(
+			"| A   | B   |     |",
+			"| --- | --- | --- |",
+			"| x   |     |     |"
+		));
+
+		MarkdownTableCore.EditResult twoColumnDelete = MarkdownTableCore.apply(
+			List.of(
+				"| A | B |",
+				"| - | - |",
+				"| x | |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.DELETE_COLUMN
+		);
+		expectTrue("two short columns delete ok", twoColumnDelete.ok);
+		expectInt("two short columns delete target column", twoColumnDelete.targetColumn, 0);
+		expectInt("two short columns delete target offset", twoColumnDelete.targetColumnOffset, 2);
+		expectLines("two short columns delete", twoColumnDelete.lines, List.of(
+			"| A   |",
+			"| --- |",
+			"| x   |"
 		));
 	}
 

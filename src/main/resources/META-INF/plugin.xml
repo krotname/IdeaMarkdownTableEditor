@@ -20,6 +20,7 @@
 
 	<change-notes><![CDATA[
 		<ul>
+			<li>Use one non-conflicting default shortcut scheme across JetBrains IDEs and Notepad++: Tab plus Ctrl+Alt+Shift command shortcuts.</li>
 			<li>Convert CSV/TSV directly from the current multi-line block when there is no selection.</li>
 			<li>Avoid converting adjacent plain text, single comma notes, quoted comma-only cells, and plain multi-line text as CSV.</li>
 			<li>Reject pipe-only separator rows while still accepting dash and equals Markdown separator rules.</li>

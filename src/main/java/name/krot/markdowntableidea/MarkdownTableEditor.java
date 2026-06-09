@@ -50,11 +50,8 @@ public final class MarkdownTableEditor {
 			return false;
 		}
 
-		int currentOffset = Math.min(editor.getCaretModel().getOffset(), Math.max(document.getTextLength() - 1, 0));
-		int currentLine = document.getLineNumber(currentOffset);
-		if (currentLine >= document.getLineCount()) {
-			currentLine = document.getLineCount() - 1;
-		}
+		int currentOffset = safeOffset(document, editor.getCaretModel().getOffset());
+		int currentLine = lineNumberAtOffset(document, currentOffset);
 
 		String currentLineText = getLineText(document, currentLine);
 		if (!MarkdownTableCore.isPotentialTableLine(currentLineText)) {
@@ -116,11 +113,8 @@ public final class MarkdownTableEditor {
 			return false;
 		}
 
-		int currentOffset = Math.min(editor.getCaretModel().getOffset(), document.getTextLength() - 1);
-		int currentLine = document.getLineNumber(currentOffset);
-		if (currentLine >= document.getLineCount()) {
-			currentLine = document.getLineCount() - 1;
-		}
+		int currentOffset = safeOffset(document, editor.getCaretModel().getOffset());
+		int currentLine = lineNumberAtOffset(document, currentOffset);
 
 		return findTableLineRange(document, currentLine) != null;
 	}
@@ -155,7 +149,7 @@ public final class MarkdownTableEditor {
 			return false;
 		}
 
-		String eol = chooseEol(source);
+		String eol = chooseEol(source, chooseEolForRange(document, range.start, range.end));
 		String replacement = String.join(eol, edit.lines);
 		replaceRange(editor, project, range.start, range.end, replacement, range.start + edit.targetColumnOffset);
 		return true;
@@ -189,7 +183,7 @@ public final class MarkdownTableEditor {
 			end = start;
 		}
 
-		String eol = chooseEol(document, Math.max(0, document.getLineNumber(Math.min(start, Math.max(document.getTextLength() - 1, 0)))), document.getLineCount() - 1);
+		String eol = chooseEol(document, lineNumberAtOffset(document, start), document.getLineCount() - 1);
 		InsertText insertText = tableInsertText(document, start, end, String.join(eol, edit.lines), eol);
 		replaceRange(editor, project, start, end, insertText.text, start + insertText.caretDelta + edit.targetColumnOffset);
 		return true;
@@ -239,8 +233,8 @@ public final class MarkdownTableEditor {
 			return new Range(0, 0);
 		}
 
-		int currentOffset = Math.min(editor.getCaretModel().getOffset(), Math.max(document.getTextLength() - 1, 0));
-		int currentLine = document.getLineNumber(currentOffset);
+		int currentOffset = safeOffset(document, editor.getCaretModel().getOffset());
+		int currentLine = lineNumberAtOffset(document, currentOffset);
 		if (!isDelimitedLine(getLineText(document, currentLine))) {
 			return new Range(0, 0);
 		}
@@ -281,16 +275,42 @@ public final class MarkdownTableEditor {
 	}
 
 	private static String chooseEol(Document document, int firstLine, int lastLine) {
-		for (int line = firstLine; line <= lastLine && line + 1 < document.getLineCount(); line++) {
+		String ranged = chooseEolInRange(document, firstLine, lastLine);
+		return ranged.isEmpty() ? chooseDocumentEol(document) : ranged;
+	}
+
+	private static String chooseDocumentEol(Document document) {
+		String eol = chooseEolInRange(document, 0, document.getLineCount() - 1);
+		return eol.isEmpty() ? "\n" : eol;
+	}
+
+	private static String chooseEolInRange(Document document, int firstLine, int lastLine) {
+		if (document.getLineCount() <= 1) {
+			return "";
+		}
+
+		int first = Math.max(0, Math.min(firstLine, document.getLineCount() - 1));
+		int last = Math.max(0, Math.min(lastLine, document.getLineCount() - 1));
+		if (last < first) {
+			int swap = first;
+			first = last;
+			last = swap;
+		}
+
+		for (int line = first; line <= last && line + 1 < document.getLineCount(); line++) {
 			String separator = separatorAfterLine(document, line);
 			if (!separator.isEmpty()) {
 				return separator;
 			}
 		}
-		return "\n";
+		return "";
 	}
 
 	private static String chooseEol(String text) {
+		return chooseEol(text, "\n");
+	}
+
+	private static String chooseEol(String text, String fallback) {
 		int crlf = text.indexOf("\r\n");
 		if (crlf >= 0) {
 			return "\r\n";
@@ -299,7 +319,18 @@ public final class MarkdownTableEditor {
 		if (cr >= 0) {
 			return "\r";
 		}
-		return "\n";
+		int lf = text.indexOf('\n');
+		if (lf >= 0) {
+			return "\n";
+		}
+		return fallback;
+	}
+
+	private static String chooseEolForRange(Document document, int start, int end) {
+		int firstLine = lineNumberAtOffset(document, start);
+		int effectiveEnd = start == end ? end : Math.max(start, end - 1);
+		int lastLine = lineNumberAtOffset(document, effectiveEnd);
+		return chooseEol(document, firstLine, lastLine);
 	}
 
 	private static String separatorAfterLine(Document document, int line) {
@@ -361,8 +392,8 @@ public final class MarkdownTableEditor {
 		if (offset <= 0) {
 			return true;
 		}
-		int safeOffset = Math.min(offset, Math.max(document.getTextLength() - 1, 0));
-		return document.getLineStartOffset(document.getLineNumber(safeOffset)) == offset;
+		int safeOffset = safeOffset(document, offset);
+		return document.getLineStartOffset(lineNumberAtOffset(document, safeOffset)) == safeOffset;
 	}
 
 	private static boolean isLineEnd(Document document, int offset) {
@@ -371,6 +402,22 @@ public final class MarkdownTableEditor {
 		}
 		int safeOffset = Math.min(offset, Math.max(document.getTextLength() - 1, 0));
 		return document.getLineEndOffset(document.getLineNumber(safeOffset)) == offset;
+	}
+
+	private static int safeOffset(Document document, int offset) {
+		return Math.max(0, Math.min(offset, document.getTextLength()));
+	}
+
+	private static int lineNumberAtOffset(Document document, int offset) {
+		if (document.getLineCount() == 0) {
+			return 0;
+		}
+		int safeOffset = safeOffset(document, offset);
+		if (safeOffset == document.getTextLength()) {
+			return document.getLineCount() - 1;
+		}
+		int line = document.getLineNumber(safeOffset);
+		return Math.max(0, Math.min(line, document.getLineCount() - 1));
 	}
 
 	private record Range(int start, int end) {
