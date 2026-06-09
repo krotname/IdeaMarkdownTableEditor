@@ -5,11 +5,23 @@ package name.krot.markdowntableidea.core;
 
 import name.krot.markdowntableidea.MarkdownTableEditorScenarios;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.junit.jupiter.api.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -38,10 +50,10 @@ public final class MarkdownTableCoreSmoke {
 		expectContains("dynamic tab handler descriptor", pluginXml, "<editorActionHandler action=\"EditorTab\"");
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
 		expectContains("tab handler runs before default tab processors", pluginXml, "order=\"first\"");
-		expectContains("tab shortcut action descriptor", pluginXml, "MarkdownTableEditor.TabAlign");
-		expectContains("tab shortcut action key", pluginXml, "first-keystroke=\"TAB\"");
-		expectContains("align shortcut matches documentation", pluginXml, "first-keystroke=\"ctrl alt A\"");
-		expectNotContains("align shortcut no longer uses old ctrl alt m", pluginXml, "ctrl alt M");
+		expectEquals("default action shortcuts", expectedDefaultShortcuts(), readActionShortcuts(processedPluginXmlPath.toFile()));
+		for (String forbiddenShortcut : List.of("ctrl alt A", "ctrl alt LEFT", "ctrl alt RIGHT", "ctrl alt UP", "ctrl alt DOWN", "ctrl alt shift LEFT", "ctrl alt shift RIGHT", "ctrl alt shift F")) {
+			expectNotContains("conflicting shortcut is removed: " + forbiddenShortcut, pluginXml, "first-keystroke=\"" + forbiddenShortcut + "\"");
+		}
 		expectContains("sort action descriptor", pluginXml, "MarkdownTableEditor.SortAscending");
 		expectContains("csv action descriptor", pluginXml, "MarkdownTableEditor.ConvertCsvTsv");
 		expectContains("insert table action descriptor", pluginXml, "MarkdownTableEditor.InsertTable");
@@ -690,6 +702,10 @@ public final class MarkdownTableCoreSmoke {
 		assertEquals(expected, actual, name);
 	}
 
+	private static void expectEquals(String name, Map<String, String> expected, Map<String, String> actual) {
+		assertEquals(expected, actual, name);
+	}
+
 	private static void expectLines(String name, List<String> actual, List<String> expected) {
 		assertEquals(expected, actual, name);
 	}
@@ -700,5 +716,61 @@ public final class MarkdownTableCoreSmoke {
 
 	private static void expectNotContains(String name, String actual, String unexpected) {
 		assertFalse(actual.contains(unexpected), () -> name + " expected not to contain: " + unexpected);
+	}
+
+	private static Map<String, String> expectedDefaultShortcuts() {
+		LinkedHashMap<String, String> shortcuts = new LinkedHashMap<>();
+		shortcuts.put("MarkdownTableEditor.TabAlign", "TAB");
+		shortcuts.put("MarkdownTableEditor.Align", "ctrl alt shift 1");
+		shortcuts.put("MarkdownTableEditor.NextCell", "ctrl alt shift 2");
+		shortcuts.put("MarkdownTableEditor.PreviousCell", "ctrl alt shift 3");
+		shortcuts.put("MarkdownTableEditor.SortAscending", "ctrl alt shift EQUALS");
+		shortcuts.put("MarkdownTableEditor.SortDescending", "ctrl alt shift MINUS");
+		shortcuts.put("MarkdownTableEditor.ConvertCsvTsv", "ctrl alt shift 0");
+		shortcuts.put("MarkdownTableEditor.InsertTable", "ctrl alt shift BACK_SLASH");
+		shortcuts.put("MarkdownTableEditor.InsertRowBelow", "ctrl alt shift 4");
+		shortcuts.put("MarkdownTableEditor.DeleteRow", "ctrl alt shift 5");
+		shortcuts.put("MarkdownTableEditor.InsertColumnRight", "ctrl alt shift 6");
+		shortcuts.put("MarkdownTableEditor.DeleteColumn", "ctrl alt shift 7");
+		shortcuts.put("MarkdownTableEditor.MoveRowUp", "ctrl alt shift 8");
+		shortcuts.put("MarkdownTableEditor.MoveRowDown", "ctrl alt shift 9");
+		shortcuts.put("MarkdownTableEditor.MoveColumnLeft", "ctrl alt shift OPEN_BRACKET");
+		shortcuts.put("MarkdownTableEditor.MoveColumnRight", "ctrl alt shift CLOSE_BRACKET");
+		return shortcuts;
+	}
+
+	private static Map<String, String> readActionShortcuts(File pluginXmlFile) throws Exception {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+		Document document = factory.newDocumentBuilder().parse(pluginXmlFile);
+		NodeList actions = document.getElementsByTagName("action");
+		LinkedHashMap<String, String> shortcuts = new LinkedHashMap<>();
+		Set<String> usedShortcuts = new HashSet<>();
+		for (int actionIndex = 0; actionIndex < actions.getLength(); actionIndex++) {
+			Element action = (Element)actions.item(actionIndex);
+			String actionId = action.getAttribute("id");
+			if (!actionId.startsWith("MarkdownTableEditor.")) {
+				continue;
+			}
+			NodeList children = action.getChildNodes();
+			int shortcutCount = 0;
+			for (int childIndex = 0; childIndex < children.getLength(); childIndex++) {
+				Node child = children.item(childIndex);
+				if (!(child instanceof Element)) {
+					continue;
+				}
+				Element shortcut = (Element)child;
+				if (!"keyboard-shortcut".equals(shortcut.getTagName())) {
+					continue;
+				}
+				shortcutCount++;
+				String firstKeystroke = shortcut.getAttribute("first-keystroke");
+				expectTrue(actionId + " shortcut uses default keymap", "$default".equals(shortcut.getAttribute("keymap")));
+				expectTrue(actionId + " shortcut is unique: " + firstKeystroke, usedShortcuts.add(firstKeystroke));
+				shortcuts.put(actionId, firstKeystroke);
+			}
+			expectInt(actionId + " has one shortcut", shortcutCount, 1);
+		}
+		return shortcuts;
 	}
 }

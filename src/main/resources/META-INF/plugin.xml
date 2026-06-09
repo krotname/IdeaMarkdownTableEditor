@@ -42,27 +42,55 @@
 			<add-to-group group-id="ToolsMenu" anchor="last"/>
 			<add-to-group group-id="EditorPopupMenu" anchor="last"/>
 			<action id="MarkdownTableEditor.Align" class="name.krot.markdowntableidea.MarkdownTableActions$Align" text="Align Table" description="Align the Markdown table at the caret">
-				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt A"/>
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 1"/>
 			</action>
-			<action id="MarkdownTableEditor.NextCell" class="name.krot.markdowntableidea.MarkdownTableActions$NextCell" text="Next Cell" description="Move to the next Markdown table cell"/>
-			<action id="MarkdownTableEditor.PreviousCell" class="name.krot.markdowntableidea.MarkdownTableActions$PreviousCell" text="Previous Cell" description="Move to the previous Markdown table cell"/>
+			<action id="MarkdownTableEditor.NextCell" class="name.krot.markdowntableidea.MarkdownTableActions$NextCell" text="Next Cell" description="Move to the next Markdown table cell">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 2"/>
+			</action>
+			<action id="MarkdownTableEditor.PreviousCell" class="name.krot.markdowntableidea.MarkdownTableActions$PreviousCell" text="Previous Cell" description="Move to the previous Markdown table cell">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 3"/>
+			</action>
 			<separator/>
-			<action id="MarkdownTableEditor.SortAscending" class="name.krot.markdowntableidea.MarkdownTableActions$SortAscending" text="Sort Rows Ascending" description="Sort Markdown table data rows by the current column"/>
-			<action id="MarkdownTableEditor.SortDescending" class="name.krot.markdowntableidea.MarkdownTableActions$SortDescending" text="Sort Rows Descending" description="Sort Markdown table data rows by the current column descending"/>
+			<action id="MarkdownTableEditor.SortAscending" class="name.krot.markdowntableidea.MarkdownTableActions$SortAscending" text="Sort Rows Ascending" description="Sort Markdown table data rows by the current column">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift EQUALS"/>
+			</action>
+			<action id="MarkdownTableEditor.SortDescending" class="name.krot.markdowntableidea.MarkdownTableActions$SortDescending" text="Sort Rows Descending" description="Sort Markdown table data rows by the current column descending">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift MINUS"/>
+			</action>
 			<separator/>
-			<action id="MarkdownTableEditor.ConvertCsvTsv" class="name.krot.markdowntableidea.MarkdownTableActions$ConvertCsvTsv" text="Convert CSV/TSV to Table" description="Convert selected CSV/TSV text or the current CSV/TSV block to a Markdown table"/>
-			<action id="MarkdownTableEditor.InsertTable" class="name.krot.markdowntableidea.MarkdownTableActions$InsertTable" text="Insert New Table" description="Insert a new Markdown table by size"/>
+			<action id="MarkdownTableEditor.ConvertCsvTsv" class="name.krot.markdowntableidea.MarkdownTableActions$ConvertCsvTsv" text="Convert CSV/TSV to Table" description="Convert selected CSV/TSV text or the current CSV/TSV block to a Markdown table">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 0"/>
+			</action>
+			<action id="MarkdownTableEditor.InsertTable" class="name.krot.markdowntableidea.MarkdownTableActions$InsertTable" text="Insert New Table" description="Insert a new Markdown table by size">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift BACK_SLASH"/>
+			</action>
 			<separator/>
-			<action id="MarkdownTableEditor.InsertRowBelow" class="name.krot.markdowntableidea.MarkdownTableActions$InsertRowBelow" text="Insert Row Below" description="Insert a Markdown table row below the current row"/>
-			<action id="MarkdownTableEditor.DeleteRow" class="name.krot.markdowntableidea.MarkdownTableActions$DeleteRow" text="Delete Row" description="Delete the current Markdown table row"/>
+			<action id="MarkdownTableEditor.InsertRowBelow" class="name.krot.markdowntableidea.MarkdownTableActions$InsertRowBelow" text="Insert Row Below" description="Insert a Markdown table row below the current row">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 4"/>
+			</action>
+			<action id="MarkdownTableEditor.DeleteRow" class="name.krot.markdowntableidea.MarkdownTableActions$DeleteRow" text="Delete Row" description="Delete the current Markdown table row">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 5"/>
+			</action>
 			<separator/>
-			<action id="MarkdownTableEditor.InsertColumnRight" class="name.krot.markdowntableidea.MarkdownTableActions$InsertColumnRight" text="Insert Column Right" description="Insert a Markdown table column to the right"/>
-			<action id="MarkdownTableEditor.DeleteColumn" class="name.krot.markdowntableidea.MarkdownTableActions$DeleteColumn" text="Delete Column" description="Delete the current Markdown table column"/>
+			<action id="MarkdownTableEditor.InsertColumnRight" class="name.krot.markdowntableidea.MarkdownTableActions$InsertColumnRight" text="Insert Column Right" description="Insert a Markdown table column to the right">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 6"/>
+			</action>
+			<action id="MarkdownTableEditor.DeleteColumn" class="name.krot.markdowntableidea.MarkdownTableActions$DeleteColumn" text="Delete Column" description="Delete the current Markdown table column">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 7"/>
+			</action>
 			<separator/>
-			<action id="MarkdownTableEditor.MoveRowUp" class="name.krot.markdowntableidea.MarkdownTableActions$MoveRowUp" text="Move Row Up" description="Move the current Markdown table row up"/>
-			<action id="MarkdownTableEditor.MoveRowDown" class="name.krot.markdowntableidea.MarkdownTableActions$MoveRowDown" text="Move Row Down" description="Move the current Markdown table row down"/>
-			<action id="MarkdownTableEditor.MoveColumnLeft" class="name.krot.markdowntableidea.MarkdownTableActions$MoveColumnLeft" text="Move Column Left" description="Move the current Markdown table column left"/>
-			<action id="MarkdownTableEditor.MoveColumnRight" class="name.krot.markdowntableidea.MarkdownTableActions$MoveColumnRight" text="Move Column Right" description="Move the current Markdown table column right"/>
+			<action id="MarkdownTableEditor.MoveRowUp" class="name.krot.markdowntableidea.MarkdownTableActions$MoveRowUp" text="Move Row Up" description="Move the current Markdown table row up">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 8"/>
+			</action>
+			<action id="MarkdownTableEditor.MoveRowDown" class="name.krot.markdowntableidea.MarkdownTableActions$MoveRowDown" text="Move Row Down" description="Move the current Markdown table row down">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 9"/>
+			</action>
+			<action id="MarkdownTableEditor.MoveColumnLeft" class="name.krot.markdowntableidea.MarkdownTableActions$MoveColumnLeft" text="Move Column Left" description="Move the current Markdown table column left">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift OPEN_BRACKET"/>
+			</action>
+			<action id="MarkdownTableEditor.MoveColumnRight" class="name.krot.markdowntableidea.MarkdownTableActions$MoveColumnRight" text="Move Column Right" description="Move the current Markdown table column right">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift CLOSE_BRACKET"/>
+			</action>
 		</group>
 	</actions>
 </idea-plugin>

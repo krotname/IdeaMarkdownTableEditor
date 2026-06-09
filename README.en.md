@@ -18,7 +18,7 @@ and helps you quickly rearrange rows, columns, and data directly in the IDE.
 
 ![Markdown table alignment example in a JetBrains IDE](docs/demo.gif)
 
-The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md` file is open, and the `Align Table` command is triggered with `Ctrl+Alt+A`.
+The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md` file is open, and the `Align Table` command is triggered with `Ctrl+Alt+Shift+1`.
 
 ## Why Use It
 
@@ -105,12 +105,28 @@ You will get a Markdown table with `Name` and `Score` columns.
 
 Default keyboard shortcuts:
 
-| Command                     | Shortcut     |
-| --------------------------- | ------------ |
-| `Tab: Align Markdown Table` | `Tab`        |
-| `Align Table`               | `Ctrl+Alt+A` |
+Except for the contextual `Tab`, commands use `Ctrl+Alt+Shift` with the top number row and adjacent keys to avoid standard JetBrains IDE and Notepad++ shortcuts.
 
-You can assign shortcuts for the other commands in `Settings | Keymap`.
+| Command                     | Shortcut            |
+| --------------------------- | ------------------- |
+| `Tab: Align Markdown Table` | `Tab`               |
+| `Align Table`               | `Ctrl+Alt+Shift+1`  |
+| `Next Cell`                 | `Ctrl+Alt+Shift+2`  |
+| `Previous Cell`             | `Ctrl+Alt+Shift+3`  |
+| `Insert Row Below`          | `Ctrl+Alt+Shift+4`  |
+| `Delete Row`                | `Ctrl+Alt+Shift+5`  |
+| `Insert Column Right`       | `Ctrl+Alt+Shift+6`  |
+| `Delete Column`             | `Ctrl+Alt+Shift+7`  |
+| `Move Row Up`               | `Ctrl+Alt+Shift+8`  |
+| `Move Row Down`             | `Ctrl+Alt+Shift+9`  |
+| `Move Column Left`          | `Ctrl+Alt+Shift+[`  |
+| `Move Column Right`         | `Ctrl+Alt+Shift+]`  |
+| `Sort Rows Ascending`       | `Ctrl+Alt+Shift+=`  |
+| `Sort Rows Descending`      | `Ctrl+Alt+Shift+-`  |
+| `Convert CSV/TSV to Table`  | `Ctrl+Alt+Shift+0`  |
+| `Insert New Table`          | `Ctrl+Alt+Shift+\`  |
+
+You can change shortcuts in `Settings | Keymap`.
 
 ## Build and Tests
 
