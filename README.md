@@ -4,6 +4,7 @@
 [![CodeQL](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/codeql.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/krotname/IdeaMarkdownTableEditor/branch/main/graph/badge.svg)](https://codecov.io/gh/krotname/IdeaMarkdownTableEditor)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/krotname/IdeaMarkdownTableEditor/badge)](https://securityscorecards.dev/viewer/?uri=github.com/krotname/IdeaMarkdownTableEditor)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13153/badge)](https://www.bestpractices.dev/projects/13153)
 [![Release](https://img.shields.io/github/v/release/krotname/IdeaMarkdownTableEditor?label=release)](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest)
 [![License](https://img.shields.io/github/license/krotname/IdeaMarkdownTableEditor)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17-007396)](https://adoptium.net/)
