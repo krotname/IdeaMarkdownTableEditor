@@ -1467,13 +1467,79 @@ public final class MarkdownTableCore {
 		return emptyWhereBaseHasText >= requiredAnchors;
 	}
 
+	private static boolean isAsciiAlphaNumeric(int codePoint) {
+		return codePoint >= 'A' && codePoint <= 'Z' ||
+			codePoint >= 'a' && codePoint <= 'z' ||
+			codePoint >= '0' && codePoint <= '9';
+	}
+
+	private static boolean isWordContinuationStart(String value) {
+		if (value.isEmpty()) {
+			return false;
+		}
+		int codePoint = value.codePointAt(0);
+		return isAsciiAlphaNumeric(codePoint) || codePoint == '_' || codePoint >= 0x80;
+	}
+
+	private static boolean isWordContinuationEnd(String value) {
+		String trimmed = trim(value);
+		if (trimmed.isEmpty()) {
+			return false;
+		}
+		int codePoint = trimmed.codePointBefore(trimmed.length());
+		return isAsciiAlphaNumeric(codePoint) || codePoint == '_' || codePoint == '-' || codePoint >= 0x80;
+	}
+
+	private static String firstToken(String value) {
+		int end = 0;
+		while (end < value.length() && !isSpace(value.charAt(end))) {
+			end += Character.charCount(value.codePointAt(end));
+		}
+		return value.substring(0, end);
+	}
+
+	private static boolean looksLikeSplitWordRemainder(String token) {
+		if (token.isEmpty()) {
+			return false;
+		}
+
+		int width = displayWidth(token);
+		int first = token.codePointAt(0);
+		if (first >= 0x80) {
+			return width <= 4;
+		}
+		return width <= 2;
+	}
+
+	private static boolean shouldJoinContinuationWithoutSpace(String target, String continuation) {
+		String targetValue = trim(target);
+		String continuationValue = trim(continuation);
+		if (targetValue.isEmpty() || continuationValue.isEmpty()) {
+			return false;
+		}
+		if (!isWordContinuationEnd(targetValue) || !isWordContinuationStart(continuationValue)) {
+			return false;
+		}
+
+		int targetEnd = targetValue.codePointBefore(targetValue.length());
+		int continuationStart = continuationValue.codePointAt(0);
+		if (targetEnd == '-' && (isAsciiAlphaNumeric(continuationStart) || continuationStart >= 0x80)) {
+			return true;
+		}
+
+		return looksLikeSplitWordRemainder(firstToken(continuationValue));
+	}
+
 	private static String appendContinuationCell(String target, String continuation) {
 		String value = trim(continuation);
 		if (value.isEmpty()) {
 			return target;
 		}
-		if (!trim(target).isEmpty()) {
+		if (!trim(target).isEmpty() && !shouldJoinContinuationWithoutSpace(target, value)) {
 			return target + " " + value;
+		}
+		if (!trim(target).isEmpty()) {
+			return target + value;
 		}
 		return value;
 	}

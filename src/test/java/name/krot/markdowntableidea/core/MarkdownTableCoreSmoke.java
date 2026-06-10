@@ -502,6 +502,36 @@ public final class MarkdownTableCoreSmoke {
 		expectTrue("very narrow auto wrap splits word by letters", veryNarrowWrapped.lines.size() > 8);
 		expectLineLengthAtMost("very narrow auto wrap keeps right edge visible", veryNarrowWrapped.lines, 18);
 
+		MarkdownTableCore.EditResult joinedSplitWord = MarkdownTableCore.applyWrappedToWidth(
+			List.of(
+				"| A | B |",
+				"| --- | --- |",
+				"| scrip | keep |",
+				"| t already | |"
+			),
+			2,
+			0,
+			80
+		);
+		expectTrue("expanded auto wrap rejoins split word ok", joinedSplitWord.ok);
+		expectContains("expanded auto wrap rejoins split word without inserted space", joinedSplitWord.lines.get(2), "script already");
+		expectNotContains("expanded auto wrap does not keep split word space", joinedSplitWord.lines.get(2), "scrip t");
+
+		MarkdownTableCore.EditResult joinedSpacedWords = MarkdownTableCore.applyWrappedToWidth(
+			List.of(
+				"| A | B |",
+				"| --- | --- |",
+				"| word | keep |",
+				"| wrap here | |"
+			),
+			2,
+			0,
+			80
+		);
+		expectTrue("expanded auto wrap preserves word-boundary space ok", joinedSpacedWords.ok);
+		expectContains("expanded auto wrap preserves word-boundary space", joinedSpacedWords.lines.get(2), "word wrap here");
+		expectNotContains("expanded auto wrap does not join separate words", joinedSpacedWords.lines.get(2), "wordwrap");
+
 		MarkdownTableCore.EditResult registryWrapped = MarkdownTableCore.applyWrappedToWidth(
 			List.of(
 				"| patch_id | date | component | target_path | change | evidence | rollback | status | notes |",
