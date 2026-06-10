@@ -95,6 +95,9 @@ public final class MarkdownTableCore {
 		}
 	}
 
+	private static final int HARD_WRAP_CELL_WIDTH = 26;
+	private static final int MINIMUM_AUTO_WRAP_CELL_WIDTH = 1;
+
 	private MarkdownTableCore() {
 	}
 
@@ -280,6 +283,58 @@ public final class MarkdownTableCore {
 		}
 
 		FormatResult formatted = formatTable(table, targetRow, targetColumn);
+		setResultFromFormat(result, formatted);
+		result.ok = true;
+		result.changed = true;
+		return result;
+	}
+
+	public static EditResult applyWrappedToWidth(List<String> lines, int row, int column, int maxTableWidth) {
+		EditResult result = new EditResult();
+		if (lines.isEmpty()) {
+			result.message = "No table found";
+			return result;
+		}
+
+		if (row >= lines.size()) {
+			row = lines.size() - 1;
+		}
+		if (row < 0) {
+			row = 0;
+		}
+
+		TableRange tableRange = findTableRange(lines, row);
+		if (!tableRange.found) {
+			result.message = "No Markdown table found";
+			return result;
+		}
+
+		lines = lines.subList(tableRange.firstRow, tableRange.lastRow + 1);
+		row -= tableRange.firstRow;
+
+		Table table = parseTable(lines);
+		if (!isMarkdownTable(table)) {
+			result.message = "No Markdown table found";
+			return result;
+		}
+
+		if (row >= table.rows.size()) {
+			row = table.rows.size() - 1;
+		}
+		if (row < 0) {
+			row = 0;
+		}
+		if (column >= table.columns) {
+			column = table.columns - 1;
+		}
+		if (column < 0) {
+			column = 0;
+		}
+
+		row = unwrapContinuationRows(table, row);
+		List<Integer> columnWidths = targetColumnWidthsForTableWidth(table, Math.max(maxTableWidth, 0));
+		int targetRow = wrapCellsToColumnWidths(table, row, columnWidths);
+		FormatResult formatted = formatTable(table, targetRow, column, columnWidths);
 		setResultFromFormat(result, formatted);
 		result.ok = true;
 		result.changed = true;
@@ -1120,7 +1175,7 @@ public final class MarkdownTableCore {
 			List<List<String>> cellSegments = new ArrayList<>();
 			int segmentCount = 1;
 			for (int column = 0; column < table.columns; column++) {
-				List<String> segments = wrapCellSegments(row.cells.get(column), 32);
+				List<String> segments = wrapCellSegments(row.cells.get(column), HARD_WRAP_CELL_WIDTH);
 				cellSegments.add(segments);
 				segmentCount = Math.max(segmentCount, segments.size());
 			}
@@ -1145,12 +1200,339 @@ public final class MarkdownTableCore {
 		return wrappedTargetRow;
 	}
 
+	private static List<Integer> naturalColumnWidths(Table table) {
+		List<Integer> widths = new ArrayList<>();
+		for (int i = 0; i < table.columns; i++) {
+			widths.add(3);
+		}
+
+		for (Row row : table.rows) {
+			if (row.separator) {
+				continue;
+			}
+			for (int column = 0; column < table.columns; column++) {
+				widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
+			}
+		}
+		return widths;
+	}
+
+	private static List<Integer> headerColumnWidths(Table table) {
+		List<Integer> widths = new ArrayList<>();
+		for (int i = 0; i < table.columns; i++) {
+			widths.add(3);
+		}
+
+		int headerEnd = table.separatorRow == -1 ? table.rows.size() : table.separatorRow;
+		for (int rowIndex = 0; rowIndex < headerEnd && rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			for (int column = 0; column < table.columns; column++) {
+				widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
+			}
+		}
+		return widths;
+	}
+
+	private static int formattedTableOverhead(Table table) {
+		int overhead = table.leadingPipe ? 1 : 0;
+		for (int column = 0; column < table.columns; column++) {
+			if (column > 0) {
+				overhead += 2;
+			}
+			if (table.leadingPipe || column > 0) {
+				overhead++;
+			}
+			if (table.trailingPipe && column + 1 == table.columns) {
+				overhead += 2;
+			}
+		}
+		return overhead;
+	}
+
+	private static int widthSum(List<Integer> widths) {
+		int sum = 0;
+		for (int width : widths) {
+			sum += width;
+		}
+		return sum;
+	}
+
+	private static boolean containsSpace(String value) {
+		for (int i = 0; i < value.length(); i++) {
+			if (isSpace(value.charAt(i))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static List<Boolean> wrappableColumns(Table table, List<Integer> headerWidths) {
+		List<Boolean> result = new ArrayList<>();
+		for (int i = 0; i < table.columns; i++) {
+			result.add(false);
+		}
+
+		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			if (row.separator || rowIndex < table.separatorRow) {
+				continue;
+			}
+
+			for (int column = 0; column < table.columns; column++) {
+				int width = displayWidth(row.cells.get(column));
+				int minimum = column < headerWidths.size() ? headerWidths.get(column) : 3;
+				if (width > minimum && containsSpace(row.cells.get(column))) {
+					result.set(column, true);
+				}
+			}
+		}
+		return result;
+	}
+
+	private static int largestShrinkableColumn(List<Integer> widths, List<Integer> minimums, List<Boolean> allowed) {
+		int best = -1;
+		int bestSlack = 0;
+		for (int column = 0; column < widths.size(); column++) {
+			if (!allowed.get(column) || widths.get(column) <= minimums.get(column)) {
+				continue;
+			}
+
+			int slack = widths.get(column) - minimums.get(column);
+			if (best == -1 || slack > bestSlack) {
+				best = column;
+				bestSlack = slack;
+			}
+		}
+		return best;
+	}
+
+	private static void shrinkColumnsToBudget(List<Integer> widths, List<Integer> minimums, List<Boolean> allowed, int budget) {
+		while (widthSum(widths) > budget) {
+			int column = largestShrinkableColumn(widths, minimums, allowed);
+			if (column == -1) {
+				return;
+			}
+			widths.set(column, widths.get(column) - 1);
+		}
+	}
+
+	private static int bestGrowableColumn(List<Integer> widths, List<Integer> naturalWidths, List<Boolean> allowed) {
+		int best = -1;
+		int bestSlack = 0;
+		for (int column = 0; column < widths.size(); column++) {
+			if (!allowed.get(column) || widths.get(column) >= naturalWidths.get(column)) {
+				continue;
+			}
+
+			int slack = naturalWidths.get(column) - widths.get(column);
+			if (best == -1 || slack > bestSlack) {
+				best = column;
+				bestSlack = slack;
+			}
+		}
+		return best;
+	}
+
+	private static List<Integer> targetColumnWidthsForTableWidth(Table table, int maxTableWidth) {
+		List<Integer> naturalWidths = naturalColumnWidths(table);
+		if (naturalWidths.isEmpty()) {
+			return naturalWidths;
+		}
+
+		int overhead = formattedTableOverhead(table);
+		int minimumBudget = naturalWidths.size();
+		int budget = maxTableWidth > overhead ? Math.max(maxTableWidth - overhead, minimumBudget) : minimumBudget;
+		if (widthSum(naturalWidths) <= budget) {
+			return naturalWidths;
+		}
+
+		List<Integer> headerWidths = headerColumnWidths(table);
+		List<Boolean> canWrap = wrappableColumns(table, headerWidths);
+		List<Integer> widths = new ArrayList<>();
+		List<Integer> minimums = new ArrayList<>();
+		for (int column = 0; column < naturalWidths.size(); column++) {
+			int headerWidth = column < headerWidths.size() ? headerWidths.get(column) : 3;
+			if (canWrap.get(column)) {
+				int minimum = Math.min(naturalWidths.get(column), Math.max(headerWidth, MINIMUM_AUTO_WRAP_CELL_WIDTH));
+				minimums.add(minimum);
+				widths.add(minimum);
+			} else {
+				minimums.add(Math.min(naturalWidths.get(column), Math.max(headerWidth, 3)));
+				widths.add(naturalWidths.get(column));
+			}
+		}
+
+		if (widthSum(widths) > budget) {
+			shrinkColumnsToBudget(widths, minimums, canWrap, budget);
+		}
+
+		if (widthSum(widths) > budget) {
+			List<Boolean> allColumns = new ArrayList<>();
+			List<Integer> hardMinimums = new ArrayList<>();
+			for (int column = 0; column < widths.size(); column++) {
+				allColumns.add(true);
+				hardMinimums.add(Math.min(widths.get(column), MINIMUM_AUTO_WRAP_CELL_WIDTH));
+			}
+			shrinkColumnsToBudget(widths, hardMinimums, allColumns, budget);
+		}
+
+		while (widthSum(widths) < budget) {
+			int column = bestGrowableColumn(widths, naturalWidths, canWrap);
+			if (column == -1) {
+				break;
+			}
+			widths.set(column, widths.get(column) + 1);
+		}
+		return widths;
+	}
+
+	private static int wrapCellsToColumnWidths(Table table, int originalTargetRow, List<Integer> columnWidths) {
+		if (table.separatorRow == -1 || columnWidths.size() < table.columns) {
+			return originalTargetRow;
+		}
+
+		List<Row> wrappedRows = new ArrayList<>();
+		int wrappedTargetRow = originalTargetRow;
+		int nextId = nextRowId(table);
+		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			if (row.separator || rowIndex <= table.separatorRow) {
+				if (rowIndex == originalTargetRow) {
+					wrappedTargetRow = wrappedRows.size();
+				}
+				wrappedRows.add(row);
+				continue;
+			}
+
+			List<List<String>> cellSegments = new ArrayList<>();
+			int segmentCount = 1;
+			for (int column = 0; column < table.columns; column++) {
+				List<String> segments = wrapCellSegments(row.cells.get(column), columnWidths.get(column));
+				cellSegments.add(segments);
+				segmentCount = Math.max(segmentCount, segments.size());
+			}
+
+			if (rowIndex == originalTargetRow) {
+				wrappedTargetRow = wrappedRows.size();
+			}
+
+			for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
+				Row wrapped = new Row();
+				wrapped.id = segmentIndex == 0 ? row.id : nextId++;
+				for (int column = 0; column < table.columns; column++) {
+					List<String> segments = cellSegments.get(column);
+					wrapped.cells.add(segmentIndex < segments.size() ? segments.get(segmentIndex) : "");
+				}
+				wrappedRows.add(wrapped);
+			}
+		}
+
+		table.rows.clear();
+		table.rows.addAll(wrappedRows);
+		return wrappedTargetRow;
+	}
+
+	private static boolean cellHasText(String cell) {
+		return !trim(cell).isEmpty();
+	}
+
+	private static int nonEmptyCellCount(Row row) {
+		int count = 0;
+		for (String cell : row.cells) {
+			if (cellHasText(cell)) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	private static boolean isLikelyContinuationRow(Row row, Row baseRow, int columns) {
+		if (columns < 2 || row.cells.size() < columns || baseRow.cells.size() < columns) {
+			return false;
+		}
+
+		int nonEmpty = nonEmptyCellCount(row);
+		if (nonEmpty == 0 || nonEmpty == columns) {
+			return false;
+		}
+
+		int emptyWhereBaseHasText = 0;
+		for (int column = 0; column < columns; column++) {
+			if (!cellHasText(row.cells.get(column)) && cellHasText(baseRow.cells.get(column))) {
+				emptyWhereBaseHasText++;
+			}
+		}
+
+		int requiredAnchors = Math.max(1, columns / 3);
+		return emptyWhereBaseHasText >= requiredAnchors;
+	}
+
+	private static String appendContinuationCell(String target, String continuation) {
+		String value = trim(continuation);
+		if (value.isEmpty()) {
+			return target;
+		}
+		if (!trim(target).isEmpty()) {
+			return target + " " + value;
+		}
+		return value;
+	}
+
+	private static int unwrapContinuationRows(Table table, int originalTargetRow) {
+		if (table.separatorRow == -1) {
+			return originalTargetRow;
+		}
+
+		List<Row> unwrappedRows = new ArrayList<>();
+		int targetRow = originalTargetRow;
+		int baseRowIndex = -1;
+		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			if (row.separator || rowIndex <= table.separatorRow || baseRowIndex == -1 ||
+				!isLikelyContinuationRow(row, unwrappedRows.get(baseRowIndex), table.columns)) {
+				if (rowIndex == originalTargetRow) {
+					targetRow = unwrappedRows.size();
+				}
+				if (!row.separator && rowIndex > table.separatorRow) {
+					baseRowIndex = unwrappedRows.size();
+				}
+				unwrappedRows.add(row);
+				continue;
+			}
+
+			if (rowIndex == originalTargetRow) {
+				targetRow = baseRowIndex;
+			}
+
+			Row baseRow = unwrappedRows.get(baseRowIndex);
+			for (int column = 0; column < table.columns; column++) {
+				baseRow.cells.set(column, appendContinuationCell(baseRow.cells.get(column), row.cells.get(column)));
+			}
+		}
+
+		table.rows.clear();
+		table.rows.addAll(unwrappedRows);
+		return targetRow;
+	}
+
 	private static String spaces(int count) {
 		return " ".repeat(Math.max(count, 0));
 	}
 
-	private static String separatorCell(Align align, int width) {
-		int target = Math.max(width, 3);
+	private static String separatorCell(Align align, int width, int minimumWidth) {
+		int target = Math.max(width, minimumWidth);
+		if (target <= 1) {
+			return "-";
+		}
+		if (target == 2) {
+			if (align == Align.LEFT || align == Align.CENTER) {
+				return ":-";
+			}
+			if (align == Align.RIGHT) {
+				return "-:";
+			}
+			return "--";
+		}
 		if (align == Align.CENTER) {
 			return ":" + "-".repeat(target - 2) + ":";
 		}
@@ -1184,9 +1566,14 @@ public final class MarkdownTableCore {
 	}
 
 	private static FormatResult formatTable(Table table, int targetRow, int targetColumn) {
+		return formatTable(table, targetRow, targetColumn, null);
+	}
+
+	private static FormatResult formatTable(Table table, int targetRow, int targetColumn, List<Integer> minimumWidths) {
+		int separatorMinimumWidth = minimumWidths == null ? 3 : 1;
 		List<Integer> widths = new ArrayList<>();
 		for (int i = 0; i < table.columns; i++) {
-			widths.add(3);
+			widths.add(separatorMinimumWidth);
 		}
 
 		for (Row row : table.rows) {
@@ -1195,6 +1582,11 @@ public final class MarkdownTableCore {
 			}
 			for (int column = 0; column < table.columns; column++) {
 				widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
+			}
+		}
+		if (minimumWidths != null) {
+			for (int column = 0; column < table.columns && column < minimumWidths.size(); column++) {
+				widths.set(column, Math.max(widths.get(column), minimumWidths.get(column)));
 			}
 		}
 
@@ -1215,7 +1607,7 @@ public final class MarkdownTableCore {
 				}
 
 				if (row.separator) {
-					String value = separatorCell(table.alignments.get(column), widths.get(column));
+					String value = separatorCell(table.alignments.get(column), widths.get(column), separatorMinimumWidth);
 					int valueStart = line.length();
 					line.append(value);
 					if (rowIndex == result.targetRow && column == result.targetColumn) {

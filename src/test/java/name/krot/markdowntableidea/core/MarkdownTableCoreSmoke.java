@@ -456,11 +456,71 @@ public final class MarkdownTableCoreSmoke {
 		expectInt("wrap long cells target row", wrappedLongCells.targetRow, 2);
 		expectInt("wrap long cells target column", wrappedLongCells.targetColumn, 1);
 		expectLines("wrap long cells", wrappedLongCells.lines, List.of(
-			"| Key | Value                          |",
-			"| --- | ------------------------------ |",
-			"| row | alpha beta gamma delta epsilon |",
-			"|     | zeta eta theta                 |"
+			"| Key | Value                  |",
+			"| --- | ---------------------- |",
+			"| row | alpha beta gamma delta |",
+			"|     | epsilon zeta eta theta |"
 		));
+
+		MarkdownTableCore.EditResult autoWrapped = MarkdownTableCore.applyWrappedToWidth(
+			List.of(
+				"| Summary | Type | Priority | Reason | Id |",
+				"| --- | --- | --- | --- | --- |",
+				"| alpha beta gamma delta epsilon zeta eta theta | Task | High | one two three four five six seven | `abcdef0123456789` |"
+			),
+			2,
+			0,
+			90
+		);
+		expectTrue("auto wrap to table width ok", autoWrapped.ok);
+		expectTrue("auto wrap creates inner cell continuation lines", autoWrapped.lines.size() > 3);
+		expectLineLengthAtMost("auto wrap keeps physical lines inside width", autoWrapped.lines, 90);
+		expectTrue("auto wrap keeps following columns on first segment", autoWrapped.lines.get(2).contains("| Task | High"));
+		expectTrue("auto wrap moves text continuation inside the table", autoWrapped.lines.get(3).contains("|"));
+
+		MarkdownTableCore.EditResult expandedWrapped = MarkdownTableCore.applyWrappedToWidth(
+			autoWrapped.lines,
+			2,
+			0,
+			150
+		);
+		expectTrue("expanded auto wrap ok", expandedWrapped.ok);
+		expectTrue("expanded auto wrap reduces continuation rows", expandedWrapped.lines.size() < autoWrapped.lines.size());
+		expectLineLengthAtMost("expanded auto wrap keeps physical lines inside wider width", expandedWrapped.lines, 150);
+
+		MarkdownTableCore.EditResult veryNarrowWrapped = MarkdownTableCore.applyWrappedToWidth(
+			List.of(
+				"| A | B | C |",
+				"| --- | --- | --- |",
+				"| supercalifragilistic | word wrap here | tail |"
+			),
+			2,
+			0,
+			18
+		);
+		expectTrue("very narrow auto wrap ok", veryNarrowWrapped.ok);
+		expectTrue("very narrow auto wrap splits word by letters", veryNarrowWrapped.lines.size() > 8);
+		expectLineLengthAtMost("very narrow auto wrap keeps right edge visible", veryNarrowWrapped.lines, 18);
+
+		MarkdownTableCore.EditResult registryWrapped = MarkdownTableCore.applyWrappedToWidth(
+			List.of(
+				"| patch_id | date | component | target_path | change | evidence | rollback | status | notes |",
+				"| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+				"| codex-admin-launcher-2026-06-01 | 2026-06-01 | Codex launcher | C:/Users/KRT/.codex/launchers/Start-Codex-Elevated.ps1 | Created local launcher that fixes RunAs shortcuts and starts Codex with elevated rights | Service mark and log file confirm successful launch | Delete managed shortcuts and use stock package | active | prefers patched local shell |"
+			),
+			2,
+			0,
+			112
+		);
+		expectTrue("registry auto wrap ok", registryWrapped.ok);
+		expectTrue("registry auto wrap creates continuation rows", registryWrapped.lines.size() > 3);
+		expectLineLengthAtMost("registry auto wrap keeps physical lines inside width", registryWrapped.lines, 112);
+		boolean registryRightEdgeVisible = true;
+		for (String line : registryWrapped.lines) {
+			registryRightEdgeVisible = registryRightEdgeVisible && !line.isEmpty() && line.charAt(line.length() - 1) == '|';
+		}
+		expectTrue("registry auto wrap keeps right table edge on every physical line", registryRightEdgeVisible);
+		expectTrue("registry auto wrap keeps status column on first segment", registryWrapped.lines.get(2).contains("| active |"));
 
 		MarkdownTableCore.EditResult wrappedProtectedTokens = MarkdownTableCore.apply(
 			List.of(
@@ -476,7 +536,7 @@ public final class MarkdownTableCoreSmoke {
 		expectTrue("wrap protected tokens ok", wrappedProtectedTokens.ok);
 		expectTrue("wrap protected tokens expands rows", wrappedProtectedTokens.lines.size() > 5);
 		String wrappedProtectedText = String.join("\n", wrappedProtectedTokens.lines);
-		expectContains("wrap splits long markdown link token", wrappedProtectedText, "[Codex Desktop registry](<C:/tmp");
+		expectContains("wrap splits long markdown link token", wrappedProtectedText, "[Codex Desktop registry](");
 		expectContains("wrap keeps markdown link remainder", wrappedProtectedText, "/patch registry.md>)");
 		expectNotContains("wrap no longer keeps overwide markdown link token", wrappedProtectedText, "[Codex Desktop registry](<C:/tmp/patch registry.md>)");
 		expectContains("wrap keeps code span token", wrappedProtectedText, "``code span with spaces``");
@@ -773,6 +833,15 @@ public final class MarkdownTableCoreSmoke {
 
 	private static void expectLines(String name, List<String> actual, List<String> expected) {
 		assertEquals(expected, actual, name);
+	}
+
+	private static void expectLineLengthAtMost(String name, List<String> lines, int maximum) {
+		for (int i = 0; i < lines.size(); i++) {
+			final int index = i;
+			final String line = lines.get(i);
+			final int length = line.length();
+			assertTrue(length <= maximum, () -> name + " line " + index + " is " + length + ", expected at most " + maximum + ": " + line);
+		}
 	}
 
 	private static void expectContains(String name, String actual, String expected) {

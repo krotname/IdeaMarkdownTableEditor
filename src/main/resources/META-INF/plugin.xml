@@ -22,9 +22,11 @@
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>Added Wrap Long Cells to split very long Markdown table cells into continuation rows for easier plain-text editing.</li>
-			<li>Added Ctrl+Alt+Shift+W as the default shortcut for Wrap Long Cells.</li>
-			<li>Preserved Java/C++ core parity for wrapping, alignment, sorting, CSV/TSV conversion, escaped pipes, and Unicode/CJK width.</li>
+			<li>Kept Java/C++ wrapping behavior in sync for long-cell continuation rows, protected Markdown links, code spans, and narrow-width hard wrapping.</li>
+			<li>Added shared reflow behavior that rejoins continuation rows before fitting a table to a wider window.</li>
+			<li>Documented the Notepad++ table-wrap mode semantics: table wrapping stays independent from the editor's visual word wrap.</li>
+			<li>Added shared adaptive-width core coverage for wide registry-style tables with many columns.</li>
+			<li>Preserved alignment, sorting, CSV/TSV conversion, escaped pipes, and Unicode/CJK width handling.</li>
 		</ul>
 	]]></change-notes>
 
