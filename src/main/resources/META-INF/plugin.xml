@@ -24,6 +24,7 @@
 		<ul>
 			<li>Kept Java/C++ wrapping behavior in sync for long-cell continuation rows, protected Markdown links, code spans, and narrow-width hard wrapping.</li>
 			<li>Added shared reflow behavior that rejoins continuation rows before fitting a table to a wider window.</li>
+			<li>Aligned the 10.4.0 fitting behavior with the Notepad++ manual and resize-triggered table fitting workflow.</li>
 			<li>Documented the Notepad++ table-wrap mode semantics: table wrapping stays independent from the editor's visual word wrap.</li>
 			<li>Added shared adaptive-width core coverage for wide registry-style tables with many columns.</li>
 			<li>Preserved alignment, sorting, CSV/TSV conversion, escaped pipes, and Unicode/CJK width handling.</li>
