@@ -1,12 +1,15 @@
 # Markdown Table Editor for JetBrains IDEs
 
 [![CI](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/krotname/IdeaMarkdownTableEditor/actions/workflows/codeql.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/krotname/IdeaMarkdownTableEditor/branch/main/graph/badge.svg)](https://codecov.io/gh/krotname/IdeaMarkdownTableEditor)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/krotname/IdeaMarkdownTableEditor/badge)](https://securityscorecards.dev/viewer/?uri=github.com/krotname/IdeaMarkdownTableEditor)
 [![Release](https://img.shields.io/github/v/release/krotname/IdeaMarkdownTableEditor?label=release)](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest)
-[![Core coverage](https://img.shields.io/badge/core%20coverage-91.60%25-brightgreen)](build.gradle.kts)
+[![License](https://img.shields.io/github/license/krotname/IdeaMarkdownTableEditor)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-17-007396)](https://adoptium.net/)
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![JetBrains downloads](https://img.shields.io/jetbrains/plugin/d/32159?label=JetBrains%20downloads)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![Website](https://img.shields.io/badge/website-markdowntableeditor.krot.name-0f766e)](https://markdowntableeditor.krot.name/)
-[![License](https://img.shields.io/github/license/krotname/IdeaMarkdownTableEditor)](LICENSE)
 
 Markdown Table Editor turns JetBrains IDEs on the IntelliJ Platform into convenient Markdown table editors.
 Paste a messy table from someone else or from an AI tool, press `Tab`, and the plugin aligns the columns, preserves Markdown formatting,
