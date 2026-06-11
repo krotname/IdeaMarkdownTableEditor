@@ -308,6 +308,9 @@ public final class MarkdownTableStatusBarWidgets {
 
 		@Override
 		public String getTooltipText() {
+			if (isLockedByAutoFit()) {
+				return MarkdownTableEditorBundle.message("status.MarkdownTableEditor.AutoAlign.tooltip.locked");
+			}
 			return MarkdownTableEditorBundle.message(mode.tooltipKey(isSelected()));
 		}
 
@@ -328,6 +331,15 @@ public final class MarkdownTableStatusBarWidgets {
 			}
 
 			MarkdownTableSettings settings = MarkdownTableSettings.getInstance();
+			if (mode == AutoMode.AUTO_ALIGN && settings.isAutoFitEnabled()) {
+				if (statusBar != null) {
+					update(statusBar);
+				} else {
+					update(project);
+				}
+				return;
+			}
+
 			boolean enabled = !isSelected();
 			if (mode == AutoMode.AUTO_ALIGN) {
 				settings.setAutoAlignEnabled(enabled);
@@ -353,6 +365,10 @@ public final class MarkdownTableStatusBarWidgets {
 			} else {
 				update(project);
 			}
+		}
+
+		private boolean isLockedByAutoFit() {
+			return mode == AutoMode.AUTO_ALIGN && MarkdownTableSettings.getInstance().isAutoFitEnabled();
 		}
 
 		private void refreshStatusBar() {

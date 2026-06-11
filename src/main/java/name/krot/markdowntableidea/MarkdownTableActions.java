@@ -197,7 +197,7 @@ public final class MarkdownTableActions {
 		public void setSelected(AnActionEvent event, boolean state) {
 			MarkdownTableSettings.getInstance().setAutoAlignEnabled(state);
 			MarkdownTableStatusBarWidgets.update(event.getProject());
-			if (state) {
+			if (state && MarkdownTableSettings.getInstance().isAutoAlignEnabled()) {
 				MarkdownTableEditor.run(event.getData(CommonDataKeys.EDITOR), event.getProject(), MarkdownTableCore.Action.ALIGN, true);
 			}
 		}
@@ -205,8 +205,10 @@ public final class MarkdownTableActions {
 		@Override
 		public void update(AnActionEvent event) {
 			Editor editor = event.getData(CommonDataKeys.EDITOR);
-			event.getPresentation().setEnabledAndVisible(editor != null && !editor.isViewer());
 			super.update(event);
+			boolean available = editor != null && !editor.isViewer();
+			event.getPresentation().setVisible(available);
+			event.getPresentation().setEnabled(available && !MarkdownTableSettings.getInstance().isAutoFitEnabled());
 		}
 
 		@Override

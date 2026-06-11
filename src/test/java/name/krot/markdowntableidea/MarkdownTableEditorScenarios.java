@@ -247,8 +247,8 @@ public final class MarkdownTableEditorScenarios {
 		new MarkdownTableActions.WrapLongCells().update(event(disabledManualEditor, disabledFit));
 		expectTrue("manual fit hidden while auto fit is on", !disabledFit.isEnabled() && !disabledFit.isVisible());
 
-		settings.setAutoAlignEnabled(false);
 		settings.setAutoFitEnabled(false);
+		settings.setAutoAlignEnabled(false);
 		MarkdownTableActions.Base[] baseActions = {
 			new MarkdownTableActions.Align(),
 			new MarkdownTableActions.NextCell(),
@@ -301,10 +301,25 @@ public final class MarkdownTableEditorScenarios {
 			expectTrue("fit action keeps line inside visible width: " + line, line.length() <= 46);
 		}
 
+		MarkdownTableSettings.OptionState invalidPersistedState = new MarkdownTableSettings.OptionState();
+		invalidPersistedState.autoAlignEnabled = false;
+		invalidPersistedState.autoFitEnabled = true;
+		settings.loadState(invalidPersistedState);
+		expectTrue("auto fit persisted state forces auto align on load", settings.isAutoAlignEnabled());
+		expectTrue("auto fit persisted state stays on load", settings.isAutoFitEnabled());
+		settings.setAutoAlignEnabled(false);
+		expectTrue("auto fit blocks direct auto align disable", settings.isAutoAlignEnabled());
+		settings.setAutoFitEnabled(false);
+		expectTrue("auto fit off leaves auto align on", settings.isAutoAlignEnabled());
+		settings.setAutoAlignEnabled(false);
+		expectTrue("auto align can be disabled after auto fit off", !settings.isAutoAlignEnabled());
+		settings.setAutoFitEnabled(true);
+		expectTrue("auto fit direct enable forces auto align", settings.isAutoAlignEnabled());
+
 		MarkdownTableActions.AutoAlign autoAlign = new MarkdownTableActions.AutoAlign();
 		MarkdownTableActions.AutoFit autoFit = new MarkdownTableActions.AutoFit();
-		settings.setAutoAlignEnabled(false);
 		settings.setAutoFitEnabled(false);
+		settings.setAutoAlignEnabled(false);
 		TestEditor toggleEditor = new TestEditor("| A | B |\n| --- | --- |\n| 1 | 20 |", false, true);
 		toggleEditor.setCaretAt("20");
 		autoAlign.setSelected(event(toggleEditor, new Presentation()), true);
@@ -322,12 +337,19 @@ public final class MarkdownTableEditorScenarios {
 		toggleFitEditor.setCaretAt("alpha");
 		autoFit.setSelected(event(toggleFitEditor, new Presentation()), true);
 		expectTrue("auto fit toggle turns on", settings.isAutoFitEnabled());
+		expectTrue("auto fit toggle forces auto align on", settings.isAutoAlignEnabled());
 		expectContains("auto fit toggle formats current table", toggleFitEditor.text(), "|     |");
+		Presentation lockedAutoAlign = new Presentation();
+		autoAlign.update(event(toggleFitEditor, lockedAutoAlign));
+		expectTrue("auto align toggle disabled while auto fit is on", !lockedAutoAlign.isEnabled() && lockedAutoAlign.isVisible());
+		autoAlign.setSelected(event(toggleFitEditor, new Presentation()), false);
+		expectTrue("auto fit blocks auto align action toggle off", settings.isAutoAlignEnabled());
 		autoFit.setSelected(event(toggleFitEditor, new Presentation()), false);
 		expectTrue("auto fit toggle turns off", !settings.isAutoFitEnabled());
+		expectTrue("auto fit toggle off leaves auto align on", settings.isAutoAlignEnabled());
 
-		settings.setAutoAlignEnabled(false);
 		settings.setAutoFitEnabled(false);
+		settings.setAutoAlignEnabled(false);
 		Presentation hidden = new Presentation();
 		new MarkdownTableActions.Align().update(event(null, hidden));
 		expectTrue("base update hides without editor", !hidden.isEnabled() && !hidden.isVisible());
@@ -407,10 +429,13 @@ public final class MarkdownTableEditorScenarios {
 		expectString(
 			"auto align widget on tooltip",
 			autoAlignPresentation.getTooltipText(),
-			MarkdownTableEditorBundle.message("status.MarkdownTableEditor.AutoAlign.tooltip.on")
+			MarkdownTableEditorBundle.message("status.MarkdownTableEditor.AutoAlign.tooltip.locked")
 		);
 		autoAlignPresentation.getClickConsumer().consume(null);
-		expectTrue("auto align widget click turns setting off", !settings.isAutoAlignEnabled());
+		expectTrue("auto fit blocks auto align widget click off", settings.isAutoAlignEnabled());
+		settings.setAutoFitEnabled(false);
+		autoAlignPresentation.getClickConsumer().consume(null);
+		expectTrue("auto align widget click turns setting off after auto fit off", !settings.isAutoAlignEnabled());
 		expectString(
 			"auto align widget off text",
 			autoAlignPresentation.getText(),
@@ -419,6 +444,7 @@ public final class MarkdownTableEditorScenarios {
 		autoAlignPresentation.getClickConsumer().consume(null);
 		expectTrue("auto align widget click turns setting on", settings.isAutoAlignEnabled());
 
+		settings.setAutoFitEnabled(true);
 		StatusBarWidget autoFitWidget = autoFitFactory.createWidget(null);
 		StatusBarWidget.TextPresentation autoFitPresentation = (StatusBarWidget.TextPresentation)autoFitWidget.getPresentation();
 		expectString("auto fit widget id", autoFitWidget.ID(), "markdownTableAutoFitWidget");
@@ -434,13 +460,16 @@ public final class MarkdownTableEditorScenarios {
 		);
 		autoFitPresentation.getClickConsumer().consume(null);
 		expectTrue("auto fit widget click turns setting off", !settings.isAutoFitEnabled());
+		expectTrue("auto fit widget click off leaves auto align on", settings.isAutoAlignEnabled());
 		expectString(
 			"auto fit widget off text",
 			autoFitPresentation.getText(),
 			MarkdownTableEditorBundle.message("status.MarkdownTableEditor.AutoFit.off")
 		);
+		settings.setAutoAlignEnabled(false);
 		autoFitPresentation.getClickConsumer().consume(null);
 		expectTrue("auto fit widget click turns setting on", settings.isAutoFitEnabled());
+		expectTrue("auto fit widget click on forces auto align on", settings.isAutoAlignEnabled());
 	}
 
 	private static void automaticScenarios() {
@@ -525,8 +554,8 @@ public final class MarkdownTableEditorScenarios {
 		expectTrue("markdown file markdown", MarkdownTableEditor.isMarkdownFileName("notes.markdown"));
 		expectTrue("plain file not markdown", !MarkdownTableEditor.isMarkdownFileName("notes.txt"));
 
-		settings.setAutoAlignEnabled(false);
 		settings.setAutoFitEnabled(false);
+		settings.setAutoAlignEnabled(false);
 	}
 
 	private static void tabHandlerScenarios() {

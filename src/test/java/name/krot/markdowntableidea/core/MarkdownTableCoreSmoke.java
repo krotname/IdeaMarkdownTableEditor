@@ -931,18 +931,18 @@ public final class MarkdownTableCoreSmoke {
 		expectEquals("english action text", "Align Table", english.getString("action.MarkdownTableEditor.Align.text"));
 		expectEquals("english action description", "Align the Markdown table at the caret", english.getString("action.MarkdownTableEditor.Align.description"));
 		expectEquals("english fit action text", "Fit Table Width to Editor", english.getString("action.MarkdownTableEditor.WrapLongCells.text"));
-		expectEquals("english auto align action text", "Auto Align After Edit", english.getString("action.MarkdownTableEditor.AutoAlign.text"));
-		expectEquals("english auto fit action text", "Auto Fit Table Width to Editor", english.getString("action.MarkdownTableEditor.AutoFit.text"));
-		expectEquals("english auto align status on", "Auto Align: On", english.getString("status.MarkdownTableEditor.AutoAlign.on"));
-		expectEquals("english auto fit status on", "Auto Fit: On", english.getString("status.MarkdownTableEditor.AutoFit.on"));
+		expectEquals("english auto align action text", "Light Auto Align After Edit", english.getString("action.MarkdownTableEditor.AutoAlign.text"));
+		expectEquals("english auto fit action text", "Power Auto Fit Table Width to Editor", english.getString("action.MarkdownTableEditor.AutoFit.text"));
+		expectEquals("english auto align status on", "Light Auto Align: On", english.getString("status.MarkdownTableEditor.AutoAlign.on"));
+		expectEquals("english auto fit status on", "Power Auto Fit: On", english.getString("status.MarkdownTableEditor.AutoFit.on"));
 		expectEquals("english group text", "Markdown Table Editor", english.getString("group.MarkdownTableEditor.Group.text"));
 		expectEquals("russian action text", "Выровнять таблицу", russian.getString("action.MarkdownTableEditor.Align.text"));
 		expectEquals("russian action description", "Выровнять Markdown-таблицу под курсором", russian.getString("action.MarkdownTableEditor.Align.description"));
 		expectEquals("russian fit action text", "Подогнать ширину таблицы под редактор", russian.getString("action.MarkdownTableEditor.WrapLongCells.text"));
-		expectEquals("russian auto align action text", "Автовыравнивание после правки", russian.getString("action.MarkdownTableEditor.AutoAlign.text"));
-		expectEquals("russian auto fit action text", "Автоподгонка ширины таблицы под редактор", russian.getString("action.MarkdownTableEditor.AutoFit.text"));
-		expectEquals("russian auto align status on", "Автовыравнивание: вкл", russian.getString("status.MarkdownTableEditor.AutoAlign.on"));
-		expectEquals("russian auto fit status on", "Автоподгонка: вкл", russian.getString("status.MarkdownTableEditor.AutoFit.on"));
+		expectEquals("russian auto align action text", "Light Автовыравнивание после правки", russian.getString("action.MarkdownTableEditor.AutoAlign.text"));
+		expectEquals("russian auto fit action text", "Power Автоподгонка ширины таблицы под редактор", russian.getString("action.MarkdownTableEditor.AutoFit.text"));
+		expectEquals("russian auto align status on", "Light Автовыравнивание: вкл", russian.getString("status.MarkdownTableEditor.AutoAlign.on"));
+		expectEquals("russian auto fit status on", "Power Автоподгонка: вкл", russian.getString("status.MarkdownTableEditor.AutoFit.on"));
 		expectEquals("russian group text", "Редактор Markdown-таблиц", russian.getString("group.MarkdownTableEditor.Group.text"));
 
 		LinkedHashMap<String, String> localizedAlignText = new LinkedHashMap<>();

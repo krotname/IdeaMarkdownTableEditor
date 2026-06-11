@@ -45,7 +45,7 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 - Sort rows by the current column in ascending or descending order.
 - Fit wide Markdown tables to the visible editor width, once or automatically.
 - Automatically align tables after edits without changing width.
-- `Auto Align` and `Auto Fit` buttons are available in the IDE status bar, at the bottom left.
+- `Light Auto Align` and `Power Auto Fit` buttons are available in the IDE status bar, at the bottom left; enabling Power Auto Fit also enables Light Auto Align.
 - Convert selected CSV/TSV text or the current CSV/TSV block into a Markdown table.
 - CSV/TSV block detection ignores commas inside quotes and does not capture adjacent plain text.
 - Insert a new table with a selected number of columns and rows.
@@ -101,9 +101,9 @@ Automatic modes can also be toggled from two buttons in the IDE status bar, at t
 | ---------------------------------------------- | -------------------------------------------------------------------- |
 | `Tab: Align Markdown Table`                    | Aligns the table at the caret; outside tables it works as normal Tab |
 | `Align Table`                                  | Aligns the current Markdown table                                    |
-| `Auto Align After Edit`                        | Automatically aligns the table after edits without changing width    |
+| `Light Auto Align After Edit`                  | Automatically aligns the table after edits without changing width    |
 | `Fit Table Width to Editor`                    | Fits the current table to the visible editor width                   |
-| `Auto Fit Table Width to Editor`               | Automatically fits the table after edits and editor resizing         |
+| `Power Auto Fit Table Width to Editor`         | Automatically fits the table after edits and editor resizing; turns Light Auto Align on |
 | `Next Cell` / `Previous Cell`                  | Moves the caret between cells                                        |
 | `Insert Row Below` / `Delete Row`              | Adds or deletes a row                                                |
 | `Insert Column Right` / `Delete Column`        | Adds or deletes a column                                             |
@@ -125,7 +125,7 @@ Except for the contextual `Tab`, commands use `Ctrl+Alt+Shift` with the top numb
 | --------------------------- | ------------------- |
 | `Tab: Align Markdown Table` | `Tab`               |
 | `Align Table`               | `Ctrl+Alt+Shift+1`  |
-| `Auto Align After Edit`     | `Ctrl+Alt+Shift+A`  |
+| `Light Auto Align After Edit` | `Ctrl+Alt+Shift+A` |
 | `Next Cell`                 | `Ctrl+Alt+Shift+2`  |
 | `Previous Cell`             | `Ctrl+Alt+Shift+3`  |
 | `Insert Row Below`          | `Ctrl+Alt+Shift+4`  |
@@ -139,7 +139,7 @@ Except for the contextual `Tab`, commands use `Ctrl+Alt+Shift` with the top numb
 | `Sort Rows Ascending`       | `Ctrl+Alt+Shift+=`  |
 | `Sort Rows Descending`      | `Ctrl+Alt+Shift+-`  |
 | `Fit Table Width to Editor` | `Ctrl+Alt+Shift+W`  |
-| `Auto Fit Table Width to Editor` | `Ctrl+Alt+Shift+F` |
+| `Power Auto Fit Table Width to Editor` | `Ctrl+Alt+Shift+F` |
 | `Convert CSV/TSV to Table`  | `Ctrl+Alt+Shift+0`  |
 | `Insert New Table`          | `Ctrl+Alt+Shift+\`  |
 

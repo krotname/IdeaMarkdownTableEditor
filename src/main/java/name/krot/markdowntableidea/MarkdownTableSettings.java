@@ -31,19 +31,26 @@ public final class MarkdownTableSettings implements PersistentStateComponent<Mar
 
 	@Override
 	public OptionState getState() {
+		enforceAutoModeDependency();
 		return state;
 	}
 
 	@Override
 	public void loadState(@NotNull OptionState state) {
 		this.state = state;
+		enforceAutoModeDependency();
 	}
 
 	public boolean isAutoAlignEnabled() {
+		enforceAutoModeDependency();
 		return state.autoAlignEnabled;
 	}
 
 	public void setAutoAlignEnabled(boolean enabled) {
+		if (state.autoFitEnabled && !enabled) {
+			state.autoAlignEnabled = true;
+			return;
+		}
 		state.autoAlignEnabled = enabled;
 	}
 
@@ -53,10 +60,19 @@ public final class MarkdownTableSettings implements PersistentStateComponent<Mar
 
 	public void setAutoFitEnabled(boolean enabled) {
 		state.autoFitEnabled = enabled;
+		if (enabled) {
+			state.autoAlignEnabled = true;
+		}
 	}
 
 	public int getDebounceMs() {
 		return Math.max(1, state.debounceMs);
+	}
+
+	private void enforceAutoModeDependency() {
+		if (state.autoFitEnabled) {
+			state.autoAlignEnabled = true;
+		}
 	}
 
 	public static final class OptionState {
