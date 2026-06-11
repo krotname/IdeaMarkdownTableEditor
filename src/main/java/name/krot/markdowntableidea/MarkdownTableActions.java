@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.ui.Messages;
@@ -52,9 +53,15 @@ public final class MarkdownTableActions {
 
 	public abstract static class Base extends AnAction implements DumbAware {
 		private final MarkdownTableCore.Action action;
+		private final AutoMode disablingAutoMode;
 
 		protected Base(MarkdownTableCore.Action action) {
+			this(action, AutoMode.NONE);
+		}
+
+		protected Base(MarkdownTableCore.Action action, AutoMode disablingAutoMode) {
 			this.action = action;
+			this.disablingAutoMode = disablingAutoMode;
 		}
 
 		@Override
@@ -65,7 +72,7 @@ public final class MarkdownTableActions {
 		@Override
 		public void update(AnActionEvent event) {
 			Editor editor = event.getData(CommonDataKeys.EDITOR);
-			event.getPresentation().setEnabledAndVisible(editor != null && !editor.isViewer());
+			event.getPresentation().setEnabledAndVisible(editor != null && !editor.isViewer() && !disablingAutoMode.isEnabled());
 		}
 
 		@Override
@@ -76,7 +83,7 @@ public final class MarkdownTableActions {
 
 	public static final class Align extends Base {
 		public Align() {
-			super(MarkdownTableCore.Action.ALIGN);
+			super(MarkdownTableCore.Action.ALIGN, AutoMode.AUTO_ALIGN);
 		}
 	}
 
@@ -171,7 +178,68 @@ public final class MarkdownTableActions {
 
 	public static final class WrapLongCells extends Base {
 		public WrapLongCells() {
-			super(MarkdownTableCore.Action.WRAP_LONG_CELLS);
+			super(MarkdownTableCore.Action.WRAP_LONG_CELLS, AutoMode.AUTO_FIT);
+		}
+
+		@Override
+		public void actionPerformed(AnActionEvent event) {
+			MarkdownTableEditor.fitToEditorWidth(event.getData(CommonDataKeys.EDITOR), event.getProject(), false);
+		}
+	}
+
+	public static final class AutoAlign extends ToggleAction implements DumbAware {
+		@Override
+		public boolean isSelected(AnActionEvent event) {
+			return MarkdownTableSettings.getInstance().isAutoAlignEnabled();
+		}
+
+		@Override
+		public void setSelected(AnActionEvent event, boolean state) {
+			MarkdownTableSettings.getInstance().setAutoAlignEnabled(state);
+			MarkdownTableStatusBarWidgets.update(event.getProject());
+			if (state) {
+				MarkdownTableEditor.run(event.getData(CommonDataKeys.EDITOR), event.getProject(), MarkdownTableCore.Action.ALIGN, true);
+			}
+		}
+
+		@Override
+		public void update(AnActionEvent event) {
+			Editor editor = event.getData(CommonDataKeys.EDITOR);
+			event.getPresentation().setEnabledAndVisible(editor != null && !editor.isViewer());
+			super.update(event);
+		}
+
+		@Override
+		public ActionUpdateThread getActionUpdateThread() {
+			return ActionUpdateThread.EDT;
+		}
+	}
+
+	public static final class AutoFit extends ToggleAction implements DumbAware {
+		@Override
+		public boolean isSelected(AnActionEvent event) {
+			return MarkdownTableSettings.getInstance().isAutoFitEnabled();
+		}
+
+		@Override
+		public void setSelected(AnActionEvent event, boolean state) {
+			MarkdownTableSettings.getInstance().setAutoFitEnabled(state);
+			MarkdownTableStatusBarWidgets.update(event.getProject());
+			if (state) {
+				MarkdownTableEditor.fitToEditorWidth(event.getData(CommonDataKeys.EDITOR), event.getProject(), true);
+			}
+		}
+
+		@Override
+		public void update(AnActionEvent event) {
+			Editor editor = event.getData(CommonDataKeys.EDITOR);
+			event.getPresentation().setEnabledAndVisible(editor != null && !editor.isViewer());
+			super.update(event);
+		}
+
+		@Override
+		public ActionUpdateThread getActionUpdateThread() {
+			return ActionUpdateThread.EDT;
 		}
 	}
 
@@ -226,6 +294,21 @@ public final class MarkdownTableActions {
 		@Override
 		public ActionUpdateThread getActionUpdateThread() {
 			return ActionUpdateThread.EDT;
+		}
+	}
+
+	private enum AutoMode {
+		NONE,
+		AUTO_ALIGN,
+		AUTO_FIT;
+
+		private boolean isEnabled() {
+			MarkdownTableSettings settings = MarkdownTableSettings.getInstance();
+			return switch (this) {
+				case NONE -> false;
+				case AUTO_ALIGN -> settings.isAutoAlignEnabled();
+				case AUTO_FIT -> settings.isAutoFitEnabled();
+			};
 		}
 	}
 }

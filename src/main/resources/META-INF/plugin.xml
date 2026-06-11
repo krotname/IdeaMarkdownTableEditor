@@ -10,6 +10,8 @@
 		<p>Markdown Table Editor keeps Markdown pipe tables readable directly in JetBrains IDE editors.</p>
 		<ul>
 			<li>Align Markdown tables with Tab.</li>
+			<li>Automatically align tables after edits.</li>
+			<li>Fit wide tables to the visible editor width.</li>
 			<li>Sort data rows by the current column.</li>
 			<li>Convert CSV/TSV text to Markdown tables.</li>
 			<li>Insert a new Markdown table by size.</li>
@@ -25,6 +27,7 @@
 			<li>Kept Java/C++ wrapping behavior in sync for long-cell continuation rows, protected Markdown links, code spans, and narrow-width hard wrapping.</li>
 			<li>Added shared reflow behavior that rejoins continuation rows before fitting a table to a wider window.</li>
 			<li>Aligned the 10.4.0 fitting behavior with the Notepad++ manual and resize-triggered table fitting workflow.</li>
+			<li>Added bottom-right IDE status bar buttons for Auto Align and Auto Fit modes.</li>
 			<li>Documented the Notepad++ table-wrap mode semantics: table wrapping stays independent from the editor's visual word wrap.</li>
 			<li>Added shared adaptive-width core coverage for wide registry-style tables with many columns.</li>
 			<li>Preserved alignment, sorting, CSV/TSV conversion, escaped pipes, and Unicode/CJK width handling.</li>
@@ -35,7 +38,12 @@
 
 	<extensions defaultExtensionNs="com.intellij">
 		<editorActionHandler action="EditorTab" implementationClass="name.krot.markdowntableidea.MarkdownTableTabHandler" order="first"/>
+		<editorFactoryDocumentListener implementation="name.krot.markdowntableidea.MarkdownTableAutoFormatDocumentListener"/>
+		<editorFactoryListener implementation="name.krot.markdowntableidea.MarkdownTableVisibleAreaListener"/>
 		<postFormatProcessor implementation="name.krot.markdowntableidea.MarkdownTableFormatProcessor"/>
+		<applicationService serviceImplementation="name.krot.markdowntableidea.MarkdownTableSettings"/>
+		<postStartupActivity implementation="name.krot.markdowntableidea.MarkdownTableStatusBarWidgets$LeftInstaller"/>
+		<postStartupActivity implementation="name.krot.markdowntableidea.MarkdownTableAutoModeEventListener"/>
 	</extensions>
 
 	<actions>
@@ -49,8 +57,14 @@
 			<action id="MarkdownTableEditor.Align" class="name.krot.markdowntableidea.MarkdownTableActions$Align">
 				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 1"/>
 			</action>
+			<action id="MarkdownTableEditor.AutoAlign" class="name.krot.markdowntableidea.MarkdownTableActions$AutoAlign">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift A"/>
+			</action>
 			<action id="MarkdownTableEditor.WrapLongCells" class="name.krot.markdowntableidea.MarkdownTableActions$WrapLongCells">
 				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift W"/>
+			</action>
+			<action id="MarkdownTableEditor.AutoFit" class="name.krot.markdowntableidea.MarkdownTableActions$AutoFit">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift F"/>
 			</action>
 			<action id="MarkdownTableEditor.NextCell" class="name.krot.markdowntableidea.MarkdownTableActions$NextCell">
 				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 2"/>

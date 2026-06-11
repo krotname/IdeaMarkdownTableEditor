@@ -53,12 +53,24 @@ public final class MarkdownTableCoreSmoke {
 		expectContains("dynamic tab handler implementation", pluginXml, "implementationClass=\"name.krot.markdowntableidea.MarkdownTableTabHandler\"");
 		expectContains("tab handler runs before default tab processors", pluginXml, "order=\"first\"");
 		expectContains("markdown tables participate in IDE reformat", pluginXml, "<postFormatProcessor implementation=\"name.krot.markdowntableidea.MarkdownTableFormatProcessor\"");
+		expectContains(
+			"left status bar startup activity descriptor",
+			pluginXml,
+			"<postStartupActivity implementation=\"name.krot.markdowntableidea.MarkdownTableStatusBarWidgets$LeftInstaller\""
+		);
+		expectContains(
+			"auto mode event startup activity descriptor",
+			pluginXml,
+			"<postStartupActivity implementation=\"name.krot.markdowntableidea.MarkdownTableAutoModeEventListener\""
+		);
+		expectNotContains("auto mode widgets are not registered in the right status bar area", pluginXml, "<statusBarWidgetFactory");
 		expectContains("plugin declares resource bundle", pluginXml, "<resource-bundle>messages.MarkdownTableEditorBundle</resource-bundle>");
 		expectNotContains("actions do not hardcode English text", pluginXml, "text=\"Align Table\"");
 		expectNotContains("actions do not hardcode English descriptions", pluginXml, "description=\"Align the Markdown table at the caret\"");
 		expectActionBundleKeys();
 		expectEquals("default action shortcuts", expectedDefaultShortcuts(), readActionShortcuts(processedPluginXmlPath.toFile()));
-		for (String forbiddenShortcut : List.of("ctrl alt A", "ctrl alt LEFT", "ctrl alt RIGHT", "ctrl alt UP", "ctrl alt DOWN", "ctrl alt shift LEFT", "ctrl alt shift RIGHT", "ctrl alt shift F")) {
+		expectEquals("status bar widget factories are not used for left buttons", expectedStatusBarWidgetFactories(), readStatusBarWidgetFactories(processedPluginXmlPath.toFile()));
+		for (String forbiddenShortcut : List.of("ctrl alt A", "ctrl alt LEFT", "ctrl alt RIGHT", "ctrl alt UP", "ctrl alt DOWN", "ctrl alt shift LEFT", "ctrl alt shift RIGHT")) {
 			expectNotContains("conflicting shortcut is removed: " + forbiddenShortcut, pluginXml, "first-keystroke=\"" + forbiddenShortcut + "\"");
 		}
 		expectContains("sort action descriptor", pluginXml, "MarkdownTableEditor.SortAscending");
@@ -68,7 +80,6 @@ public final class MarkdownTableCoreSmoke {
 		expectContains("marketplace change notes", pluginXml, "<change-notes><![CDATA[");
 		expectTrue("plugin icon exists", Files.exists(Path.of("src", "main", "resources", "META-INF", "pluginIcon.svg")));
 		expectTrue("license exists", Files.exists(Path.of("LICENSE")));
-		expectNotContains("no startup activity descriptor", pluginXml, "postStartupActivity");
 		MarkdownTableGoldenFixtures.run();
 
 		List<String> input = List.of(
@@ -886,7 +897,9 @@ public final class MarkdownTableCoreSmoke {
 		LinkedHashMap<String, String> shortcuts = new LinkedHashMap<>();
 		shortcuts.put("MarkdownTableEditor.TabAlign", "TAB");
 		shortcuts.put("MarkdownTableEditor.Align", "ctrl alt shift 1");
+		shortcuts.put("MarkdownTableEditor.AutoAlign", "ctrl alt shift A");
 		shortcuts.put("MarkdownTableEditor.WrapLongCells", "ctrl alt shift W");
+		shortcuts.put("MarkdownTableEditor.AutoFit", "ctrl alt shift F");
 		shortcuts.put("MarkdownTableEditor.NextCell", "ctrl alt shift 2");
 		shortcuts.put("MarkdownTableEditor.PreviousCell", "ctrl alt shift 3");
 		shortcuts.put("MarkdownTableEditor.SortAscending", "ctrl alt shift EQUALS");
@@ -904,6 +917,10 @@ public final class MarkdownTableCoreSmoke {
 		return shortcuts;
 	}
 
+	private static Map<String, String> expectedStatusBarWidgetFactories() {
+		return new LinkedHashMap<>();
+	}
+
 	private static void expectActionBundleKeys() {
 		File[] bundleFiles = Path.of("src", "main", "resources", "messages").toFile().listFiles((dir, name) ->
 			name.startsWith("MarkdownTableEditorBundle") && name.endsWith(".properties"));
@@ -913,9 +930,19 @@ public final class MarkdownTableCoreSmoke {
 		ResourceBundle russian = ResourceBundle.getBundle("messages.MarkdownTableEditorBundle", Locale.forLanguageTag("ru"));
 		expectEquals("english action text", "Align Table", english.getString("action.MarkdownTableEditor.Align.text"));
 		expectEquals("english action description", "Align the Markdown table at the caret", english.getString("action.MarkdownTableEditor.Align.description"));
+		expectEquals("english fit action text", "Fit Table Width to Editor", english.getString("action.MarkdownTableEditor.WrapLongCells.text"));
+		expectEquals("english auto align action text", "Auto Align After Edit", english.getString("action.MarkdownTableEditor.AutoAlign.text"));
+		expectEquals("english auto fit action text", "Auto Fit Table Width to Editor", english.getString("action.MarkdownTableEditor.AutoFit.text"));
+		expectEquals("english auto align status on", "Auto Align: On", english.getString("status.MarkdownTableEditor.AutoAlign.on"));
+		expectEquals("english auto fit status on", "Auto Fit: On", english.getString("status.MarkdownTableEditor.AutoFit.on"));
 		expectEquals("english group text", "Markdown Table Editor", english.getString("group.MarkdownTableEditor.Group.text"));
 		expectEquals("russian action text", "Выровнять таблицу", russian.getString("action.MarkdownTableEditor.Align.text"));
 		expectEquals("russian action description", "Выровнять Markdown-таблицу под курсором", russian.getString("action.MarkdownTableEditor.Align.description"));
+		expectEquals("russian fit action text", "Подогнать ширину таблицы под редактор", russian.getString("action.MarkdownTableEditor.WrapLongCells.text"));
+		expectEquals("russian auto align action text", "Автовыравнивание после правки", russian.getString("action.MarkdownTableEditor.AutoAlign.text"));
+		expectEquals("russian auto fit action text", "Автоподгонка ширины таблицы под редактор", russian.getString("action.MarkdownTableEditor.AutoFit.text"));
+		expectEquals("russian auto align status on", "Автовыравнивание: вкл", russian.getString("status.MarkdownTableEditor.AutoAlign.on"));
+		expectEquals("russian auto fit status on", "Автоподгонка: вкл", russian.getString("status.MarkdownTableEditor.AutoFit.on"));
 		expectEquals("russian group text", "Редактор Markdown-таблиц", russian.getString("group.MarkdownTableEditor.Group.text"));
 
 		LinkedHashMap<String, String> localizedAlignText = new LinkedHashMap<>();
@@ -941,6 +968,10 @@ public final class MarkdownTableCoreSmoke {
 			ResourceBundle bundle = ResourceBundle.getBundle("messages.MarkdownTableEditorBundle", Locale.forLanguageTag(entry.getKey()));
 			expectEquals(entry.getKey() + " action text", entry.getValue(), bundle.getString("action.MarkdownTableEditor.Align.text"));
 			expectTrue(entry.getKey() + " action description exists", !bundle.getString("action.MarkdownTableEditor.Align.description").isBlank());
+			expectTrue(entry.getKey() + " auto align action exists", !bundle.getString("action.MarkdownTableEditor.AutoAlign.text").isBlank());
+			expectTrue(entry.getKey() + " auto fit action exists", !bundle.getString("action.MarkdownTableEditor.AutoFit.text").isBlank());
+			expectTrue(entry.getKey() + " auto align status exists", !bundle.getString("status.MarkdownTableEditor.AutoAlign.on").isBlank());
+			expectTrue(entry.getKey() + " auto fit status exists", !bundle.getString("status.MarkdownTableEditor.AutoFit.on").isBlank());
 		}
 	}
 
@@ -977,5 +1008,22 @@ public final class MarkdownTableCoreSmoke {
 			expectInt(actionId + " has one shortcut", shortcutCount, 1);
 		}
 		return shortcuts;
+	}
+
+	private static Map<String, String> readStatusBarWidgetFactories(File pluginXmlFile) throws Exception {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+		Document document = factory.newDocumentBuilder().parse(pluginXmlFile);
+		NodeList widgets = document.getElementsByTagName("statusBarWidgetFactory");
+		LinkedHashMap<String, String> result = new LinkedHashMap<>();
+		for (int index = 0; index < widgets.getLength(); index++) {
+			Element widget = (Element)widgets.item(index);
+			String widgetId = widget.getAttribute("id");
+			if (!widgetId.startsWith("markdownTable")) {
+				continue;
+			}
+			result.put(widgetId, widget.getAttribute("implementation") + "|" + widget.getAttribute("order"));
+		}
+		return result;
 	}
 }
