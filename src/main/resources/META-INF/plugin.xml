@@ -12,6 +12,7 @@
 			<li>Align Markdown tables with Tab.</li>
 			<li>Automatically align tables after edits.</li>
 			<li>Fit wide tables to the visible editor width.</li>
+			<li>Narrow or widen the current column one display column at a time.</li>
 			<li>Sort data rows by the current column.</li>
 			<li>Convert CSV/TSV text to Markdown tables.</li>
 			<li>Insert a new Markdown table by size.</li>
@@ -24,11 +25,10 @@
 
 	<change-notes><![CDATA[
 		<ul>
+			<li>Added Narrow Column and Widen Column commands with Ctrl+Alt+Shift+, and Ctrl+Alt+Shift+. shortcuts.</li>
 			<li>Kept Java/C++ wrapping behavior in sync for long-cell continuation rows, protected Markdown links, code spans, and narrow-width hard wrapping.</li>
 			<li>Added shared reflow behavior that rejoins continuation rows before fitting a table to a wider window.</li>
-			<li>Aligned the 10.4.0 fitting behavior with the Notepad++ manual and resize-triggered table fitting workflow.</li>
-			<li>Added bottom-right IDE status bar buttons for Light Auto Align and Power Auto Fit modes.</li>
-			<li>Documented the Notepad++ table-wrap mode semantics: table wrapping stays independent from the editor's visual word wrap.</li>
+			<li>Added bottom-left IDE status bar buttons for Light Auto Align and Power Auto Fit modes.</li>
 			<li>Added shared adaptive-width core coverage for wide registry-style tables with many columns.</li>
 			<li>Preserved alignment, sorting, CSV/TSV conversion, escaped pipes, and Unicode/CJK width handling.</li>
 		</ul>
@@ -99,6 +99,12 @@
 			</action>
 			<action id="MarkdownTableEditor.DeleteColumn" class="name.krot.markdowntableidea.MarkdownTableActions$DeleteColumn">
 				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift 7"/>
+			</action>
+			<action id="MarkdownTableEditor.NarrowColumn" class="name.krot.markdowntableidea.MarkdownTableActions$NarrowColumn">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift COMMA"/>
+			</action>
+			<action id="MarkdownTableEditor.WidenColumn" class="name.krot.markdowntableidea.MarkdownTableActions$WidenColumn">
+				<keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift PERIOD"/>
 			</action>
 			<separator/>
 			<action id="MarkdownTableEditor.MoveRowUp" class="name.krot.markdowntableidea.MarkdownTableActions$MoveRowUp">

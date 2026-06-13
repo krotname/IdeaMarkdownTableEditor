@@ -473,6 +473,52 @@ public final class MarkdownTableCoreSmoke {
 			"|     | epsilon zeta eta theta |"
 		));
 
+		MarkdownTableCore.EditResult narrowedColumn = MarkdownTableCore.apply(
+			List.of(
+				"| Key | Value |",
+				"| --- | --- |",
+				"| row | alpha beta gamma |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.NARROW_COLUMN
+		);
+		expectTrue("narrow column ok", narrowedColumn.ok);
+		expectInt("narrow column target row", narrowedColumn.targetRow, 2);
+		expectInt("narrow column target column", narrowedColumn.targetColumn, 1);
+		expectLines("narrow column wraps current column", narrowedColumn.lines, List.of(
+			"| Key | Value           |",
+			"| --- | --------------- |",
+			"| row | alpha beta      |",
+			"|     | gamma           |"
+		));
+
+		MarkdownTableCore.EditResult widenedColumn = MarkdownTableCore.apply(narrowedColumn.lines, 2, 1, MarkdownTableCore.Action.WIDEN_COLUMN);
+		expectTrue("widen column ok", widenedColumn.ok);
+		expectLines("widen column rejoins current column", widenedColumn.lines, List.of(
+			"| Key | Value            |",
+			"| --- | ---------------- |",
+			"| row | alpha beta gamma |"
+		));
+
+		MarkdownTableCore.EditResult narrowedCjkColumn = MarkdownTableCore.apply(
+			List.of(
+				"| A | B |",
+				"| --- | --- |",
+				"| x | 漢字 alpha |"
+			),
+			2,
+			1,
+			MarkdownTableCore.Action.NARROW_COLUMN
+		);
+		expectTrue("narrow column cjk ok", narrowedCjkColumn.ok);
+		expectLines("narrow column uses cjk display width", narrowedCjkColumn.lines, List.of(
+			"| A   | B         |",
+			"| --- | --------- |",
+			"| x   | 漢字      |",
+			"|     | alpha     |"
+		));
+
 		MarkdownTableCore.EditResult autoWrapped = MarkdownTableCore.applyWrappedToWidth(
 			List.of(
 				"| Summary | Type | Priority | Reason | Id |",
@@ -910,6 +956,8 @@ public final class MarkdownTableCoreSmoke {
 		shortcuts.put("MarkdownTableEditor.DeleteRow", "ctrl alt shift 5");
 		shortcuts.put("MarkdownTableEditor.InsertColumnRight", "ctrl alt shift 6");
 		shortcuts.put("MarkdownTableEditor.DeleteColumn", "ctrl alt shift 7");
+		shortcuts.put("MarkdownTableEditor.NarrowColumn", "ctrl alt shift COMMA");
+		shortcuts.put("MarkdownTableEditor.WidenColumn", "ctrl alt shift PERIOD");
 		shortcuts.put("MarkdownTableEditor.MoveRowUp", "ctrl alt shift 8");
 		shortcuts.put("MarkdownTableEditor.MoveRowDown", "ctrl alt shift 9");
 		shortcuts.put("MarkdownTableEditor.MoveColumnLeft", "ctrl alt shift OPEN_BRACKET");
@@ -933,6 +981,8 @@ public final class MarkdownTableCoreSmoke {
 		expectEquals("english fit action text", "Fit Table Width to Editor", english.getString("action.MarkdownTableEditor.WrapLongCells.text"));
 		expectEquals("english auto align action text", "Light Auto Align After Edit", english.getString("action.MarkdownTableEditor.AutoAlign.text"));
 		expectEquals("english auto fit action text", "Power Auto Fit Table Width to Editor", english.getString("action.MarkdownTableEditor.AutoFit.text"));
+		expectEquals("english narrow column action text", "Narrow Column", english.getString("action.MarkdownTableEditor.NarrowColumn.text"));
+		expectEquals("english widen column action text", "Widen Column", english.getString("action.MarkdownTableEditor.WidenColumn.text"));
 		expectEquals("english auto align status on", "Light Auto Align: On", english.getString("status.MarkdownTableEditor.AutoAlign.on"));
 		expectEquals("english auto fit status on", "Power Auto Fit: On", english.getString("status.MarkdownTableEditor.AutoFit.on"));
 		expectEquals("english group text", "Markdown Table Editor", english.getString("group.MarkdownTableEditor.Group.text"));
@@ -941,6 +991,8 @@ public final class MarkdownTableCoreSmoke {
 		expectEquals("russian fit action text", "Подогнать ширину таблицы под редактор", russian.getString("action.MarkdownTableEditor.WrapLongCells.text"));
 		expectEquals("russian auto align action text", "Light Автовыравнивание после правки", russian.getString("action.MarkdownTableEditor.AutoAlign.text"));
 		expectEquals("russian auto fit action text", "Power Автоподгонка ширины таблицы под редактор", russian.getString("action.MarkdownTableEditor.AutoFit.text"));
+		expectEquals("russian narrow column action text", "Сузить столбец", russian.getString("action.MarkdownTableEditor.NarrowColumn.text"));
+		expectEquals("russian widen column action text", "Расширить столбец", russian.getString("action.MarkdownTableEditor.WidenColumn.text"));
 		expectEquals("russian auto align status on", "Light Автовыравнивание: вкл", russian.getString("status.MarkdownTableEditor.AutoAlign.on"));
 		expectEquals("russian auto fit status on", "Power Автоподгонка: вкл", russian.getString("status.MarkdownTableEditor.AutoFit.on"));
 		expectEquals("russian group text", "Редактор Markdown-таблиц", russian.getString("group.MarkdownTableEditor.Group.text"));
@@ -970,6 +1022,8 @@ public final class MarkdownTableCoreSmoke {
 			expectTrue(entry.getKey() + " action description exists", !bundle.getString("action.MarkdownTableEditor.Align.description").isBlank());
 			expectTrue(entry.getKey() + " auto align action exists", !bundle.getString("action.MarkdownTableEditor.AutoAlign.text").isBlank());
 			expectTrue(entry.getKey() + " auto fit action exists", !bundle.getString("action.MarkdownTableEditor.AutoFit.text").isBlank());
+			expectTrue(entry.getKey() + " narrow column action exists", !bundle.getString("action.MarkdownTableEditor.NarrowColumn.text").isBlank());
+			expectTrue(entry.getKey() + " widen column action exists", !bundle.getString("action.MarkdownTableEditor.WidenColumn.text").isBlank());
 			expectTrue(entry.getKey() + " auto align status exists", !bundle.getString("status.MarkdownTableEditor.AutoAlign.on").isBlank());
 			expectTrue(entry.getKey() + " auto fit status exists", !bundle.getString("status.MarkdownTableEditor.AutoFit.on").isBlank());
 		}

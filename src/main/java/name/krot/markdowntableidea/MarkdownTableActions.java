@@ -140,6 +140,18 @@ public final class MarkdownTableActions {
 		}
 	}
 
+	public static final class NarrowColumn extends Base {
+		public NarrowColumn() {
+			super(MarkdownTableCore.Action.NARROW_COLUMN);
+		}
+	}
+
+	public static final class WidenColumn extends Base {
+		public WidenColumn() {
+			super(MarkdownTableCore.Action.WIDEN_COLUMN);
+		}
+	}
+
 	public static final class MoveRowUp extends Base {
 		public MoveRowUp() {
 			super(MarkdownTableCore.Action.MOVE_ROW_UP);

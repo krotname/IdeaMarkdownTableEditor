@@ -127,12 +127,11 @@ jobs:
 
           ## What's Changed
 
-          - Supersedes 9.0.0 as the current stable release.
-          - Added localized action names, menu text, dialogs, and user messages for 20 popular locales.
-          - Improved large-table performance by reducing table parsing, display-width, and formatting overhead.
-          - Added release-blocking Java/C++ core performance benchmarks to CI.
-          - Preserved Java/C++ core parity for trimmed pipe rows, escaped pipes, Unicode/CJK width, CSV/TSV conversion, sorting, and row/column edits.
-          - Kept the non-conflicting Tab plus Ctrl+Alt+Shift shortcut scheme from 9.0.0.
+          - Added Narrow Column and Widen Column commands with Ctrl+Alt+Shift+, and Ctrl+Alt+Shift+. shortcuts.
+          - Kept Java/C++ wrapping behavior in sync for manual column resizing, long-cell continuation rows, protected Markdown links, code spans, and narrow-width hard wrapping.
+          - Improved table fitting so continuation rows are rejoined before a table is fitted to a wider editor window.
+          - Added bottom-left IDE status bar buttons for Light Auto Align and Power Auto Fit modes.
+          - Preserved alignment, sorting, CSV/TSV conversion, escaped pipes, UTF-8/CJK width handling, caret placement, and row/column edits.
           - Built the JetBrains IDE plugin package on GitHub Actions.
           - Included SHA-256 sums for release verification.
 

@@ -17,6 +17,8 @@ public final class MarkdownTableCore {
 		DELETE_ROW,
 		INSERT_COLUMN_RIGHT,
 		DELETE_COLUMN,
+		NARROW_COLUMN,
+		WIDEN_COLUMN,
 		MOVE_ROW_UP,
 		MOVE_ROW_DOWN,
 		MOVE_COLUMN_LEFT,
@@ -203,6 +205,7 @@ public final class MarkdownTableCore {
 		int targetRow = row;
 		int targetColumn = column;
 		int currentRowId = table.rows.get(row).id;
+		List<Integer> minimumWidths = null;
 
 		switch (action) {
 			case NEXT_CELL:
@@ -245,6 +248,14 @@ public final class MarkdownTableCore {
 				removeColumn(table, column);
 				targetColumn = column >= table.columns ? table.columns - 1 : column;
 				break;
+			case NARROW_COLUMN:
+				minimumWidths = new ArrayList<>();
+				targetRow = resizeColumnWidth(table, row, column, false, minimumWidths);
+				break;
+			case WIDEN_COLUMN:
+				minimumWidths = new ArrayList<>();
+				targetRow = resizeColumnWidth(table, row, column, true, minimumWidths);
+				break;
 			case MOVE_ROW_UP:
 				if (row > 0 && !table.rows.get(row).separator && !table.rows.get(row - 1).separator) {
 					Collections.swap(table.rows, row, row - 1);
@@ -282,7 +293,7 @@ public final class MarkdownTableCore {
 				break;
 		}
 
-		FormatResult formatted = formatTable(table, targetRow, targetColumn);
+		FormatResult formatted = formatTable(table, targetRow, targetColumn, minimumWidths);
 		setResultFromFormat(result, formatted);
 		result.ok = true;
 		result.changed = true;
@@ -1217,6 +1228,20 @@ public final class MarkdownTableCore {
 		return widths;
 	}
 
+	private static List<Integer> currentColumnWidths(Table table) {
+		List<Integer> widths = new ArrayList<>();
+		for (int i = 0; i < table.columns; i++) {
+			widths.add(1);
+		}
+
+		for (Row row : table.rows) {
+			for (int column = 0; column < table.columns && column < row.cells.size(); column++) {
+				widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
+			}
+		}
+		return widths;
+	}
+
 	private static List<Integer> headerColumnWidths(Table table) {
 		List<Integer> widths = new ArrayList<>();
 		for (int i = 0; i < table.columns; i++) {
@@ -1430,6 +1455,38 @@ public final class MarkdownTableCore {
 		table.rows.clear();
 		table.rows.addAll(wrappedRows);
 		return wrappedTargetRow;
+	}
+
+	private static int minimumManualColumnWidth(Table table, int column, List<Integer> naturalWidths) {
+		List<Integer> headerWidths = headerColumnWidths(table);
+		int headerWidth = column < headerWidths.size() ? headerWidths.get(column) : 3;
+		int naturalWidth = column < naturalWidths.size() ? naturalWidths.get(column) : headerWidth;
+		return Math.min(naturalWidth, Math.max(headerWidth, 3));
+	}
+
+	private static int resizeColumnWidth(Table table, int originalTargetRow, int column, boolean widen, List<Integer> columnWidths) {
+		if (table.separatorRow == -1 || column >= table.columns) {
+			return originalTargetRow;
+		}
+
+		columnWidths.clear();
+		columnWidths.addAll(currentColumnWidths(table));
+		originalTargetRow = unwrapContinuationRows(table, originalTargetRow);
+		if (column >= columnWidths.size()) {
+			return originalTargetRow;
+		}
+
+		List<Integer> naturalWidths = naturalColumnWidths(table);
+		if (widen) {
+			columnWidths.set(column, columnWidths.get(column) + 1);
+		} else {
+			int minimumWidth = minimumManualColumnWidth(table, column, naturalWidths);
+			if (columnWidths.get(column) > minimumWidth) {
+				columnWidths.set(column, columnWidths.get(column) - 1);
+			}
+		}
+
+		return wrapCellsToColumnWidths(table, originalTargetRow, columnWidths);
 	}
 
 	private static boolean cellHasText(String cell) {

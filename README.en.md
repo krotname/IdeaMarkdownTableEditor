@@ -42,6 +42,7 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 - Move to the next or previous cell.
 - Insert, delete, and move rows.
 - Insert, delete, and move columns.
+- Narrow or widen the current column by one display column.
 - Sort rows by the current column in ascending or descending order.
 - Fit wide Markdown tables to the visible editor width, once or automatically.
 - Automatically align tables after edits without changing width.
@@ -107,6 +108,7 @@ Automatic modes can also be toggled from two buttons in the IDE status bar, at t
 | `Next Cell` / `Previous Cell`                  | Moves the caret between cells                                        |
 | `Insert Row Below` / `Delete Row`              | Adds or deletes a row                                                |
 | `Insert Column Right` / `Delete Column`        | Adds or deletes a column                                             |
+| `Narrow Column` / `Widen Column`               | Narrows or widens the current column by one display column           |
 | `Move Row Up` / `Move Row Down`                | Moves the current row                                                |
 | `Move Column Left` / `Move Column Right`       | Moves the current column                                             |
 | `Sort Rows Ascending` / `Sort Rows Descending` | Sorts rows by the current column                                     |
@@ -132,6 +134,8 @@ Except for the contextual `Tab`, commands use `Ctrl+Alt+Shift` with the top numb
 | `Delete Row`                | `Ctrl+Alt+Shift+5`  |
 | `Insert Column Right`       | `Ctrl+Alt+Shift+6`  |
 | `Delete Column`             | `Ctrl+Alt+Shift+7`  |
+| `Narrow Column`             | `Ctrl+Alt+Shift+,`  |
+| `Widen Column`              | `Ctrl+Alt+Shift+.`  |
 | `Move Row Up`               | `Ctrl+Alt+Shift+8`  |
 | `Move Row Down`             | `Ctrl+Alt+Shift+9`  |
 | `Move Column Left`          | `Ctrl+Alt+Shift+[`  |

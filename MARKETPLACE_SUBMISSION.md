@@ -31,7 +31,7 @@ Status: release metadata for version `@PLUGIN_VERSION@`; generated from Gradle's
 
 ## Short description
 
-Edit Markdown pipe tables directly in JetBrains IDEs: align with Tab, sort rows, convert CSV/TSV, insert tables by size, and manage rows or columns without leaving the editor.
+Edit Markdown pipe tables directly in JetBrains IDEs: align with Tab, fit table width, narrow or widen columns, sort rows, convert CSV/TSV, insert tables by size, and manage rows or columns without leaving the editor.
 
 ## Marketplace update text
 
@@ -39,11 +39,11 @@ Use this for the JetBrains Marketplace version notes for `@PLUGIN_VERSION@` if t
 
 ```html
 <ul>
-  <li>Added localized action names, menu text, dialogs, and user messages for 20 popular locales.</li>
-  <li>Improved large-table performance by reducing table parsing, display-width, and formatting overhead.</li>
-  <li>Added release-blocking Java/C++ core performance benchmarks to CI.</li>
-  <li>Preserved Java/C++ core parity for trimmed pipe rows, escaped pipes, Unicode/CJK width, CSV/TSV conversion, sorting, and row/column edits.</li>
-  <li>Kept the non-conflicting Tab plus Ctrl+Alt+Shift shortcut scheme from 9.0.0.</li>
+  <li>Added Narrow Column and Widen Column commands with Ctrl+Alt+Shift+, and Ctrl+Alt+Shift+. shortcuts.</li>
+  <li>Kept Java/C++ wrapping behavior in sync for manual column resizing, long-cell continuation rows, protected Markdown links, code spans, and narrow-width hard wrapping.</li>
+  <li>Improved table fitting so continuation rows are rejoined before a table is fitted to a wider editor window.</li>
+  <li>Added bottom-left IDE status bar buttons for Light Auto Align and Power Auto Fit modes.</li>
+  <li>Preserved alignment, sorting, CSV/TSV conversion, escaped pipes, UTF-8/CJK width handling, caret placement, and row/column edits.</li>
 </ul>
 ```
 
