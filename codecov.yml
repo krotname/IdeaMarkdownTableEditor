@@ -1,0 +1,5 @@
+ignore:
+  - "src/main/java/name/krot/markdowntableidea/MarkdownTableActions.java"
+  - "src/main/java/name/krot/markdowntableidea/MarkdownTableEditor.java"
+  - "src/main/java/name/krot/markdowntableidea/MarkdownTableEditorBundle.java"
+  - "src/main/java/name/krot/markdowntableidea/MarkdownTableTabHandler.java"
