@@ -131,13 +131,9 @@ jobs:
 
           ## What's Changed
 
-          - Added Narrow Column and Widen Column commands with Ctrl+Alt+Shift+, and Ctrl+Alt+Shift+. shortcuts.
-          - Kept Java/C++ wrapping behavior in sync for manual column resizing, long-cell continuation rows, protected Markdown links, code spans, and narrow-width hard wrapping.
-          - Improved table fitting so continuation rows are rejoined before a table is fitted to a wider editor window.
-          - Added bottom-left IDE status bar buttons for Light Auto Align and Power Auto Fit modes.
-          - Preserved alignment, sorting, CSV/TSV conversion, escaped pipes, UTF-8/CJK width handling, caret placement, and row/column edits.
-          - Built the JetBrains IDE plugin package on GitHub Actions.
-          - Included SHA-256 sums for release verification.
+          - Hardened GitHub Actions permissions, dependency review, CodeQL, Scorecard, and release checks after repository audit.
+          - Refreshed the Gradle wrapper and build baseline used for the JetBrains IDE plugin package.
+          - Rebuilt the plugin ZIP with SHA-256 sums and provenance-ready release assets.
 
           ## Validation
 
