@@ -64,6 +64,16 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 
 The plugin is packaged as a dynamic plugin and is designed to install without restarting compatible JetBrains IDEs. If the IDE asks for a restart, the platform has detected a loading or unloading limitation in the current session.
 
+## Release Verification
+
+Each GitHub release publishes the plugin ZIP, `MARKETPLACE_SUBMISSION.md`,
+`SHA256SUMS.txt`, CycloneDX SBOM, and GitHub attestations.
+
+```bash
+sha256sum -c SHA256SUMS.txt
+gh attestation verify MarkdownTableEditorIdea-*.zip --repo krotname/IdeaMarkdownTableEditor
+```
+
 ## Compatibility
 
 The plugin is built with Java 17 bytecode and declares compatibility with IntelliJ Platform `223+` without an `until-build` upper bound.
