@@ -20,3 +20,9 @@ Include:
 - suggested mitigation if available.
 
 The maintainer aims to acknowledge valid reports within 48 hours and provide a remediation timeline after the impact is confirmed.
+
+## Supply-chain controls
+
+- Release packages include the plugin ZIP, `MARKETPLACE_SUBMISSION.md`, `SHA256SUMS.txt`, CycloneDX SBOM, and GitHub attestations.
+- GitHub Actions are pinned by immutable commit SHA.
+- Dependency Review, CodeQL, Scorecard, and actionlint run as repository quality gates.

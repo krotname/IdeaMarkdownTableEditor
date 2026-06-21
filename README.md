@@ -64,6 +64,16 @@ GIF собран из реальных скриншотов IDE JetBrains под
 
 Плагин собран как dynamic plugin и рассчитан на установку без перезапуска IDE в совместимых версиях продуктов JetBrains. Если сама IDE попросит перезапуск, значит платформа обнаружила ограничение загрузки или выгрузки в текущей сессии.
 
+## Проверка Релиза
+
+Каждый GitHub release публикует plugin ZIP, `MARKETPLACE_SUBMISSION.md`,
+`SHA256SUMS.txt`, CycloneDX SBOM и GitHub attestations.
+
+```bash
+sha256sum -c SHA256SUMS.txt
+gh attestation verify MarkdownTableEditorIdea-*.zip --repo krotname/IdeaMarkdownTableEditor
+```
+
 ## Совместимость
 
 Плагин собран в bytecode Java 17 и заявляет совместимость с IntelliJ Platform `223+` без верхней границы `until-build`.

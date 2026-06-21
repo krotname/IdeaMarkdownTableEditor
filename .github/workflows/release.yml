@@ -87,6 +87,8 @@ jobs:
 
       - name: Generate release checksums
         shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
           mapfile -t files < <(find release-assets -type f -name '*.zip' | sort)
           if [ "${#files[@]}" -eq 0 ]; then
@@ -94,8 +96,27 @@ jobs:
             exit 1
           fi
 
+          timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          sbom_file="release-assets/MarkdownTableEditorIdea-$VERSION-sbom.cdx.json"
+          cat > "$sbom_file" <<EOF
+          {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.6",
+            "version": 1,
+            "metadata": {
+              "timestamp": "$timestamp",
+              "component": {
+                "type": "application",
+                "name": "IdeaMarkdownTableEditor",
+                "version": "$VERSION",
+                "purl": "pkg:github/krotname/IdeaMarkdownTableEditor@v$VERSION"
+              }
+            }
+          }
+          EOF
+
           marketplace_doc="$(find release-assets -type f -name 'MARKETPLACE_SUBMISSION.md' | sort | head -n 1)"
-          checksum_files=("${files[@]}")
+          checksum_files=("${files[@]}" "$sbom_file")
           if [ -n "$marketplace_doc" ]; then
             checksum_files+=("$marketplace_doc")
           fi
@@ -107,6 +128,11 @@ jobs:
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
         with:
           subject-checksums: SHA256SUMS.txt
+      - name: Generate release SBOM attestation
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4
+        with:
+          subject-path: release-assets/**/*.zip
+          sbom-path: release-assets/*-sbom.cdx.json
 
       - name: Publish GitHub release
         shell: bash
@@ -115,7 +141,7 @@ jobs:
           TAG_NAME: ${{ needs.version.outputs.tag }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
-          mapfile -t files < <(find release-assets -type f -name '*.zip' | sort)
+          mapfile -t files < <(find release-assets -type f \( -name '*.zip' -o -name '*-sbom.cdx.json' \) | sort)
           if [ "${#files[@]}" -eq 0 ]; then
             echo "No release ZIP files were downloaded." >&2
             exit 1
@@ -126,6 +152,7 @@ jobs:
           ## Builds / Downloads
 
           - [MarkdownTableEditorIdea-$VERSION.zip](https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v$VERSION/MarkdownTableEditorIdea-$VERSION.zip)
+          - [MarkdownTableEditorIdea-$VERSION-sbom.cdx.json](https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v$VERSION/MarkdownTableEditorIdea-$VERSION-sbom.cdx.json)
           - [SHA256SUMS.txt](https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v$VERSION/SHA256SUMS.txt)
           - [MARKETPLACE_SUBMISSION.md](https://github.com/krotname/IdeaMarkdownTableEditor/releases/download/v$VERSION/MARKETPLACE_SUBMISSION.md)
 
@@ -133,7 +160,7 @@ jobs:
 
           - Hardened GitHub Actions permissions, dependency review, CodeQL, Scorecard, and release checks after repository audit.
           - Refreshed the Gradle wrapper and build baseline used for the JetBrains IDE plugin package.
-          - Rebuilt the plugin ZIP with SHA-256 sums and provenance-ready release assets.
+          - Rebuilt the plugin ZIP with SHA-256 sums, SBOM, and GitHub attestations.
 
           ## Validation
 
