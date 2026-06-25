@@ -1457,6 +1457,45 @@ public final class MarkdownTableCore {
 		return wrappedTargetRow;
 	}
 
+	private static boolean[] continuationRowsToPreserve(Table table, int originalTargetRow) {
+		boolean[] preserve = new boolean[table.rows.size()];
+		if (table.separatorRow == -1 || originalTargetRow < 0 || originalTargetRow >= table.rows.size()) {
+			return preserve;
+		}
+
+		int[] continuationBaseForRow = new int[table.rows.size()];
+		for (int i = 0; i < continuationBaseForRow.length; i++) {
+			continuationBaseForRow[i] = -1;
+		}
+
+		int baseRowIndex = -1;
+		Row baseRow = null;
+		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			if (row.separator || rowIndex <= table.separatorRow || baseRowIndex == -1 || !isLikelyContinuationRow(row, baseRow, table.columns)) {
+				if (!row.separator && rowIndex > table.separatorRow) {
+					baseRowIndex = rowIndex;
+					baseRow = copyRow(row);
+				}
+				continue;
+			}
+
+			continuationBaseForRow[rowIndex] = baseRowIndex;
+			for (int column = 0; column < table.columns; column++) {
+				baseRow.cells.set(column, appendContinuationCell(baseRow.cells.get(column), row.cells.get(column)));
+			}
+		}
+
+		int targetBaseRow = continuationBaseForRow[originalTargetRow];
+		if (targetBaseRow == -1) {
+			return preserve;
+		}
+		for (int rowIndex = 0; rowIndex < continuationBaseForRow.length; rowIndex++) {
+			preserve[rowIndex] = continuationBaseForRow[rowIndex] == targetBaseRow;
+		}
+		return preserve;
+	}
+
 	private static int minimumManualColumnWidth(Table table, int column, List<Integer> naturalWidths) {
 		List<Integer> headerWidths = headerColumnWidths(table);
 		int headerWidth = column < headerWidths.size() ? headerWidths.get(column) : 3;
@@ -1522,6 +1561,14 @@ public final class MarkdownTableCore {
 
 		int requiredAnchors = Math.max(1, columns / 3);
 		return emptyWhereBaseHasText >= requiredAnchors;
+	}
+
+	private static Row copyRow(Row row) {
+		Row copy = new Row();
+		copy.id = row.id;
+		copy.separator = row.separator;
+		copy.cells.addAll(row.cells);
+		return copy;
 	}
 
 	private static boolean isAsciiAlphaNumeric(int codePoint) {
@@ -1606,12 +1653,13 @@ public final class MarkdownTableCore {
 			return originalTargetRow;
 		}
 
+		boolean[] preserveContinuationRows = continuationRowsToPreserve(table, originalTargetRow);
 		List<Row> unwrappedRows = new ArrayList<>();
 		int targetRow = originalTargetRow;
 		int baseRowIndex = -1;
 		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
 			Row row = table.rows.get(rowIndex);
-			if (row.separator || rowIndex <= table.separatorRow || baseRowIndex == -1 ||
+			if (row.separator || rowIndex <= table.separatorRow || preserveContinuationRows[rowIndex] || baseRowIndex == -1 ||
 				!isLikelyContinuationRow(row, unwrappedRows.get(baseRowIndex), table.columns)) {
 				if (rowIndex == originalTargetRow) {
 					targetRow = unwrappedRows.size();

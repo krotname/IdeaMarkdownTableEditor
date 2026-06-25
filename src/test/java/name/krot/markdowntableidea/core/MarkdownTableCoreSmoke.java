@@ -545,6 +545,29 @@ public final class MarkdownTableCoreSmoke {
 		expectTrue("expanded auto wrap reduces continuation rows", expandedWrapped.lines.size() < autoWrapped.lines.size());
 		expectLineLengthAtMost("expanded auto wrap keeps physical lines inside wider width", expandedWrapped.lines, 150);
 
+		MarkdownTableCore.EditResult sparseLowerRow = MarkdownTableCore.applyWrappedToWidth(
+			List.of(
+				"| Step | Note |",
+				"| --- | --- |",
+				"| first | alpha |",
+				"|  | bravo |",
+				"|  | Xcharlie |"
+			),
+			4,
+			1,
+			64
+		);
+		expectTrue("auto wrap sparse lower row ok", sparseLowerRow.ok);
+		expectInt("auto wrap sparse lower row target", sparseLowerRow.targetRow, 4);
+		expectInt("auto wrap sparse lower row caret offset", sparseLowerRow.targetColumnOffset, 10);
+		expectLines("auto wrap keeps sparse lower rows separate", sparseLowerRow.lines, List.of(
+			"| Step  | Note     |",
+			"| ----- | -------- |",
+			"| first | alpha    |",
+			"|       | bravo    |",
+			"|       | Xcharlie |"
+		));
+
 		MarkdownTableCore.EditResult veryNarrowWrapped = MarkdownTableCore.applyWrappedToWidth(
 			List.of(
 				"| A | B | C |",
