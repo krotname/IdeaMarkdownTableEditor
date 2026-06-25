@@ -6,6 +6,7 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.TaskAction
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
@@ -247,6 +248,11 @@ val coreCoverageClassDirectories = layout.buildDirectory.dir("instrumented/instr
 }
 val coreCoverageSourceDirectories = files("src/main/java")
 val coreCoverageExecutionData = layout.buildDirectory.file("jacoco/test.exec")
+val ideaExecutable = providers.gradleProperty("ideaExecutable")
+	.orElse("C:\\Program Files\\JetBrains\\IntelliJ IDEA 2026.1.3\\bin\\idea64.exe")
+val ideaPlaybackKeepInstalled = providers.gradleProperty("ideaPlaybackKeepInstalled")
+	.map { it.toBoolean() }
+	.orElse(false)
 
 val generateMarketplaceSubmission by tasks.registering(GenerateMarketplaceSubmission::class) {
 	group = "distribution"
@@ -315,6 +321,32 @@ val verifyPackagedLicense by tasks.registering(VerifyPackagedLicense::class) {
 	dependsOn(jarTask)
 	licenseFile.set(projectLicenseFile)
 	jarFile.set(pluginJarArchive)
+}
+
+val ideaPlaybackSmoke by tasks.registering(Exec::class) {
+	group = LifecycleBasePlugin.VERIFICATION_GROUP
+	description = "Runs live IntelliJ IDEA UI playback smoke against the packaged plugin ZIP."
+	dependsOn(tasks.named("buildPlugin"))
+	val playbackScript = layout.projectDirectory.file("scripts/Invoke-IdeaPlaybackSmoke.ps1")
+	val pluginZip = layout.buildDirectory.file("distributions/MarkdownTableEditorIdea-$resolvedPluginVersion.zip")
+	inputs.file(playbackScript)
+	inputs.file(pluginZip)
+	outputs.dir(layout.buildDirectory.dir("idea-playback-smoke"))
+	commandLine(
+		"powershell",
+		"-NoProfile",
+		"-ExecutionPolicy",
+		"Bypass",
+		"-File",
+		playbackScript.asFile.absolutePath,
+		"-IdeaExe",
+		ideaExecutable.get(),
+		"-PluginZip",
+		pluginZip.get().asFile.absolutePath
+	)
+	if (ideaPlaybackKeepInstalled.get()) {
+		args("-KeepInstalledPlugin")
+	}
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {

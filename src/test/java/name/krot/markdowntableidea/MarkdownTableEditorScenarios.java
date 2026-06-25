@@ -257,6 +257,8 @@ public final class MarkdownTableEditorScenarios {
 			new MarkdownTableActions.DeleteRow(),
 			new MarkdownTableActions.InsertColumnRight(),
 			new MarkdownTableActions.DeleteColumn(),
+			new MarkdownTableActions.NarrowColumn(),
+			new MarkdownTableActions.WidenColumn(),
 			new MarkdownTableActions.MoveRowUp(),
 			new MarkdownTableActions.MoveRowDown(),
 			new MarkdownTableActions.MoveColumnLeft(),
@@ -265,7 +267,7 @@ public final class MarkdownTableEditorScenarios {
 			new MarkdownTableActions.SortDescending(),
 			new MarkdownTableActions.WrapLongCells()
 		};
-		expectInt("base action wrappers constructed", baseActions.length, 14);
+		expectInt("base action wrappers constructed", baseActions.length, 16);
 
 		MarkdownTableActions.Align align = new MarkdownTableActions.Align();
 		expectSame("base action update thread", align.getActionUpdateThread(), ActionUpdateThread.EDT);
@@ -300,6 +302,27 @@ public final class MarkdownTableEditorScenarios {
 		for (String line : fitEditor.text().split("\\R")) {
 			expectTrue("fit action keeps line inside visible width: " + line, line.length() <= 46);
 		}
+
+		settings.setAutoAlignEnabled(true);
+		settings.setAutoFitEnabled(true);
+		TestEditor manualColumnSize = new TestEditor(
+			"| Key | Value |\n| --- | --- |\n| row | alpha beta gamma |",
+			false,
+			true
+		);
+		manualColumnSize.setCaretAt("gamma");
+		manualColumnSize.scheduleAutoFormatOnCaretMove(true);
+		MarkdownTableEditor.scheduleAutoFormatEditor(manualColumnSize.editor, null, 60_000);
+		expectTrue("manual column action starts with pending auto format", MarkdownTableEditor.hasPendingAutoFormatForTests(manualColumnSize.editor));
+		new MarkdownTableActions.NarrowColumn().actionPerformed(event(manualColumnSize, new Presentation()));
+		expectString("narrow action stays manual while auto fit is on", manualColumnSize.text(),
+			"| Key | Value           |\n| --- | --------------- |\n| row | alpha beta      |\n|     | gamma           |");
+		expectTrue("narrow action cancels auto format timers", !MarkdownTableEditor.hasPendingAutoFormatForTests(manualColumnSize.editor));
+		new MarkdownTableActions.WidenColumn().actionPerformed(event(manualColumnSize, new Presentation()));
+		expectString("widen action stays manual while auto fit is on", manualColumnSize.text(),
+			"| Key | Value            |\n| --- | ---------------- |\n| row | alpha beta gamma |");
+		expectTrue("widen action does not reschedule auto format timers", !MarkdownTableEditor.hasPendingAutoFormatForTests(manualColumnSize.editor));
+		MarkdownTableEditor.forgetVisibleEditorWidth(manualColumnSize.editor);
 
 		MarkdownTableSettings.OptionState invalidPersistedState = new MarkdownTableSettings.OptionState();
 		invalidPersistedState.autoAlignEnabled = false;
@@ -810,6 +833,10 @@ public final class MarkdownTableEditorScenarios {
 			caretModel.caretCount = count;
 		}
 
+		private void scheduleAutoFormatOnCaretMove(boolean enabled) {
+			caretModel.scheduleAutoFormatOnMove = enabled;
+		}
+
 		private Object invokeEditor(Object proxy, Method method, Object[] args) {
 			return switch (method.getName()) {
 				case "getDocument" -> document.document;
@@ -948,12 +975,13 @@ public final class MarkdownTableEditorScenarios {
 		private Editor editor;
 		private int offset;
 		private int caretCount = 1;
+		private boolean scheduleAutoFormatOnMove;
 
 		private Object invoke(Object proxy, Method method, Object[] args) {
 			return switch (method.getName()) {
 				case "getOffset" -> offset;
 				case "moveToOffset" -> {
-					offset = (Integer) args[0];
+					moveToOffset((Integer) args[0]);
 					yield null;
 				}
 				case "getCurrentCaret", "getPrimaryCaret" -> caret;
@@ -972,13 +1000,20 @@ public final class MarkdownTableEditorScenarios {
 				case "isValid", "isUpToDate" -> true;
 				case "getOffset", "getSelectionStart", "getSelectionEnd", "getLeadSelectionOffset" -> offset;
 				case "moveToOffset" -> {
-					offset = (Integer) args[0];
+					moveToOffset((Integer) args[0]);
 					yield null;
 				}
 				case "hasSelection", "isAtRtlLocation", "isAtBidiRunBoundary", "isDisposed" -> false;
 				case "clone" -> caret;
 				default -> defaultValue(method.getReturnType());
 			};
+		}
+
+		private void moveToOffset(int targetOffset) {
+			offset = targetOffset;
+			if (scheduleAutoFormatOnMove) {
+				MarkdownTableEditor.scheduleAutoFormatEditor(editor, null, 60_000);
+			}
 		}
 	}
 

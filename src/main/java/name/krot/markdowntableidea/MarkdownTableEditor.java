@@ -77,6 +77,10 @@ public final class MarkdownTableEditor {
 		return availableDisplayColumns(editor, visibleArea);
 	}
 
+	static boolean hasPendingAutoFormatForTests(Editor editor) {
+		return visibleEditorTimers.containsKey(editor) || autoEditorTimers.containsKey(editor);
+	}
+
 	static boolean handleVisibleAreaChangedForTests(Editor editor, Rectangle visibleArea, boolean markdownFile) {
 		return handleVisibleAreaChanged(editor, visibleArea, markdownFile);
 	}
@@ -166,14 +170,14 @@ public final class MarkdownTableEditor {
 			return false;
 		}
 
-		Runnable change = () -> {
+		Runnable change = () -> runPluginEdit(editor, () -> {
 			if (!replacement.equals(original)) {
 				replaceDocumentText(document, replaceStart, replaceEnd, replacement);
 			}
 			int target = Math.min(Math.max(targetOffset, 0), document.getTextLength());
 			editor.getCaretModel().moveToOffset(target);
 			editor.getScrollingModel().scrollToCaret(ScrollType.MAKE_VISIBLE);
-		};
+		});
 
 		commandRunner.run(project, commandName(), change);
 
@@ -646,15 +650,25 @@ public final class MarkdownTableEditor {
 
 	private static void replaceRange(Editor editor, Project project, int start, int end, String replacement, int targetOffset) {
 		Document document = editor.getDocument();
-		Runnable change = () -> {
+		Runnable change = () -> runPluginEdit(editor, () -> {
 			replaceDocumentText(document, start, end, replacement);
 			editor.getSelectionModel().removeSelection();
 			int safeTargetOffset = Math.min(Math.max(targetOffset, 0), document.getTextLength());
 			editor.getCaretModel().moveToOffset(safeTargetOffset);
 			editor.getScrollingModel().scrollToCaret(ScrollType.MAKE_VISIBLE);
-		};
+		});
 
 		commandRunner.run(project, commandName(), change);
+	}
+
+	private static void runPluginEdit(Editor editor, Runnable change) {
+		pluginEditDepth++;
+		cancelPendingAutoFormat(editor);
+		try {
+			change.run();
+		} finally {
+			pluginEditDepth--;
+		}
 	}
 
 	private static void replaceDocumentText(Document document, int start, int end, String replacement) {
@@ -666,7 +680,22 @@ public final class MarkdownTableEditor {
 		}
 	}
 
+	private static void cancelPendingAutoFormat(Editor editor) {
+		stopTimer(visibleEditorTimers.remove(editor));
+		stopTimer(autoEditorTimers.remove(editor));
+	}
+
+	private static void stopTimer(Timer timer) {
+		if (timer != null) {
+			timer.stop();
+		}
+	}
+
 	private static void scheduleVisibleWidthFit(Editor editor, int delayMs) {
+		if (editor == null || pluginEditDepth > 0 || autoFormatInProgress) {
+			return;
+		}
+
 		Timer previous = visibleEditorTimers.remove(editor);
 		if (previous != null) {
 			previous.stop();
@@ -685,7 +714,7 @@ public final class MarkdownTableEditor {
 	}
 
 	private static boolean isAutomaticEditorCandidate(Editor editor, boolean markdownFile) {
-		if (editor == null || editor.isViewer() || !markdownFile || autoFormatInProgress) {
+		if (editor == null || editor.isViewer() || !markdownFile || pluginEditDepth > 0 || autoFormatInProgress) {
 			return false;
 		}
 
