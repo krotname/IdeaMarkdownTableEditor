@@ -26,7 +26,7 @@ Markdown Table Editor превращает IDE JetBrains на IntelliJ Platform 
 
 GIF собран из реальных скриншотов IDE JetBrains под Windows: открыт обычный `.md` файл, команда `Align Table` вызвана через `Ctrl+Alt+Shift+1`.
 
-## Зачем он нужени
+## Зачем он нужен
 - Не нужно уходить из IDE JetBrains в отдельный Markdown-редактор только ради таблиц.
 - Большие pipe-таблицы остаются читаемыми в plain text.
 - `Tab`, сортировка и операции со строками/колонками экономят ручное выравнивание.

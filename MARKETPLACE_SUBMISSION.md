@@ -39,11 +39,10 @@ Use this for the JetBrains Marketplace version notes for `@PLUGIN_VERSION@` if t
 
 ```html
 <ul>
-  <li>Added Narrow Column and Widen Column commands with Ctrl+Alt+Shift+, and Ctrl+Alt+Shift+. shortcuts.</li>
-  <li>Kept Java/C++ wrapping behavior in sync for manual column resizing, long-cell continuation rows, protected Markdown links, code spans, and narrow-width hard wrapping.</li>
-  <li>Improved table fitting so continuation rows are rejoined before a table is fitted to a wider editor window.</li>
-  <li>Added bottom-left IDE status bar buttons for Light Auto Align and Power Auto Fit modes.</li>
-  <li>Preserved alignment, sorting, CSV/TSV conversion, escaped pipes, UTF-8/CJK width handling, caret placement, and row/column edits.</li>
+  <li>Fixed Power Auto Fit so typing in lower sparse or continuation rows keeps the caret in the edited row instead of jumping back to the second row.</li>
+  <li>Prevented pending auto-fit timers from overriding manual plugin edits such as Align, Narrow Column, and Widen Column.</li>
+  <li>Kept Java/C++ core behavior in sync for continuation-row reflow, manual column resizing, caret placement, escaped pipes, and Unicode/CJK width handling.</li>
+  <li>Expanded regression coverage with core tests and live IDE playback smoke checks for manual table edits under automatic modes.</li>
 </ul>
 ```
 
