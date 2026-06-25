@@ -158,13 +158,14 @@ jobs:
 
           ## What's Changed
 
-          - Hardened GitHub Actions permissions, dependency review, CodeQL, Scorecard, and release checks after repository audit.
-          - Refreshed the Gradle wrapper and build baseline used for the JetBrains IDE plugin package.
+          - Fixed Power Auto Fit so typing in lower sparse or continuation rows keeps the caret in the edited row instead of jumping back to the second row.
+          - Prevented pending auto-fit timers from overriding manual plugin edits such as Align, Narrow Column, and Widen Column.
+          - Kept Java/C++ core behavior in sync for continuation-row reflow, manual column resizing, caret placement, escaped pipes, and Unicode/CJK width handling.
           - Rebuilt the plugin ZIP with SHA-256 sums, SBOM, and GitHub attestations.
 
           ## Validation
 
-          - GitHub Actions release build completed with smoke tests, coverage checks, baseline Plugin Verifier, and core performance benchmarks.
+          - GitHub Actions release build completed with tests, coverage checks, baseline Plugin Verifier, and core performance benchmarks.
           EOF
 
           assets=("${files[@]}" SHA256SUMS.txt)
