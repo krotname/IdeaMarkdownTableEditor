@@ -254,7 +254,7 @@ val ideaPlaybackKeepInstalled = providers.gradleProperty("ideaPlaybackKeepInstal
 	.map { it.toBoolean() }
 	.orElse(false)
 
-val generateMarketplaceSubmission by tasks.registering(GenerateMarketplaceSubmission::class) {
+val generateMarketplaceSubmission = tasks.register<GenerateMarketplaceSubmission>("generateMarketplaceSubmission") {
 	group = "distribution"
 	description = "Generates JetBrains Marketplace submission notes with the resolved plugin version."
 	templateFile.set(marketplaceSubmissionTemplate)
@@ -262,7 +262,7 @@ val generateMarketplaceSubmission by tasks.registering(GenerateMarketplaceSubmis
 	pluginVersion.set(resolvedPluginVersion)
 }
 
-val verifyReleaseMetadata by tasks.registering(VerifyReleaseMetadata::class) {
+val verifyReleaseMetadata = tasks.register<VerifyReleaseMetadata>("verifyReleaseMetadata") {
 	group = LifecycleBasePlugin.VERIFICATION_GROUP
 	description = "Checks generated plugin and Marketplace metadata use the resolved release version."
 	dependsOn(tasks.named("processResources"))
@@ -289,7 +289,7 @@ tasks.named<Test>("test") {
 	}
 }
 
-val corePerformance by tasks.registering(Test::class) {
+val corePerformance = tasks.register<Test>("corePerformance") {
 	group = LifecycleBasePlugin.VERIFICATION_GROUP
 	description = "Runs core performance benchmarks with time thresholds."
 	useJUnitPlatform()
@@ -315,7 +315,7 @@ val jarTask = tasks.named<Jar>("jar") {
 val projectLicenseFile = layout.projectDirectory.file("LICENSE")
 val pluginJarArchive = jarTask.flatMap { it.archiveFile }
 
-val verifyPackagedLicense by tasks.registering(VerifyPackagedLicense::class) {
+val verifyPackagedLicense = tasks.register<VerifyPackagedLicense>("verifyPackagedLicense") {
 	group = LifecycleBasePlugin.VERIFICATION_GROUP
 	description = "Checks that the distributable plugin JAR contains the project license."
 	dependsOn(jarTask)
@@ -323,7 +323,7 @@ val verifyPackagedLicense by tasks.registering(VerifyPackagedLicense::class) {
 	jarFile.set(pluginJarArchive)
 }
 
-val ideaPlaybackSmoke by tasks.registering(Exec::class) {
+val ideaPlaybackSmoke = tasks.register<Exec>("ideaPlaybackSmoke") {
 	group = LifecycleBasePlugin.VERIFICATION_GROUP
 	description = "Runs live IntelliJ IDEA UI playback smoke against the packaged plugin ZIP."
 	dependsOn(tasks.named("buildPlugin"))
