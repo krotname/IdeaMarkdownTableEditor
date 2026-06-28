@@ -16,6 +16,11 @@ Markdown Table Editor превращает IDE JetBrains на IntelliJ Platform 
 Берёте чужую косую таблицу или сгенерированную ИИ, жмете `Tab`, а плагин выровняет колонки, сохранит Markdown-разметку
 и поможет быстро переставлять строки, колонки и данные прямо в IDE.
 
+**Быстрый старт:** [установить из JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor) ·
+[скачать ZIP из последнего релиза](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest) ·
+[открыть сайт проекта](https://markdowntableeditor.krot.name/) ·
+[English README](README.en.md)
+
 ## Другие версии
 
 - Для Notepad++: [NppMarkdownTableEditor](https://github.com/krotname/NppMarkdownTableEditor)
@@ -26,7 +31,16 @@ Markdown Table Editor превращает IDE JetBrains на IntelliJ Platform 
 
 GIF собран из реальных скриншотов IDE JetBrains под Windows: открыт обычный `.md` файл, команда `Align Table` вызвана через `Ctrl+Alt+Shift+1`.
 
+![Скриншоты Markdown Table Editor в JetBrains IDE](docs/marketplace-screenshots/contact-sheet.png)
+
+Дополнительные кадры для Marketplace: [выравнивание по Tab](docs/marketplace-screenshots/01-align-table-tab.png),
+[сортировка](docs/marketplace-screenshots/02-sort-rows-by-column.png),
+[конвертация CSV/TSV](docs/marketplace-screenshots/03-convert-csv-tsv-to-markdown.png),
+[вставка таблицы](docs/marketplace-screenshots/04-insert-edit-markdown-table.png),
+[команды IDE](docs/marketplace-screenshots/05-complete-workflow-command-palette.png).
+
 ## Зачем он нужен
+
 - Не нужно уходить из IDE JetBrains в отдельный Markdown-редактор только ради таблиц.
 - Большие pipe-таблицы остаются читаемыми в plain text.
 - `Tab`, сортировка и операции со строками/колонками экономят ручное выравнивание.
@@ -55,6 +69,11 @@ GIF собран из реальных скриншотов IDE JetBrains под
 - Оптимизирована работа с большими таблицами; отдельные performance benchmarks входят в CI.
 
 ## Установка
+
+Самый короткий путь - установить плагин из JetBrains Marketplace:
+https://plugins.jetbrains.com/plugin/32159-markdown-table-editor
+
+Ручная установка из GitHub release:
 
 1. Скачайте ZIP-архив из последнего релиза: https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest
 2. Откройте совместимую IDE JetBrains.

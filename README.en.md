@@ -15,6 +15,11 @@ Markdown Table Editor turns JetBrains IDEs on the IntelliJ Platform into conveni
 Paste a messy table from someone else or from an AI tool, press `Tab`, and the plugin aligns the columns, preserves Markdown formatting,
 and helps you quickly rearrange rows, columns, and data directly in the IDE.
 
+**Quick start:** [install from JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor) ·
+[download the latest release ZIP](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest) ·
+[open the project website](https://markdowntableeditor.krot.name/) ·
+[README на русском](README.md)
+
 ## Related Projects
 
 - Notepad++ version: [NppMarkdownTableEditor](https://github.com/krotname/NppMarkdownTableEditor)
@@ -24,6 +29,14 @@ and helps you quickly rearrange rows, columns, and data directly in the IDE.
 ![Markdown table alignment example in a JetBrains IDE](docs/demo.gif)
 
 The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md` file is open, and the `Align Table` command is triggered with `Ctrl+Alt+Shift+1`.
+
+![Markdown Table Editor screenshots in a JetBrains IDE](docs/marketplace-screenshots/contact-sheet.png)
+
+Marketplace screenshot set: [Tab alignment](docs/marketplace-screenshots/01-align-table-tab.png),
+[row sorting](docs/marketplace-screenshots/02-sort-rows-by-column.png),
+[CSV/TSV conversion](docs/marketplace-screenshots/03-convert-csv-tsv-to-markdown.png),
+[table insertion](docs/marketplace-screenshots/04-insert-edit-markdown-table.png),
+[IDE actions](docs/marketplace-screenshots/05-complete-workflow-command-palette.png).
 
 ## Why Use It
 
@@ -55,6 +68,11 @@ The GIF is built from real JetBrains IDE screenshots on Windows: a regular `.md`
 - Large-table operations are optimized and guarded by dedicated CI performance benchmarks.
 
 ## Installation
+
+The shortest path is to install the plugin from JetBrains Marketplace:
+https://plugins.jetbrains.com/plugin/32159-markdown-table-editor
+
+Manual installation from a GitHub release:
 
 1. Download the ZIP archive from the latest release: https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest
 2. Open a compatible JetBrains IDE.
