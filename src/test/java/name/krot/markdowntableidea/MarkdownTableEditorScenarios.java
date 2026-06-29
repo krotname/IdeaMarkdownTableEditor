@@ -610,7 +610,7 @@ public final class MarkdownTableEditorScenarios {
 		return new AnActionEvent(null, context(editor), "test", presentation, TEST_ACTION_MANAGER, 0);
 	}
 
-	@SuppressWarnings("removal")
+	@SuppressWarnings({"deprecation", "removal"})
 	private static DataContext context(TestEditor editor) {
 		return new DataContext() {
 			@Override
@@ -665,6 +665,7 @@ public final class MarkdownTableEditorScenarios {
 		}
 	}
 
+	@SuppressWarnings({"deprecation", "removal"})
 	private static final class TestActionManager extends ActionManager {
 		@Override
 		public ActionPopupMenu createActionPopupMenu(String place, ActionGroup group) {

@@ -138,6 +138,7 @@ public final class MarkdownTableStatusBarWidgets {
 		}
 	}
 
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	private static boolean tryAddWidgetWithInternalPosition(StatusBar statusBar, StatusBarWidget widget, Disposable parentDisposable) {
 		try {
 			ClassLoader classLoader = statusBar.getClass().getClassLoader();
