@@ -31,7 +31,7 @@ public final class MarkdownTableAutoModeEventListener implements StartupActivity
 			return;
 		}
 
-		MarkdownTableEditor.handleSelectedEditorActivated(project);
+		ApplicationManager.getApplication().invokeLater(() -> MarkdownTableEditor.handleSelectedEditorActivated(project));
 		project.getMessageBus()
 			.connect(project)
 			.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new AutoFileEditorListener(project));
