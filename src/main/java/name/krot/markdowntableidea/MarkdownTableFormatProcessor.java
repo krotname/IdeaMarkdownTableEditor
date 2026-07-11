@@ -16,8 +16,7 @@ import java.util.Locale;
 public final class MarkdownTableFormatProcessor implements PostFormatProcessor {
 	@Override
 	public PsiElement processElement(PsiElement source, CodeStyleSettings settings) {
-		PsiFile file = source instanceof PsiFile psiFile ? psiFile : source.getContainingFile();
-		formatMarkdownTables(file);
+		formatMarkdownTables(source);
 		return source;
 	}
 
@@ -28,13 +27,19 @@ public final class MarkdownTableFormatProcessor implements PostFormatProcessor {
 			return rangeToReformat;
 		}
 
-		boolean changed = MarkdownTableEditor.formatAllTables(document);
+		boolean changed = MarkdownTableEditor.formatTablesInRange(document, rangeToReformat.getStartOffset(), rangeToReformat.getEndOffset());
 		return changed ? TextRange.create(0, document.getTextLength()) : rangeToReformat;
 	}
 
-	private static boolean formatMarkdownTables(PsiFile file) {
+	private static boolean formatMarkdownTables(PsiElement source) {
+		if (source == null) {
+			return false;
+		}
+		PsiFile file = source instanceof PsiFile psiFile ? psiFile : source.getContainingFile();
 		Document document = documentFor(file);
-		return document != null && isMarkdownFile(file) && MarkdownTableEditor.formatAllTables(document);
+		TextRange range = source.getTextRange();
+		return document != null && range != null && isMarkdownFile(file) &&
+			MarkdownTableEditor.formatTablesInRange(document, range.getStartOffset(), range.getEndOffset());
 	}
 
 	private static Document documentFor(PsiFile file) {

@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class MarkdownTableGoldenFixtures {
 	private MarkdownTableGoldenFixtures() {
@@ -28,8 +27,11 @@ final class MarkdownTableGoldenFixtures {
 		for (Map<String, Object> scenario : asObjectList(root.get("conversion"))) {
 			String name = asString(scenario.get("name"));
 			MarkdownTableCore.EditResult result = MarkdownTableCore.fromDelimited(asString(scenario.get("input")));
-			assertTrue(result.ok, name + " should convert: " + result.message);
-			assertEquals(asStringList(scenario.get("lines")), result.lines, name);
+			boolean expectedOk = !scenario.containsKey("ok") || asBoolean(scenario.get("ok"));
+			assertEquals(expectedOk, result.ok, name + ": " + result.message);
+			if (expectedOk) {
+				assertEquals(asStringList(scenario.get("lines")), result.lines, name);
+			}
 		}
 
 		for (Map<String, Object> scenario : asObjectList(root.get("edits"))) {
@@ -40,7 +42,11 @@ final class MarkdownTableGoldenFixtures {
 				asInt(scenario.get("column")),
 				MarkdownTableCore.Action.valueOf(asString(scenario.get("action")))
 			);
-			assertTrue(result.ok, name + " should apply: " + result.message);
+			boolean expectedOk = !scenario.containsKey("ok") || asBoolean(scenario.get("ok"));
+			assertEquals(expectedOk, result.ok, name + ": " + result.message);
+			if (!expectedOk) {
+				continue;
+			}
 			assertEquals(asStringList(scenario.get("lines")), result.lines, name);
 			if (scenario.containsKey("targetRow")) {
 				assertEquals(asInt(scenario.get("targetRow")), result.targetRow, name + " targetRow");
@@ -72,6 +78,10 @@ final class MarkdownTableGoldenFixtures {
 
 	private static int asInt(Object value) {
 		return ((Number) value).intValue();
+	}
+
+	private static boolean asBoolean(Object value) {
+		return (Boolean) value;
 	}
 
 	private static final class Json {

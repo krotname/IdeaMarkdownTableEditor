@@ -3,6 +3,7 @@
 
 package name.krot.markdowntableidea;
 
+import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.command.CommandProcessor;
@@ -35,6 +36,7 @@ public final class MarkdownTableEditor {
 	private static final Map<Editor, Integer> visibleEditorWidths = Collections.synchronizedMap(new IdentityHashMap<>());
 	private static final Map<Editor, Timer> visibleEditorTimers = Collections.synchronizedMap(new IdentityHashMap<>());
 	private static final Map<Editor, Timer> autoEditorTimers = Collections.synchronizedMap(new IdentityHashMap<>());
+	private static final Map<Document, Timer> autoDocumentTimers = Collections.synchronizedMap(new IdentityHashMap<>());
 	private static CommandRunner commandRunner = MarkdownTableEditor::runWriteCommand;
 	private static int pluginEditDepth;
 	private static boolean autoFormatInProgress;
@@ -78,7 +80,9 @@ public final class MarkdownTableEditor {
 	}
 
 	static boolean hasPendingAutoFormatForTests(Editor editor) {
-		return visibleEditorTimers.containsKey(editor) || autoEditorTimers.containsKey(editor);
+		return editor != null && (visibleEditorTimers.containsKey(editor) ||
+			autoEditorTimers.containsKey(editor) ||
+			autoDocumentTimers.containsKey(editor.getDocument()));
 	}
 
 	static boolean handleVisibleAreaChangedForTests(Editor editor, Rectangle visibleArea, boolean markdownFile) {
@@ -93,7 +97,7 @@ public final class MarkdownTableEditor {
 		boolean fitToEditorWidth,
 		CaretPlacement caretPlacement
 	) {
-		if (editor == null || editor.isViewer()) {
+		if (editor == null || editor.isDisposed() || editor.isViewer() || editor.getCaretModel().getCaretCount() != 1) {
 			return false;
 		}
 
@@ -185,12 +189,24 @@ public final class MarkdownTableEditor {
 	}
 
 	public static boolean formatAllTables(Document document) {
+		return formatTablesInRange(document, 0, document == null ? 0 : document.getTextLength());
+	}
+
+	static boolean formatTablesInRange(Document document, int startOffset, int endOffset) {
 		if (document == null || !document.isWritable() || document.getLineCount() == 0) {
 			return false;
 		}
+		int rangeStart = safeOffset(document, Math.min(startOffset, endOffset));
+		int rangeEnd = safeOffset(document, Math.max(startOffset, endOffset));
 
 		List<TableReplacement> replacements = new ArrayList<>();
 		for (LineRange tableRange : findAllTableLineRanges(document)) {
+			int replaceStart = document.getLineStartOffset(tableRange.firstLine);
+			int replaceEnd = document.getLineEndOffset(tableRange.lastLine);
+			if (!intersectsRange(rangeStart, rangeEnd, replaceStart, replaceEnd)) {
+				continue;
+			}
+
 			List<String> tableLines = new ArrayList<>();
 			for (int line = tableRange.firstLine; line <= tableRange.lastLine; line++) {
 				tableLines.add(getLineText(document, line));
@@ -201,8 +217,6 @@ public final class MarkdownTableEditor {
 				continue;
 			}
 
-			int replaceStart = document.getLineStartOffset(tableRange.firstLine);
-			int replaceEnd = document.getLineEndOffset(tableRange.lastLine);
 			String eol = chooseEol(document, tableRange.firstLine, tableRange.lastLine);
 			String replacement = String.join(eol, edit.lines);
 			String original = document.getImmutableCharSequence().subSequence(replaceStart, replaceEnd).toString();
@@ -218,8 +232,15 @@ public final class MarkdownTableEditor {
 		return !replacements.isEmpty();
 	}
 
+	private static boolean intersectsRange(int rangeStart, int rangeEnd, int tableStart, int tableEnd) {
+		if (rangeStart == rangeEnd) {
+			return rangeStart >= tableStart && rangeStart <= tableEnd;
+		}
+		return rangeStart < tableEnd && rangeEnd > tableStart;
+	}
+
 	public static boolean isInsidePotentialTable(Editor editor) {
-		if (editor == null || editor.isViewer()) {
+		if (editor == null || editor.isDisposed() || editor.isViewer() || editor.getCaretModel().getCaretCount() != 1) {
 			return false;
 		}
 
@@ -252,18 +273,40 @@ public final class MarkdownTableEditor {
 	}
 
 	public static void scheduleAutoFormatChangedDocument(Document document) {
-		if (document == null || pluginEditDepth > 0 || autoFormatInProgress) {
+		MarkdownTableSettings settings = MarkdownTableSettings.getInstance();
+		if (document == null || pluginEditDepth > 0 || autoFormatInProgress ||
+			(!settings.isAutoAlignEnabled() && !settings.isAutoFitEnabled())) {
+			return;
+		}
+		Application application = ApplicationManager.getApplication();
+		if (application == null) {
+			return;
+		}
+		VirtualFile file = FileDocumentManager.getInstance().getFile(document);
+		if (file == null || !isMarkdownFileName(file.getName())) {
 			return;
 		}
 
-		ApplicationManager.getApplication().invokeLater(
-			() -> autoFormatChangedDocument(document),
-			ModalityState.defaultModalityState()
-		);
+		Timer previous = autoDocumentTimers.remove(document);
+		if (previous != null) {
+			previous.stop();
+		}
+
+		Timer timer = new Timer(settings.getDebounceMs(), null);
+		timer.addActionListener(event -> application.invokeLater(() -> {
+			if (autoDocumentTimers.remove(document, timer)) {
+				autoFormatChangedDocument(document);
+			}
+		}, ModalityState.defaultModalityState()));
+		timer.setRepeats(false);
+		autoDocumentTimers.put(document, timer);
+		timer.start();
 	}
 
 	public static void scheduleAutoFormatEditor(Editor editor, Project project, int delayMs) {
-		if (editor == null || pluginEditDepth > 0 || autoFormatInProgress) {
+		MarkdownTableSettings settings = MarkdownTableSettings.getInstance();
+		if (editor == null || editor.isDisposed() || pluginEditDepth > 0 || autoFormatInProgress ||
+			(!settings.isAutoAlignEnabled() && !settings.isAutoFitEnabled())) {
 			return;
 		}
 
@@ -273,25 +316,27 @@ public final class MarkdownTableEditor {
 		}
 
 		Project targetProject = project != null ? project : editor.getProject();
-		Timer timer = new Timer(Math.max(0, delayMs), event -> {
-			autoEditorTimers.remove(editor);
-			ApplicationManager.getApplication().invokeLater(
-				() -> autoFormatEditor(editor, targetProject, isMarkdownEditor(editor)),
-				ModalityState.defaultModalityState()
-			);
-		});
+		if (targetProject != null && targetProject.isDisposed()) {
+			return;
+		}
+		Timer timer = new Timer(Math.max(0, delayMs), null);
+		timer.addActionListener(event -> ApplicationManager.getApplication().invokeLater(() -> {
+			if (autoEditorTimers.remove(editor, timer)) {
+				autoFormatEditor(editor, targetProject, isMarkdownEditor(editor));
+			}
+		}, ModalityState.defaultModalityState()));
 		timer.setRepeats(false);
 		autoEditorTimers.put(editor, timer);
 		timer.start();
 	}
 
 	public static void handleSelectedEditorActivated(Project project) {
-		if (project == null || project.isDefault()) {
+		if (project == null || project.isDisposed() || project.isDefault()) {
 			return;
 		}
 
 		Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
-		if (editor == null) {
+		if (editor == null || editor.isDisposed()) {
 			return;
 		}
 
@@ -300,13 +345,16 @@ public final class MarkdownTableEditor {
 	}
 
 	public static void handleEditorMetricsChanged(Project project) {
+		if (project == null || project.isDisposed()) {
+			return;
+		}
 		for (Editor editor : projectEditors(project)) {
 			handleVisibleAreaChanged(editor, null);
 		}
 	}
 
 	public static void scheduleAutoFormatFile(Project project, VirtualFile file) {
-		if (file == null || !isMarkdownFileName(file.getName())) {
+		if (project == null || project.isDisposed() || file == null || !isMarkdownFileName(file.getName())) {
 			return;
 		}
 
@@ -320,7 +368,7 @@ public final class MarkdownTableEditor {
 	}
 
 	public static void rememberVisibleEditorWidth(Editor editor) {
-		if (editor == null) {
+		if (editor == null || editor.isDisposed()) {
 			return;
 		}
 
@@ -351,6 +399,9 @@ public final class MarkdownTableEditor {
 	}
 
 	private static boolean handleVisibleAreaChanged(Editor editor, Rectangle visibleArea, boolean markdownFile) {
+		if (editor == null || editor.isDisposed()) {
+			return false;
+		}
 		MarkdownTableSettings settings = MarkdownTableSettings.getInstance();
 		int columns = availableDisplayColumns(editor, visibleArea);
 		Integer previous = visibleEditorWidths.get(editor);
@@ -375,6 +426,9 @@ public final class MarkdownTableEditor {
 	}
 
 	private static boolean autoFormatEditor(Editor editor, Project project, boolean markdownFile) {
+		if (project != null && project.isDisposed()) {
+			return false;
+		}
 		MarkdownTableSettings settings = MarkdownTableSettings.getInstance();
 		if (!settings.isAutoAlignEnabled() && !settings.isAutoFitEnabled()) {
 			return false;
@@ -395,7 +449,7 @@ public final class MarkdownTableEditor {
 	}
 
 	public static boolean convertDelimited(Editor editor, Project project, boolean quiet) {
-		if (editor == null || editor.isViewer()) {
+		if (editor == null || editor.isDisposed() || editor.isViewer() || editor.getCaretModel().getCaretCount() != 1) {
 			return false;
 		}
 
@@ -431,7 +485,7 @@ public final class MarkdownTableEditor {
 	}
 
 	public static boolean insertTable(Editor editor, Project project, int columns, int dataRows) {
-		if (editor == null || editor.isViewer()) {
+		if (editor == null || editor.isDisposed() || editor.isViewer() || editor.getCaretModel().getCaretCount() != 1) {
 			return false;
 		}
 
@@ -499,20 +553,12 @@ public final class MarkdownTableEditor {
 
 	private static List<LineRange> findAllTableLineRanges(Document document) {
 		List<LineRange> ranges = new ArrayList<>();
-		for (int line = 0; line < document.getLineCount();) {
-			if (!MarkdownTableCore.isPotentialTableLine(getLineText(document, line))) {
-				line++;
-				continue;
-			}
-
-			LineRange range = findTableLineRange(document, line);
-			if (range == null) {
-				line++;
-				continue;
-			}
-
-			ranges.add(range);
-			line = range.lastLine + 1;
+		List<String> lines = new ArrayList<>(document.getLineCount());
+		for (int line = 0; line < document.getLineCount(); line++) {
+			lines.add(getLineText(document, line));
+		}
+		for (MarkdownTableCore.TableRange range : MarkdownTableCore.findTableRanges(lines)) {
+			ranges.add(new LineRange(range.firstRow, range.lastRow));
 		}
 		return ranges;
 	}
@@ -530,28 +576,40 @@ public final class MarkdownTableEditor {
 
 		int currentOffset = safeOffset(document, editor.getCaretModel().getOffset());
 		int currentLine = lineNumberAtOffset(document, currentOffset);
-		if (!isDelimitedLine(getLineText(document, currentLine))) {
-			return new Range(0, 0);
-		}
+		int blockStart = -1;
+		boolean inQuotes = false;
+		for (int line = 0; line <= document.getLineCount(); line++) {
+			DelimitedLineScan scan = line < document.getLineCount()
+				? scanDelimitedLine(getLineText(document, line), inQuotes)
+				: new DelimitedLineScan(false, false);
 
-		int firstLine = currentLine;
-		while (firstLine > 0 && isDelimitedLine(getLineText(document, firstLine - 1))) {
-			firstLine--;
-		}
+			if (blockStart == -1) {
+				if (scan.hasDelimiter) {
+					blockStart = line;
+					inQuotes = scan.inQuotes;
+				}
+				continue;
+			}
 
-		int lastLine = currentLine;
-		while (lastLine + 1 < document.getLineCount() && isDelimitedLine(getLineText(document, lastLine + 1))) {
-			lastLine++;
-		}
+			if (inQuotes || scan.hasDelimiter) {
+				inQuotes = scan.inQuotes;
+				continue;
+			}
 
-		if (lastLine == firstLine) {
-			return new Range(0, 0);
+			int blockEnd = line - 1;
+			if (currentLine >= blockStart && currentLine <= blockEnd && blockEnd > blockStart) {
+				return new Range(document.getLineStartOffset(blockStart), document.getLineEndOffset(blockEnd));
+			}
+			blockStart = -1;
+			inQuotes = false;
 		}
-		return new Range(document.getLineStartOffset(firstLine), document.getLineEndOffset(lastLine));
+		return new Range(0, 0);
 	}
 
-	private static boolean isDelimitedLine(String line) {
-		boolean inQuotes = false;
+	private static DelimitedLineScan scanDelimitedLine(String line, boolean startsInQuotes) {
+		boolean inQuotes = startsInQuotes;
+		boolean cellBlank = !startsInQuotes;
+		boolean hasDelimiter = false;
 		for (int i = 0; i < line.length(); i++) {
 			char ch = line.charAt(i);
 			if (inQuotes) {
@@ -560,13 +618,16 @@ public final class MarkdownTableEditor {
 				} else if (ch == '"') {
 					inQuotes = false;
 				}
-			} else if (ch == '"') {
+			} else if (ch == '"' && cellBlank) {
 				inQuotes = true;
 			} else if (ch == ',' || ch == '\t') {
-				return true;
+				hasDelimiter = true;
+				cellBlank = true;
+			} else if (!markdownSpace(ch)) {
+				cellBlank = false;
 			}
 		}
-		return false;
+		return new DelimitedLineScan(hasDelimiter, inQuotes);
 	}
 
 	private static String chooseEol(Document document, int firstLine, int lastLine) {
@@ -681,8 +742,12 @@ public final class MarkdownTableEditor {
 	}
 
 	private static void cancelPendingAutoFormat(Editor editor) {
+		if (editor == null) {
+			return;
+		}
 		stopTimer(visibleEditorTimers.remove(editor));
 		stopTimer(autoEditorTimers.remove(editor));
+		stopTimer(autoDocumentTimers.remove(editor.getDocument()));
 	}
 
 	private static void stopTimer(Timer timer) {
@@ -692,7 +757,7 @@ public final class MarkdownTableEditor {
 	}
 
 	private static void scheduleVisibleWidthFit(Editor editor, int delayMs) {
-		if (editor == null || pluginEditDepth > 0 || autoFormatInProgress) {
+		if (editor == null || editor.isDisposed() || pluginEditDepth > 0 || autoFormatInProgress) {
 			return;
 		}
 
@@ -701,20 +766,19 @@ public final class MarkdownTableEditor {
 			previous.stop();
 		}
 
-		Timer timer = new Timer(delayMs, event -> {
-			visibleEditorTimers.remove(editor);
-			ApplicationManager.getApplication().invokeLater(
-				() -> autoFormatEditor(editor, editor.getProject(), isMarkdownEditor(editor)),
-				ModalityState.defaultModalityState()
-			);
-		});
+		Timer timer = new Timer(Math.max(0, delayMs), null);
+		timer.addActionListener(event -> ApplicationManager.getApplication().invokeLater(() -> {
+			if (visibleEditorTimers.remove(editor, timer)) {
+				autoFormatEditor(editor, editor.getProject(), isMarkdownEditor(editor));
+			}
+		}, ModalityState.defaultModalityState()));
 		timer.setRepeats(false);
 		visibleEditorTimers.put(editor, timer);
 		timer.start();
 	}
 
 	private static boolean isAutomaticEditorCandidate(Editor editor, boolean markdownFile) {
-		if (editor == null || editor.isViewer() || !markdownFile || pluginEditDepth > 0 || autoFormatInProgress) {
+		if (editor == null || editor.isDisposed() || editor.isViewer() || !markdownFile || pluginEditDepth > 0 || autoFormatInProgress) {
 			return false;
 		}
 
@@ -742,11 +806,11 @@ public final class MarkdownTableEditor {
 	private static List<Editor> projectEditors(Project project) {
 		List<Editor> result = new ArrayList<>();
 		for (Editor editor : EditorFactory.getInstance().getAllEditors()) {
-			if (editor == null) {
+			if (editor == null || editor.isDisposed()) {
 				continue;
 			}
 			Project editorProject = editor.getProject();
-			if (project == null || editorProject == null || project.equals(editorProject)) {
+			if (project == null ? editorProject == null : project.equals(editorProject)) {
 				result.add(editor);
 			}
 		}
@@ -754,7 +818,7 @@ public final class MarkdownTableEditor {
 	}
 
 	static boolean isMarkdownEditor(Editor editor) {
-		if (editor == null) {
+		if (editor == null || editor.isDisposed()) {
 			return false;
 		}
 		VirtualFile file = FileDocumentManager.getInstance().getFile(editor.getDocument());
@@ -774,7 +838,7 @@ public final class MarkdownTableEditor {
 	}
 
 	private static int availableDisplayColumns(Editor editor, Rectangle visibleArea) {
-		if (editor == null) {
+		if (editor == null || editor.isDisposed()) {
 			return DEFAULT_VISIBLE_COLUMNS;
 		}
 
@@ -1404,6 +1468,9 @@ public final class MarkdownTableEditor {
 	}
 
 	private record InsertText(String text, int caretDelta) {
+	}
+
+	private record DelimitedLineScan(boolean hasDelimiter, boolean inQuotes) {
 	}
 
 	private enum CaretPlacement {

@@ -26,6 +26,12 @@ public final class MarkdownTableCorePerformance {
 		String tsv = delimited(5_000, 8, '\t');
 		List<String> sortableTable = sortableTable(5_000, 8);
 		List<String> operationTable = table(1_500, 16, true);
+		List<String> pipeHeavyDocument = pipeHeavyDocument(50_000);
+		List<String> wideHeaderTable = List.of(
+			"| " + "H".repeat(1_000_000) + " | V |",
+			"| --- | --- |",
+			"| x | y |"
+		);
 
 		runBenchmark("align 3000x8 table", 500, () ->
 			consume(MarkdownTableCore.apply(largeTable, 1_502, 3, MarkdownTableCore.Action.ALIGN)));
@@ -49,6 +55,10 @@ public final class MarkdownTableCorePerformance {
 			consume(MarkdownTableCore.apply(operationTable, 700, 6, MarkdownTableCore.Action.MOVE_COLUMN_LEFT));
 			consume(MarkdownTableCore.apply(operationTable, 700, 6, MarkdownTableCore.Action.MOVE_COLUMN_RIGHT));
 		});
+		runBenchmark("scan 50000 non-table pipe lines", 500, () ->
+			consumeRanges(MarkdownTableCore.findTableRanges(pipeHeavyDocument)));
+		runBenchmark("fit 1000000-char header", 1_500, () ->
+			consume(MarkdownTableCore.applyWrappedToWidth(wideHeaderTable, 2, 0, 80)));
 		assertTrue(sink != 0, "benchmark results must be consumed");
 	}
 
@@ -111,6 +121,23 @@ public final class MarkdownTableCorePerformance {
 			value += result.lines.get(result.lines.size() - 1).length();
 		}
 		sink += value;
+	}
+
+	private static void consumeRanges(List<MarkdownTableCore.TableRange> ranges) {
+		assertTrue(!ranges.isEmpty(), "table range scan must find the trailing table");
+		MarkdownTableCore.TableRange last = ranges.get(ranges.size() - 1);
+		sink += ranges.size() + last.firstRow + last.lastRow;
+	}
+
+	private static List<String> pipeHeavyDocument(int nonTableLines) {
+		List<String> lines = new ArrayList<>(nonTableLines + 3);
+		for (int row = 0; row < nonTableLines; row++) {
+			lines.add("prose " + row + " | still not a table");
+		}
+		lines.add("| Name | Value |");
+		lines.add("| --- | --- |");
+		lines.add("| tail | 1 |");
+		return lines;
 	}
 
 	private static List<String> table(int dataRows, int columns, boolean unicode) {

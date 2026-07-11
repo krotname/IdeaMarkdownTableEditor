@@ -136,28 +136,48 @@ public final class MarkdownTableCore {
 			return result;
 		}
 
-		for (int separatorRow = 1; separatorRow < lines.size(); separatorRow++) {
-			int firstRow = separatorRow - 1;
-			if (!isPotentialTableLine(lines.get(firstRow))) {
-				continue;
-			}
-
-			Row separator = new Row();
-			separator.cells.addAll(splitCells(lines.get(separatorRow)));
-			if (!isSeparatorRow(separator) && !isShortSeparatorLine(lines.get(separatorRow))) {
-				continue;
-			}
-
-			int lastRow = tableRangeEnd(lines, firstRow, separatorRow);
-			if (row >= firstRow && row <= lastRow) {
-				result.found = true;
-				result.firstRow = firstRow;
-				result.lastRow = lastRow;
-				return result;
+		for (TableRange range : findTableRanges(lines)) {
+			if (row >= range.firstRow && row <= range.lastRow) {
+				return range;
 			}
 		}
 
 		return result;
+	}
+
+	public static List<TableRange> findTableRanges(List<String> lines) {
+		List<TableRange> ranges = new ArrayList<>();
+		for (int separatorRow = 1; separatorRow < lines.size(); separatorRow++) {
+			int firstRow = separatorRow - 1;
+			if (!isPotentialTableLine(lines.get(firstRow)) ||
+				!isSeparatorForHeader(lines.get(firstRow), lines.get(separatorRow))) {
+				continue;
+			}
+
+			TableRange range = new TableRange();
+			range.found = true;
+			range.firstRow = firstRow;
+			range.lastRow = tableRangeEnd(lines, firstRow, separatorRow);
+			ranges.add(range);
+			separatorRow = range.lastRow;
+		}
+		return ranges;
+	}
+
+	private static boolean isSeparatorForHeader(String headerLine, String separatorLine) {
+		if (!isPotentialSeparatorLine(separatorLine)) {
+			return false;
+		}
+		return splitCells(headerLine).size() == splitCells(separatorLine).size();
+	}
+
+	public static boolean isPotentialSeparatorLine(String line) {
+		if (!isPotentialTableLine(line)) {
+			return false;
+		}
+		Row separator = new Row();
+		separator.cells.addAll(splitCells(line));
+		return isSeparatorRow(separator) || isShortSeparatorLine(line);
 	}
 
 	public static EditResult apply(List<String> lines, int row, int column, Action action) {
@@ -665,7 +685,7 @@ public final class MarkdownTableCore {
 		String text = trim(value == null ? "" : value);
 		for (int i = 0; i < text.length(); i++) {
 			char ch = text.charAt(i);
-			if (ch == '|') {
+			if (ch == '|' && !isEscaped(text, i)) {
 				result.append("\\|");
 			} else if (ch == '\r' || ch == '\n') {
 				result.append(' ');
@@ -690,6 +710,8 @@ public final class MarkdownTableCore {
 		List<String> row = new ArrayList<>();
 		StringBuilder cell = new StringBuilder();
 		boolean inQuotes = false;
+		boolean closedQuotedField = false;
+		boolean rowHasDelimitedSyntax = false;
 
 		for (int i = 0; i < value.length(); i++) {
 			char ch = value.charAt(i);
@@ -700,6 +722,7 @@ public final class MarkdownTableCore {
 						i++;
 					} else {
 						inQuotes = false;
+						closedQuotedField = true;
 					}
 				} else if (ch == '\r' || ch == '\n') {
 					cell.append(' ');
@@ -712,17 +735,41 @@ public final class MarkdownTableCore {
 				continue;
 			}
 
-			if (ch == '"' && isBlank(cell)) {
+			if (closedQuotedField) {
+				if (ch == delimiter) {
+					row.add(cell.toString());
+					cell.setLength(0);
+					closedQuotedField = false;
+					rowHasDelimitedSyntax = true;
+				} else if (ch == '\r' || ch == '\n') {
+					row.add(cell.toString());
+					addDelimitedRow(rows, row, rowHasDelimitedSyntax);
+					row = new ArrayList<>();
+					cell.setLength(0);
+					closedQuotedField = false;
+					rowHasDelimitedSyntax = false;
+					if (ch == '\r' && i + 1 < value.length() && value.charAt(i + 1) == '\n') {
+						i++;
+					}
+				} else if (isSpace(ch)) {
+					cell.append(ch);
+				} else {
+					return Collections.emptyList();
+				}
+			} else if (ch == '"' && isBlank(cell)) {
 				cell.setLength(0);
 				inQuotes = true;
+				rowHasDelimitedSyntax = true;
 			} else if (ch == delimiter) {
 				row.add(cell.toString());
 				cell.setLength(0);
+				rowHasDelimitedSyntax = true;
 			} else if (ch == '\r' || ch == '\n') {
 				row.add(cell.toString());
-				addDelimitedRow(rows, row);
+				addDelimitedRow(rows, row, rowHasDelimitedSyntax);
 				row = new ArrayList<>();
 				cell.setLength(0);
+				rowHasDelimitedSyntax = false;
 				if (ch == '\r' && i + 1 < value.length() && value.charAt(i + 1) == '\n') {
 					i++;
 				}
@@ -731,14 +778,17 @@ public final class MarkdownTableCore {
 			}
 		}
 
+		if (inQuotes) {
+			return Collections.emptyList();
+		}
+
 		row.add(cell.toString());
-		addDelimitedRow(rows, row);
+		addDelimitedRow(rows, row, rowHasDelimitedSyntax);
 		return rows;
 	}
 
 	private static char detectDelimiter(String text) {
 		int tabs = 0;
-		int commas = 0;
 		boolean inQuotes = false;
 		boolean cellBlank = true;
 		for (int i = 0; i < text.length(); i++) {
@@ -755,7 +805,6 @@ public final class MarkdownTableCore {
 				tabs++;
 				cellBlank = true;
 			} else if (ch == ',') {
-				commas++;
 				cellBlank = true;
 			} else if (ch == '\r' || ch == '\n') {
 				cellBlank = true;
@@ -763,7 +812,7 @@ public final class MarkdownTableCore {
 				cellBlank = false;
 			}
 		}
-		return tabs > commas ? '\t' : ',';
+		return tabs > 0 ? '\t' : ',';
 	}
 
 	private static boolean hasDelimiterOutsideQuotes(String text) {
@@ -799,7 +848,7 @@ public final class MarkdownTableCore {
 		return true;
 	}
 
-	private static void addDelimitedRow(List<List<String>> rows, List<String> row) {
+	private static void addDelimitedRow(List<List<String>> rows, List<String> row, boolean hasDelimitedSyntax) {
 		boolean hasValue = false;
 		for (String cell : row) {
 			if (!trim(cell).isEmpty()) {
@@ -807,7 +856,7 @@ public final class MarkdownTableCore {
 				break;
 			}
 		}
-		if (hasValue) {
+		if (hasValue || hasDelimitedSyntax) {
 			rows.add(row);
 		}
 	}
@@ -1076,19 +1125,50 @@ public final class MarkdownTableCore {
 		int end = offset;
 		int chunkWidth = 0;
 		while (end < token.length()) {
-			int cp = token.codePointAt(end);
-			int after = end + Character.charCount(cp);
-			int codePointWidth = displayWidth(token.substring(end, after));
-			if (end > offset && chunkWidth + codePointWidth > targetWidth) {
+			int after = nextDisplayClusterEnd(token, end);
+			int clusterWidth = displayWidth(token.substring(end, after));
+			if (end > offset && chunkWidth + clusterWidth > targetWidth) {
 				return end;
 			}
-			chunkWidth += codePointWidth;
+			chunkWidth += clusterWidth;
 			end = after;
 			if (chunkWidth >= targetWidth) {
 				return end;
 			}
 		}
 		return end > offset ? end : offset + Character.charCount(token.codePointAt(offset));
+	}
+
+	private static int nextDisplayClusterEnd(String text, int offset) {
+		int baseCodePoint = text.codePointAt(offset);
+		int end = offset + Character.charCount(baseCodePoint);
+
+		if (isKeycapBase(baseCodePoint)) {
+			int keycapEnd = skipKeycapCluster(text, end);
+			if (keycapEnd != -1) {
+				return keycapEnd;
+			}
+		}
+
+		if (isRegionalIndicator(baseCodePoint) && end < text.length()) {
+			int next = text.codePointAt(end);
+			if (isRegionalIndicator(next)) {
+				return end + Character.charCount(next);
+			}
+		}
+
+		int[] ignoredWidth = { codePointDisplayWidth(baseCodePoint) };
+		end = skipClusterModifiers(text, end, baseCodePoint, ignoredWidth);
+		while (end < text.length() && text.codePointAt(end) == 0x200D) {
+			end += Character.charCount(0x200D);
+			if (end >= text.length()) {
+				break;
+			}
+			int joinedCodePoint = text.codePointAt(end);
+			end += Character.charCount(joinedCodePoint);
+			end = skipClusterModifiers(text, end, joinedCodePoint, ignoredWidth);
+		}
+		return end;
 	}
 
 	private static void appendWrappedToken(List<String> segments, StringBuilder current, String token, int width) {
@@ -1274,8 +1354,8 @@ public final class MarkdownTableCore {
 		return overhead;
 	}
 
-	private static int widthSum(List<Integer> widths) {
-		int sum = 0;
+	private static long widthSum(List<Integer> widths) {
+		long sum = 0;
 		for (int width : widths) {
 			sum += width;
 		}
@@ -1314,31 +1394,72 @@ public final class MarkdownTableCore {
 		return result;
 	}
 
-	private static int largestShrinkableColumn(List<Integer> widths, List<Integer> minimums, List<Boolean> allowed) {
-		int best = -1;
-		int bestSlack = 0;
+	private static void shrinkColumnsToBudget(List<Integer> widths, List<Integer> minimums, List<Boolean> allowed, int budget) {
+		long requestedReduction = widthSum(widths) - budget;
+		if (requestedReduction <= 0) {
+			return;
+		}
+
+		long totalSlack = 0;
+		int maxSlack = 0;
 		for (int column = 0; column < widths.size(); column++) {
-			if (!allowed.get(column) || widths.get(column) <= minimums.get(column)) {
+			if (!allowed.get(column)) {
 				continue;
 			}
+			int slack = Math.max(0, widths.get(column) - minimums.get(column));
+			totalSlack += slack;
+			maxSlack = Math.max(maxSlack, slack);
+		}
+		long reduction = Math.min(requestedReduction, totalSlack);
+		if (reduction <= 0) {
+			return;
+		}
 
-			int slack = widths.get(column) - minimums.get(column);
-			if (best == -1 || slack > bestSlack) {
-				best = column;
-				bestSlack = slack;
+		int low = 0;
+		int high = maxSlack;
+		while (low < high) {
+			int cap = low + (high - low) / 2;
+			if (reductionToSlackCap(widths, minimums, allowed, cap) <= reduction) {
+				high = cap;
+			} else {
+				low = cap + 1;
 			}
 		}
-		return best;
+
+		int slackCap = low;
+		long remaining = reduction - reductionToSlackCap(widths, minimums, allowed, slackCap);
+		for (int column = 0; column < widths.size(); column++) {
+			if (!allowed.get(column)) {
+				continue;
+			}
+			int minimum = minimums.get(column);
+			int slack = Math.max(0, widths.get(column) - minimum);
+			int targetSlack = Math.min(slack, slackCap);
+			if (remaining > 0 && targetSlack == slackCap && targetSlack > 0) {
+				targetSlack--;
+				remaining--;
+			}
+			widths.set(column, minimum + targetSlack);
+		}
 	}
 
-	private static void shrinkColumnsToBudget(List<Integer> widths, List<Integer> minimums, List<Boolean> allowed, int budget) {
-		while (widthSum(widths) > budget) {
-			int column = largestShrinkableColumn(widths, minimums, allowed);
-			if (column == -1) {
-				return;
+	private static long reductionToSlackCap(
+		List<Integer> widths,
+		List<Integer> minimums,
+		List<Boolean> allowed,
+		int slackCap
+	) {
+		long reduction = 0;
+		for (int column = 0; column < widths.size(); column++) {
+			if (!allowed.get(column)) {
+				continue;
 			}
-			widths.set(column, widths.get(column) - 1);
+			int slack = Math.max(0, widths.get(column) - minimums.get(column));
+			if (slack > slackCap) {
+				reduction += slack - slackCap;
+			}
 		}
+		return reduction;
 	}
 
 	private static int bestGrowableColumn(List<Integer> widths, List<Integer> naturalWidths, List<Boolean> allowed) {

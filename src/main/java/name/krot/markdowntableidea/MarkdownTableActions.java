@@ -289,8 +289,15 @@ public final class MarkdownTableActions {
 				return;
 			}
 
-			int columns = Integer.parseInt(matcher.group(1));
-			int dataRows = Integer.parseInt(matcher.group(2));
+			int columns;
+			int dataRows;
+			try {
+				columns = Integer.parseInt(matcher.group(1));
+				dataRows = Integer.parseInt(matcher.group(2));
+			} catch (NumberFormatException ignored) {
+				dialogService.showError(event.getProject(), MarkdownTableEditorBundle.message("dialog.insertTable.error.range"));
+				return;
+			}
 			if (columns < 1 || columns > 50 || dataRows < 0 || dataRows > 200) {
 				dialogService.showError(event.getProject(), MarkdownTableEditorBundle.message("dialog.insertTable.error.range"));
 				return;
