@@ -77,6 +77,15 @@ public final class MarkdownTableEditorScenarios {
 		TestEditor viewer = new TestEditor("| A |\n| --- |", true, true);
 		expectTrue("run rejects viewer", !MarkdownTableEditor.run(viewer.editor, null, MarkdownTableCore.Action.ALIGN, true));
 
+		TestEditor disposed = new TestEditor("| A |\n| --- |", false, true);
+		disposed.disposed = true;
+		expectTrue("run rejects disposed editor", !MarkdownTableEditor.run(disposed.editor, null, MarkdownTableCore.Action.ALIGN, true));
+		expectTrue("disposed editor is not inside table", !MarkdownTableEditor.isInsidePotentialTable(disposed.editor));
+		MarkdownTableEditor.scheduleAutoFormatEditor(disposed.editor, null, 1);
+		expectTrue("disposed editor gets no timer", !MarkdownTableEditor.hasPendingAutoFormatForTests(disposed.editor));
+		MarkdownTableEditor.scheduleAutoFormatChangedDocument(disposed.document.document);
+		expectTrue("non-file document gets no auto-format timer", !MarkdownTableEditor.hasPendingAutoFormatForTests(disposed.editor));
+
 		TestEditor readOnly = new TestEditor("| A |\n| --- |", false, false);
 		expectTrue("run rejects read-only editor", !MarkdownTableEditor.run(readOnly.editor, null, MarkdownTableCore.Action.ALIGN, false));
 		expectInt("read-only attempt fired", readOnly.document.readOnlyAttempts, 1);
@@ -126,6 +135,19 @@ public final class MarkdownTableEditorScenarios {
 		expectString("all document tables formatted", allTables.text(),
 			"Intro\n| A   | B   |\n| --- | --- |\n| 1   | 20  |\n\nText\n| Name | Score |\n| ---- | ----: |\n| Bo   |     7 |");
 
+		TestEditor selectedTableOnly = new TestEditor(
+			"| A | B |\n| --- | --- |\n| 1 | 20 |\n\n| Name | Score |\n| --- | ---: |\n| Bo | 7 |",
+			false,
+			true
+		);
+		int secondTableStart = selectedTableOnly.text().indexOf("| Name");
+		expectTrue(
+			"format selection changes intersecting table",
+			MarkdownTableEditor.formatTablesInRange(selectedTableOnly.document.document, secondTableStart, selectedTableOnly.text().length())
+		);
+		expectString("format selection leaves other tables untouched", selectedTableOnly.text(),
+			"| A | B |\n| --- | --- |\n| 1 | 20 |\n\n| Name | Score |\n| ---- | ----: |\n| Bo   |     7 |");
+
 		TestEditor nextCell = new TestEditor("| Name | Age |\n| --- | ---: |\n| Anna | 20 |", false, true);
 		nextCell.setCaretAt("20");
 		expectTrue("run next cell appends row", MarkdownTableEditor.run(nextCell.editor, null, MarkdownTableCore.Action.NEXT_CELL, true));
@@ -174,6 +196,12 @@ public final class MarkdownTableEditorScenarios {
 		expectTrue("convert current csv block skips adjacent text", MarkdownTableEditor.convertDelimited(inlineBlockCsv.editor, null, true));
 		expectString("inline current block table", inlineBlockCsv.text(),
 			"top\n| Name | Score |\n| ---- | ----- |\n| Anna | 10    |\nbottom");
+
+		TestEditor multilineCsv = new TestEditor("top\nName,Note\nAnna,\"line 1\nline 2\"\nBob,done\nbottom", false, true);
+		multilineCsv.setCaretAt("line 2");
+		expectTrue("convert current csv block from multiline continuation", MarkdownTableEditor.convertDelimited(multilineCsv.editor, null, true));
+		expectString("multiline current block table", multilineCsv.text(),
+			"top\n| Name | Note          |\n| ---- | ------------- |\n| Anna | line 1 line 2 |\n| Bob  | done          |\nbottom");
 
 		TestEditor singleCommaLine = new TestEditor("just, a note", false, true);
 		singleCommaLine.setCaretAt("note");
@@ -408,6 +436,9 @@ public final class MarkdownTableEditorScenarios {
 		dialog.nextValue = "bad";
 		insert.actionPerformed(event(target, new Presentation()));
 		expectString("bad size error", dialog.lastError, MarkdownTableEditorBundle.message("dialog.insertTable.error.format"));
+		dialog.nextValue = "999999999999999999999999x1";
+		insert.actionPerformed(event(target, new Presentation()));
+		expectString("overflow size error", dialog.lastError, MarkdownTableEditorBundle.message("dialog.insertTable.error.range"));
 		dialog.nextValue = "51x1";
 		insert.actionPerformed(event(target, new Presentation()));
 		expectString("range size error", dialog.lastError, MarkdownTableEditorBundle.message("dialog.insertTable.error.range"));
@@ -591,6 +622,18 @@ public final class MarkdownTableEditorScenarios {
 		handler.doExecute(table.editor, table.caret(), context);
 		expectInt("tab handler does not call original on success", original.executions, 0);
 		expectContains("tab handler aligns table", table.text(), "| A   |");
+
+		RecordingHandler multiCaretOriginal = new RecordingHandler(true);
+		MarkdownTableTabHandler multiCaretHandler = new MarkdownTableTabHandler(multiCaretOriginal);
+		TestEditor multiCaretTable = new TestEditor("| A |\n| --- |\n| 1 |", false, true);
+		multiCaretTable.setCaretAt("1");
+		multiCaretTable.setCaretCount(2);
+		String multiCaretBefore = multiCaretTable.text();
+		expectTrue("tab handler delegates enabled state for multiple carets",
+			multiCaretHandler.isEnabled(multiCaretTable.editor, multiCaretTable.caret(), context(multiCaretTable)));
+		multiCaretHandler.doExecute(multiCaretTable.editor, multiCaretTable.caret(), context(multiCaretTable));
+		expectInt("tab handler delegates multiple carets to original", multiCaretOriginal.executions, 1);
+		expectString("tab handler leaves multi-caret table to original", multiCaretTable.text(), multiCaretBefore);
 
 		TestEditor plain = new TestEditor("plain", false, true);
 		plain.setCaretAt("plain");
@@ -784,6 +827,7 @@ public final class MarkdownTableEditorScenarios {
 		private final TestEditorComponent component = new TestEditorComponent();
 		private final Editor editor;
 		private final boolean viewer;
+		private boolean disposed;
 
 		private TestEditor(String text, boolean viewer, boolean writable) {
 			this.document = new TestDocument(text, writable);
@@ -847,6 +891,7 @@ public final class MarkdownTableEditorScenarios {
 				case "getScrollingModel" -> scrollingModel.scrollingModel;
 				case "getContentComponent" -> component;
 				case "getProject" -> null;
+				case "isDisposed" -> disposed;
 				default -> defaultValue(method.getReturnType());
 			};
 		}

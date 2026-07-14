@@ -21,11 +21,20 @@ public final class MarkdownTableTabHandler extends EditorActionHandler {
 
 	@Override
 	protected boolean isEnabledForCaret(Editor editor, Caret caret, DataContext dataContext) {
+		if (editor != null && editor.getCaretModel().getCaretCount() != 1) {
+			return original == null || original.isEnabled(editor, caret, dataContext);
+		}
 		return MarkdownTableEditor.isInsidePotentialTable(editor) || original == null || original.isEnabled(editor, caret, dataContext);
 	}
 
 	@Override
 	protected void doExecute(Editor editor, @Nullable Caret caret, DataContext dataContext) {
+		if (editor != null && editor.getCaretModel().getCaretCount() != 1) {
+			if (original != null) {
+				original.execute(editor, caret, dataContext);
+			}
+			return;
+		}
 		Project project = CommonDataKeys.PROJECT.getData(dataContext);
 		if (MarkdownTableEditor.run(editor, project, MarkdownTableCore.Action.ALIGN, true)) {
 			return;

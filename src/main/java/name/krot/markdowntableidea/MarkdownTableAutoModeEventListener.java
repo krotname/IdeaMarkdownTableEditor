@@ -101,6 +101,9 @@ public final class MarkdownTableAutoModeEventListener implements StartupActivity
 		}
 
 		private void schedule(VirtualFile file) {
+			if (project.isDisposed() || file == null || !FileEditorManager.getInstance(project).isFileOpen(file)) {
+				return;
+			}
 			MarkdownTableEditor.scheduleAutoFormatFile(project, file);
 		}
 	}
