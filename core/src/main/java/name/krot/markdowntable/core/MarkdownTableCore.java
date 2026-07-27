@@ -55,17 +55,27 @@ public final class MarkdownTableCore {
 
 	/**
 	 * Immutable result of a table edit or conversion.
+	 *
+	 * <p>{@link #lines} holds only the affected table, not the whole document, and
+	 * {@link #targetRow} indexes into those lines. Callers that pass a whole document to
+	 * {@link #apply} therefore add {@link TableRange#firstRow} to map the target back onto the
+	 * document.</p>
 	 */
 	public static final class EditResult {
-		/** Whether the returned text differs from the input. */
+		/**
+		 * Whether the returned lines differ from the table the operation started from.
+		 *
+		 * <p>Successful no-ops such as aligning an already aligned table, or moving the first data
+		 * row further up, report {@code false} while {@link #ok} stays {@code true}.</p>
+		 */
 		public final boolean changed;
 		/** Whether the operation completed successfully. */
 		public final boolean ok;
 		/** Human-readable failure or status detail; empty on normal success. */
 		public final String message;
-		/** Immutable formatted or converted lines. */
+		/** Immutable formatted or converted lines; empty when {@link #ok} is {@code false}. */
 		public final List<String> lines;
-		/** Zero-based target row after the operation. */
+		/** Zero-based target row within {@link #lines} after the operation. */
 		public final int targetRow;
 		/** Zero-based target column after the operation. */
 		public final int targetColumn;
@@ -187,7 +197,11 @@ public final class MarkdownTableCore {
 	}
 
 	/**
-	 * Finds all non-overlapping Markdown table ranges in document order.
+	 * Finds every Markdown table in document order.
+	 *
+	 * <p>The returned ranges are strictly ordered and never overlap, so a caller may rewrite each
+	 * one independently. Scanning resumes past the end of a table even when its last row still
+	 * carries pipes, so a trailing row is never reused as the header of the next table.</p>
 	 *
 	 * @param lines document lines
 	 * @return immutable ranges in document order
@@ -214,11 +228,16 @@ public final class MarkdownTableCore {
 	/**
 	 * Applies an editing action to the table containing {@code row}.
 	 *
+	 * <p>Out-of-range coordinates are clamped into the table rather than rejected. The result
+	 * carries only the rewritten table; see {@link EditResult} for how its coordinates relate to
+	 * the document.</p>
+	 *
 	 * @param lines document lines
 	 * @param row zero-based document row
 	 * @param column zero-based cell index
 	 * @param action operation to apply
-	 * @return immutable operation result
+	 * @return immutable operation result; {@link EditResult#ok} is {@code false} when {@code row}
+	 *         is not inside a Markdown table
 	 */
 	public static EditResult apply(List<String> lines, int row, int column, Action action) {
 		Objects.requireNonNull(action, "action");

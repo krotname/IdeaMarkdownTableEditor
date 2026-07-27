@@ -180,8 +180,10 @@ You can change shortcuts in `Settings | Keymap`.
 ## Standalone Core Library
 
 The editor-independent engine is a separate Java 17 module with no runtime dependencies:
-[`name.krot:markdown-table-core`](core/README.md). The plugin consumes that module through the
-same Gradle build, so plugin tests also verify the real library integration.
+[`name.krot:markdown-table-core:0.2.0`](https://central.sonatype.com/artifact/name.krot/markdown-table-core/0.2.0).
+The plugin consumes the artifact published to Maven Central, so plugin tests verify the same
+public library that external consumers get. Core release notes live in
+[core/CHANGELOG.md](core/CHANGELOG.md).
 
 ## Build and Tests
 
