@@ -3,7 +3,7 @@
 ## Distributed Plugin
 
 The built Markdown Table Editor plugin ZIP does not bundle third-party runtime libraries.
-It contains the plugin classes, `META-INF/plugin.xml`, `META-INF/pluginIcon.svg`, and the project MIT license at `META-INF/LICENSE`.
+It contains the plugin classes, `META-INF/plugin.xml`, `META-INF/pluginIcon.svg`, and the project GPL-3.0-or-later license at `META-INF/LICENSE`.
 
 The plugin is compiled against the IntelliJ Platform APIs. At runtime, those APIs are provided by the user's JetBrains IDE and are not redistributed inside this plugin package.
 
