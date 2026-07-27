@@ -70,5 +70,9 @@ Upload and release automatically:
 .\gradlew.bat :core:publishAndReleaseToMavenCentral
 ```
 
+For GitHub Actions, run **Publish Markdown Table Core** manually with the version from
+`core/VERSION`. Start with `dry-run`; use `publish` only for a new immutable version and
+enter the exact confirmation `name.krot:markdown-table-core:<version>`.
+
 Maven Central releases are immutable. Run the complete verification command before
 uploading a new version.
