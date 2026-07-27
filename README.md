@@ -178,6 +178,12 @@ Marketplace вычисляет конкретные версии продукт�
 
 Сочетания можно изменить в `Settings | Keymap`.
 
+## Самостоятельная библиотека ядра
+
+Независимое от редактора ядро выделено в Java 17 модуль без runtime-зависимостей:
+[`name.krot:markdown-table-core`](core/README.md). Плагин использует этот модуль через ту же
+Gradle-сборку, поэтому plugin-тесты проверяют интеграцию с реальной библиотекой.
+
 ## Сборка и тесты
 
 Нужен JDK 17. IntelliJ Platform SDK `2022.3` для сборки скачивается Gradle IntelliJ Platform plugin.
@@ -211,7 +217,7 @@ Marketplace вычисляет конкретные версии продукт�
 .\gradlew.bat jacocoTestReport
 ```
 
-HTML-отчет появится в `build/reports/coverage/html`.
+HTML-отчет появится в `core/build/reports/coverage/html`.
 
 Performance benchmarks ядра:
 

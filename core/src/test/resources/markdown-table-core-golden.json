@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "conversion": [
     {
       "name": "quoted csv to markdown table",

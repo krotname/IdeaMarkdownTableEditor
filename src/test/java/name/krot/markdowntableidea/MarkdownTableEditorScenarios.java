@@ -27,7 +27,7 @@ import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.StatusBarWidget;
-import name.krot.markdowntableidea.core.MarkdownTableCore;
+import name.krot.markdowntable.core.MarkdownTableCore;
 
 import java.awt.Component;
 import java.awt.Rectangle;

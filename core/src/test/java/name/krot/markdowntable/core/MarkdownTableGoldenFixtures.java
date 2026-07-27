@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 krotname
 
-package name.krot.markdowntableidea.core;
+package name.krot.markdowntable.core;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,11 +17,11 @@ final class MarkdownTableGoldenFixtures {
 	private MarkdownTableGoldenFixtures() {
 	}
 
-	static void run() throws IOException {
-		Map<String, Object> root = asObject(Json.parse(Files.readString(
-			Path.of("test-fixtures", "markdown-table-core-golden.json"),
-			StandardCharsets.UTF_8
-		)));
+	static void run() throws Exception {
+		Path fixture = Path.of(
+			MarkdownTableGoldenFixtures.class.getResource("/markdown-table-core-golden.json").toURI()
+		);
+		Map<String, Object> root = asObject(Json.parse(Files.readString(fixture, StandardCharsets.UTF_8)));
 
 		for (Map<String, Object> scenario : asObjectList(root.get("conversion"))) {
 			String name = asString(scenario.get("name"));

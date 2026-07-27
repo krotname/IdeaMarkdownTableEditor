@@ -20,7 +20,7 @@ import com.intellij.openapi.wm.StatusBarWidgetFactory;
 import com.intellij.openapi.wm.WindowManager;
 import com.intellij.util.Consumer;
 import com.intellij.util.messages.MessageBusConnection;
-import name.krot.markdowntableidea.core.MarkdownTableCore;
+import name.krot.markdowntable.core.MarkdownTableCore;
 
 import javax.swing.JComponent;
 import javax.swing.Timer;

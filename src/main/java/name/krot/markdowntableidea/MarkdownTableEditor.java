@@ -19,7 +19,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
-import name.krot.markdowntableidea.core.MarkdownTableCore;
+import name.krot.markdowntable.core.MarkdownTableCore;
 
 import javax.swing.JComponent;
 import javax.swing.Timer;
@@ -153,21 +153,30 @@ public final class MarkdownTableEditor {
 			return false;
 		}
 
+		List<String> editedLines = edit.lines;
+		int editedTargetRow = edit.targetRow;
+		int editedTargetColumnOffset = edit.targetColumnOffset;
 		if (caretPlacement == CaretPlacement.PRESERVE_CELL_OFFSET && preservedCaret.valid) {
-			edit.lines = new ArrayList<>(edit.lines);
-			ensureTrailingCellCaretSpaces(edit.lines, preservedCaret);
-			CellCaretPosition preservedPosition = cellCaretPositionInLines(edit.lines, preservedCaret);
+			editedLines = new ArrayList<>(editedLines);
+			ensureTrailingCellCaretSpaces(editedLines, preservedCaret);
+			CellCaretPosition preservedPosition = cellCaretPositionInLines(editedLines, preservedCaret);
 			if (preservedPosition.found) {
-				edit.targetRow = preservedPosition.row;
-				edit.targetColumnOffset = preservedPosition.columnOffset;
+				editedTargetRow = preservedPosition.row;
+				editedTargetColumnOffset = preservedPosition.columnOffset;
 			}
 		}
 
 		int replaceStart = document.getLineStartOffset(tableRange.firstLine);
 		int replaceEnd = document.getLineEndOffset(tableRange.lastLine);
 		String eol = chooseEol(document, tableRange.firstLine, tableRange.lastLine);
-		String replacement = String.join(eol, edit.lines);
-		int targetOffset = positionForLineColumn(replaceStart, edit.lines, eol, edit.targetRow, edit.targetColumnOffset);
+		String replacement = String.join(eol, editedLines);
+		int targetOffset = positionForLineColumn(
+			replaceStart,
+			editedLines,
+			eol,
+			editedTargetRow,
+			editedTargetColumnOffset
+		);
 		String original = document.getImmutableCharSequence().subSequence(replaceStart, replaceEnd).toString();
 		int safeTargetOffset = Math.min(Math.max(targetOffset, 0), document.getTextLength());
 		if (replacement.equals(original) && safeTargetOffset == currentOffset) {

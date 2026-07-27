@@ -12,6 +12,7 @@ plugins {
 }
 
 rootProject.name = "MarkdownTableEditorIdea"
+include("core")
 
 dependencyResolutionManagement {
 	repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS

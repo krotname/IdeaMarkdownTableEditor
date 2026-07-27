@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 krotname
 
-package name.krot.markdowntableidea.core;
+package name.krot.markdowntableidea;
 
-import name.krot.markdowntableidea.MarkdownTableEditorScenarios;
+import name.krot.markdowntable.core.MarkdownTableCore;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public final class MarkdownTableCoreSmoke {
+public final class MarkdownTablePluginSmoke {
 	@Test
 	void coreSmokeScenarios() throws Exception {
 		String sourcePluginXml = Files.readString(Path.of("src", "main", "resources", "META-INF", "plugin.xml"));
@@ -80,7 +80,6 @@ public final class MarkdownTableCoreSmoke {
 		expectContains("marketplace change notes", pluginXml, "<change-notes><![CDATA[");
 		expectTrue("plugin icon exists", Files.exists(Path.of("src", "main", "resources", "META-INF", "pluginIcon.svg")));
 		expectTrue("license exists", Files.exists(Path.of("LICENSE")));
-		MarkdownTableGoldenFixtures.run();
 
 		List<String> input = List.of(
 			"| Name | Age |",
@@ -921,7 +920,6 @@ public final class MarkdownTableCoreSmoke {
 			"| 1   |"
 		));
 
-		MarkdownTableCoreScenarios.run();
 		MarkdownTableEditorScenarios.run();
 	}
 
