@@ -1,0 +1,120 @@
+name: Publish Markdown Table Core
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version; must match core/VERSION.
+        required: true
+        type: string
+      mode:
+        description: Dry-run validates artifacts and secrets; publish releases to Maven Central.
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - publish
+      confirmation:
+        description: For publish, type name.krot:markdown-table-core:<version>.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: markdown-table-core-maven-central-release
+  cancel-in-progress: false
+
+jobs:
+  publish-core:
+    name: Maven Central / ${{ inputs.mode }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_MODE: ${{ inputs.mode }}
+      RELEASE_CONFIRMATION: ${{ inputs.confirmation }}
+      ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+      ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+      ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+      ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Validate release request and secrets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$') {
+            throw "Invalid semantic version: '$env:RELEASE_VERSION'."
+          }
+
+          $canonicalVersion = (Get-Content -Raw core/VERSION).Trim()
+          if ($env:RELEASE_VERSION -ne $canonicalVersion) {
+            throw "Requested version '$env:RELEASE_VERSION' does not match core/VERSION '$canonicalVersion'."
+          }
+
+          $requiredSecrets = @{
+            MAVEN_CENTRAL_USERNAME = $env:ORG_GRADLE_PROJECT_mavenCentralUsername
+            MAVEN_CENTRAL_PASSWORD = $env:ORG_GRADLE_PROJECT_mavenCentralPassword
+            SIGNING_KEY = $env:ORG_GRADLE_PROJECT_signingInMemoryKey
+            SIGNING_PASSWORD = $env:ORG_GRADLE_PROJECT_signingInMemoryKeyPassword
+          }
+          foreach ($entry in $requiredSecrets.GetEnumerator()) {
+            if ([string]::IsNullOrWhiteSpace($entry.Value)) {
+              throw "Required GitHub Actions secret '$($entry.Key)' is missing."
+            }
+          }
+
+          if ($env:RELEASE_MODE -eq 'publish') {
+            if ($env:GITHUB_REF -ne 'refs/heads/main') {
+              throw "Publishing is allowed only from refs/heads/main; got '$env:GITHUB_REF'."
+            }
+            $expectedConfirmation = "name.krot:markdown-table-core:$env:RELEASE_VERSION"
+            if ($env:RELEASE_CONFIRMATION -ne $expectedConfirmation) {
+              throw "Publish confirmation must exactly match '$expectedConfirmation'."
+            }
+          }
+
+          Write-Host "Validated $env:RELEASE_MODE request for name.krot:markdown-table-core:$env:RELEASE_VERSION."
+
+      - name: Build and verify Central publication
+        shell: cmd
+        run: gradlew.bat :core:clean :core:check :core:corePerformance :core:verifyCentralPublication "-PcoreVersion=%RELEASE_VERSION%" --no-daemon --console=plain --no-build-cache --rerun-tasks --max-workers=1
+
+      - name: Validate artifact signing
+        shell: cmd
+        run: gradlew.bat :core:signMavenPublication "-PcoreVersion=%RELEASE_VERSION%" --no-daemon --console=plain --no-build-cache --rerun-tasks --max-workers=1
+
+      - name: Upload verified dry-run artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: markdown-table-core-${{ inputs.version }}-${{ inputs.mode }}
+          path: |
+            core/build/libs/markdown-table-core-${{ inputs.version }}*.jar
+            core/build/publications/maven/pom-default.xml*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish and release to Maven Central
+        if: ${{ inputs.mode == 'publish' }}
+        shell: cmd
+        run: gradlew.bat :core:publishAndReleaseToMavenCentral "-PcoreVersion=%RELEASE_VERSION%" --no-daemon --console=plain --no-build-cache --max-workers=1
