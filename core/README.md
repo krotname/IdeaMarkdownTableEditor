@@ -11,7 +11,10 @@ dependencies {
 }
 ```
 
-The artifact is prepared for Maven Central but is not published yet.
+Version `0.1.0` is published on
+[Maven Central](https://central.sonatype.com/artifact/name.krot/markdown-table-core/0.1.0)
+and available from the
+[Central repository](https://repo1.maven.org/maven2/name/krot/markdown-table-core/0.1.0/).
 
 ## Usage
 

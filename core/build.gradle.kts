@@ -179,7 +179,7 @@ mavenPublishing {
 		developers {
 			developer {
 				id = "krotname"
-				name = "krotname"
+				name = "Andrei Ovcharenko"
 				url = "https://github.com/krotname"
 			}
 		}
