@@ -177,6 +177,12 @@ Except for the contextual `Tab`, commands use `Ctrl+Alt+Shift` with the top numb
 
 You can change shortcuts in `Settings | Keymap`.
 
+## Standalone Core Library
+
+The editor-independent engine is a separate Java 17 module with no runtime dependencies:
+[`name.krot:markdown-table-core`](core/README.md). The plugin consumes that module through the
+same Gradle build, so plugin tests also verify the real library integration.
+
 ## Build and Tests
 
 You need JDK 17. The IntelliJ Platform SDK `2022.3` used for compilation is downloaded by the Gradle IntelliJ Platform plugin.
@@ -210,7 +216,7 @@ For JaCoCo coverage:
 .\gradlew.bat jacocoTestReport
 ```
 
-The HTML report is written to `build/reports/coverage/html`.
+The HTML report is written to `core/build/reports/coverage/html`.
 
 Core performance benchmarks:
 

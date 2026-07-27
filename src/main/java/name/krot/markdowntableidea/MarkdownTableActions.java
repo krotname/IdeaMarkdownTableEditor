@@ -11,7 +11,7 @@ import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.ui.Messages;
-import name.krot.markdowntableidea.core.MarkdownTableCore;
+import name.krot.markdowntable.core.MarkdownTableCore;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

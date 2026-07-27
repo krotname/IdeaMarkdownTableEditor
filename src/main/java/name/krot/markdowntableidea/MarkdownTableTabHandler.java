@@ -9,7 +9,7 @@ import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.actionSystem.EditorActionHandler;
 import com.intellij.openapi.project.Project;
-import name.krot.markdowntableidea.core.MarkdownTableCore;
+import name.krot.markdowntable.core.MarkdownTableCore;
 import org.jetbrains.annotations.Nullable;
 
 public final class MarkdownTableTabHandler extends EditorActionHandler {

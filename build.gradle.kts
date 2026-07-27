@@ -9,13 +9,10 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.TaskAction
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
-import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
-import org.gradle.testing.jacoco.tasks.JacocoReport
 import java.util.zip.ZipFile
 
 plugins {
 	java
-	jacoco
 	id("org.jetbrains.intellij.platform")
 }
 
@@ -164,10 +161,6 @@ base {
 	archivesName = "MarkdownTableEditorIdea"
 }
 
-jacoco {
-	toolVersion = "0.8.13"
-}
-
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
@@ -175,6 +168,8 @@ java {
 }
 
 dependencies {
+	implementation(project(":core"))
+
 	testImplementation(platform("org.junit:junit-bom:6.1.2"))
 	testImplementation("org.junit.jupiter:junit-jupiter")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -237,17 +232,6 @@ val sourcePluginXmlPath = layout.projectDirectory.file("src/main/resources/META-
 val processedPluginXmlPath = layout.buildDirectory.file("resources/main/META-INF/plugin.xml")
 val marketplaceSubmissionTemplate = layout.projectDirectory.file("MARKETPLACE_SUBMISSION.md")
 val generatedMarketplaceSubmission = layout.buildDirectory.file("release/MARKETPLACE_SUBMISSION.md")
-val goldenFixtureFile = layout.projectDirectory.file("test-fixtures/markdown-table-core-golden.json")
-val corePerformanceThresholdScale = providers.gradleProperty("corePerformanceThresholdScale")
-	.orElse(providers.environmentVariable("CORE_PERFORMANCE_THRESHOLD_SCALE"))
-	.orElse("1.0")
-val coreCoverageClassDirectories = layout.buildDirectory.dir("instrumented/instrumentCode").map {
-	fileTree(it) {
-		include("name/krot/markdowntableidea/core/MarkdownTableCore*.class")
-	}
-}
-val coreCoverageSourceDirectories = files("src/main/java")
-val coreCoverageExecutionData = layout.buildDirectory.file("jacoco/test.exec")
 val ideaExecutable = providers.gradleProperty("ideaExecutable")
 	.orElse("C:\\Program Files\\JetBrains\\IntelliJ IDEA 2026.1.3\\bin\\idea64.exe")
 val ideaPlaybackKeepInstalled = providers.gradleProperty("ideaPlaybackKeepInstalled")
@@ -277,34 +261,17 @@ tasks.named<Test>("test") {
 	useJUnitPlatform()
 	include("**/*Smoke.class", "**/*Test.class", "**/*Tests.class")
 	failOnNoDiscoveredTests = true
-	inputs.file(goldenFixtureFile).withPathSensitivity(PathSensitivity.RELATIVE)
 	systemProperty("pluginVersion", resolvedPluginVersion)
 	workingDir = projectDir
 	classpath += fileTree(intellijPlatform.platformPath) {
 		include("lib/*.jar")
 	}
-	extensions.configure(JacocoTaskExtension::class) {
-		isIncludeNoLocationClasses = true
-		excludes = listOf("jdk.internal.*")
-	}
 }
 
-val corePerformance = tasks.register<Test>("corePerformance") {
+val corePerformance = tasks.register("corePerformance") {
 	group = LifecycleBasePlugin.VERIFICATION_GROUP
-	description = "Runs core performance benchmarks with time thresholds."
-	useJUnitPlatform()
-	include("**/*Performance.class")
-	failOnNoDiscoveredTests = true
-	testClassesDirs = sourceSets["test"].output.classesDirs
-	classpath = sourceSets["test"].runtimeClasspath
-	workingDir = projectDir
-	shouldRunAfter(tasks.named("test"))
-	systemProperty("corePerformanceThresholdScale", corePerformanceThresholdScale.get())
-	outputs.upToDateWhen { false }
-	testLogging {
-		events("passed", "failed", "skipped")
-		showStandardStreams = true
-	}
+	description = "Runs the standalone core module performance benchmarks."
+	dependsOn(":core:corePerformance")
 }
 
 val jarTask = tasks.named<Jar>("jar") {
@@ -349,43 +316,16 @@ val ideaPlaybackSmoke = tasks.register<Exec>("ideaPlaybackSmoke") {
 	}
 }
 
-tasks.named<JacocoReport>("jacocoTestReport") {
-	dependsOn(tasks.named("test"))
-	classDirectories.setFrom(coreCoverageClassDirectories)
-	sourceDirectories.setFrom(coreCoverageSourceDirectories)
-	additionalSourceDirs.setFrom(coreCoverageSourceDirectories)
-	executionData.setFrom(coreCoverageExecutionData)
-	reports {
-		xml.required.set(true)
-		xml.outputLocation.set(layout.buildDirectory.file("reports/coverage/jacoco.xml"))
-		csv.required.set(true)
-		csv.outputLocation.set(layout.buildDirectory.file("reports/coverage/jacoco.csv"))
-		html.required.set(true)
-		html.outputLocation.set(layout.buildDirectory.dir("reports/coverage/html"))
-	}
-}
-
-tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
-	dependsOn(tasks.named("test"))
-	classDirectories.setFrom(coreCoverageClassDirectories)
-	sourceDirectories.setFrom(coreCoverageSourceDirectories)
-	executionData.setFrom(coreCoverageExecutionData)
-	violationRules {
-		rule {
-			limit {
-				counter = "LINE"
-				value = "COVEREDRATIO"
-				minimum = "0.70".toBigDecimal()
-			}
-		}
-	}
+tasks.register("jacocoTestReport") {
+	group = LifecycleBasePlugin.VERIFICATION_GROUP
+	description = "Generates the standalone core module coverage report."
+	dependsOn(":core:jacocoTestReport")
 }
 
 tasks.named("check") {
 	dependsOn(verifyPackagedLicense)
 	dependsOn(verifyReleaseMetadata)
-	dependsOn(tasks.named("jacocoTestReport"))
-	dependsOn(tasks.named("jacocoTestCoverageVerification"))
+	dependsOn(":core:check")
 }
 
 tasks.named("buildPlugin") {

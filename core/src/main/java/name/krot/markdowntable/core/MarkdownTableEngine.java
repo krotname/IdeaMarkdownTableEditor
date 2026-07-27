@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 krotname
 
-package name.krot.markdowntableidea.core;
+package name.krot.markdowntable.core;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public final class MarkdownTableCore {
+final class MarkdownTableEngine {
 	public enum Action {
 		ALIGN,
 		NEXT_CELL,
@@ -100,7 +100,7 @@ public final class MarkdownTableCore {
 	private static final int HARD_WRAP_CELL_WIDTH = 26;
 	private static final int MINIMUM_AUTO_WRAP_CELL_WIDTH = 1;
 
-	private MarkdownTableCore() {
+	private MarkdownTableEngine() {
 	}
 
 	public static boolean isPotentialTableLine(String line) {

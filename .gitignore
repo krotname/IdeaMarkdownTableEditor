@@ -1,9 +1,14 @@
 .idea/
 .gradle/
 .intellijPlatform/
+.classpath
+.project
+.settings/
+bin/
 build/
 verification-*/
 *.class
 *.zip
 *.iml
 docs/social-preview.png
+/secrets.txt
