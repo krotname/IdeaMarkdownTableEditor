@@ -11,3 +11,4 @@ verification-*/
 *.zip
 *.iml
 docs/social-preview.png
+/secrets.txt
