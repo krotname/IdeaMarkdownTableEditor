@@ -25,10 +25,11 @@
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>Fixed Power Auto Fit so typing in lower sparse or continuation rows keeps the caret in the edited row instead of jumping back to the second row.</li>
-			<li>Prevented pending auto-fit timers from overriding manual plugin edits such as Align, Narrow Column, and Widen Column.</li>
-			<li>Kept Java/C++ core behavior in sync for continuation-row reflow, manual column resizing, caret placement, escaped pipes, and Unicode/CJK width handling.</li>
-			<li>Expanded regression coverage with core tests and live IDE playback smoke checks for manual table edits under automatic modes.</li>
+			<li>Fixed table detection so a separator line right after a table no longer starts a second, overlapping table that reused the previous table's last row as its header, which could corrupt a document when reformatting every table.</li>
+			<li>Fixed formatting of tables without outer pipes: rows now keep the outer pipe whenever the first or last column holds an empty cell, so inserting a column no longer drops one on the next parse.</li>
+			<li>Fixed deleting down to a single column in a table without outer pipes, which used to leave rows with no pipe at all and turn the table into plain text.</li>
+			<li>Fixed a header made only of dashes being mistaken for the separator row, which rejected every edit on that table.</li>
+			<li>Upgraded the bundled table engine to name.krot:markdown-table-core:0.2.0 and kept Java/C++ core behavior in sync, verified across 28763 generated scenarios.</li>
 		</ul>
 	]]></change-notes>
 
