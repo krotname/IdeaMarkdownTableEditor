@@ -28,15 +28,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Marketplace / ${{ inputs.mode }}
+  # Runs for both modes and never sees the Marketplace token: workflow_dispatch takes the workflow
+  # file and the build scripts from the dispatched ref, so anything reachable here must be treated
+  # as untrusted.
+  verify:
+    name: Verify ${{ inputs.version }}
     runs-on: windows-latest
     timeout-minutes: 60
     env:
       RELEASE_VERSION: ${{ inputs.version }}
       RELEASE_MODE: ${{ inputs.mode }}
       RELEASE_CONFIRMATION: ${{ inputs.confirmation }}
-      JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
 
     steps:
       - name: Checkout
@@ -56,7 +58,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
-      - name: Validate release request and secrets
+      - name: Validate release request
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -72,9 +74,6 @@ jobs:
           if ($env:RELEASE_MODE -eq 'publish') {
             if ($env:GITHUB_REF -ne 'refs/heads/main') {
               throw "Publishing is allowed only from refs/heads/main; got '$env:GITHUB_REF'."
-            }
-            if ([string]::IsNullOrWhiteSpace($env:JETBRAINS_MARKETPLACE_TOKEN)) {
-              throw "Required GitHub Actions secret 'JETBRAINS_MARKETPLACE_TOKEN' is missing."
             }
             $expectedConfirmation = "markdown-table-editor-idea:$env:RELEASE_VERSION"
             if ($env:RELEASE_CONFIRMATION -ne $expectedConfirmation) {
@@ -102,7 +101,53 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # The token lives in the "marketplace" environment, which requires a reviewer approval and is
+  # limited to protected branches. Dropping the environment from this job would also drop access to
+  # the secret, so the gate cannot be removed by pushing a modified workflow to a side branch.
+  publish:
+    name: Publish ${{ inputs.version }}
+    needs: verify
+    if: ${{ inputs.mode == 'publish' }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    environment: marketplace
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+
+      - name: Confirm the publish ref and secret
+        shell: pwsh
+        env:
+          JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_REF -ne 'refs/heads/main') {
+            throw "Publishing is allowed only from refs/heads/main; got '$env:GITHUB_REF'."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:JETBRAINS_MARKETPLACE_TOKEN)) {
+            throw "Required environment secret 'JETBRAINS_MARKETPLACE_TOKEN' is missing."
+          }
+          Write-Host "Publishing markdown-table-editor-idea:$env:RELEASE_VERSION from main."
+
       - name: Publish to JetBrains Marketplace
-        if: ${{ inputs.mode == 'publish' }}
         shell: cmd
+        env:
+          JETBRAINS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
         run: gradlew.bat publishPlugin --no-daemon --console=plain --no-build-cache
