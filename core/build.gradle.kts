@@ -171,9 +171,9 @@ mavenPublishing {
 		url = "https://github.com/krotname/IdeaMarkdownTableEditor"
 		licenses {
 			license {
-				name = "MIT License"
-				url = "https://opensource.org/license/mit"
-				distribution = "https://opensource.org/license/mit"
+				name = "GNU General Public License v3.0 or later"
+				url = "https://www.gnu.org/licenses/gpl-3.0.html"
+				distribution = "https://www.gnu.org/licenses/gpl-3.0.html"
 			}
 		}
 		developers {

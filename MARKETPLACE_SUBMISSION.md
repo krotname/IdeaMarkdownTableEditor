@@ -18,7 +18,7 @@ Status: release metadata for version `@PLUGIN_VERSION@`; generated from Gradle's
 - Vendor: `krotname`
 - Website: `https://github.com/krotname/IdeaMarkdownTableEditor`
 - Source code: `https://github.com/krotname/IdeaMarkdownTableEditor`
-- License: `MIT`
+- License: `GPL-3.0-or-later`
 - License URL: `https://github.com/krotname/IdeaMarkdownTableEditor/blob/main/LICENSE`
 - Suggested tags: `Markdown`, `Tables`, `Documentation`, `Editor`
 - Suggested category: `Code tools`
@@ -64,7 +64,7 @@ Uploaded updates stay `Under review` until JetBrains moderation approves them.
 3. Select or create the Vendor profile.
 4. Accept the JetBrains Marketplace Developer Agreement if prompted.
 5. Upload `build/distributions/MarkdownTableEditorIdea-@PLUGIN_VERSION@.zip`.
-6. Choose MIT/open-source license and provide the license URL above.
+6. Choose GPL-3.0-or-later/open-source license and provide the license URL above.
 7. Provide the source code URL above.
 8. Submit for review.
 

@@ -3,6 +3,18 @@
 All notable changes to `name.krot:markdown-table-core` are recorded here.
 The module follows [semantic versioning](https://semver.org/).
 
+## 0.3.0
+
+Source and binary compatible with `0.2.0`: no public type, method, field, or enum constant was
+removed, added, or changed. Only the distribution license changed.
+
+### Changed
+
+- The module is relicensed from `MIT` to `GPL-3.0-or-later`, so the whole Markdown Table Editor
+  suite - the JetBrains IDE plugin, the Notepad++ plugin, and this core library - is distributed
+  under a single license. Releases up to and including `0.2.0` stay available under `MIT` on
+  Maven Central and keep their original terms.
+
 ## 0.2.0
 
 Source and binary compatible with `0.1.0`: no public type, method, field, or enum constant was

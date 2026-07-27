@@ -246,3 +246,12 @@ For a faster local build without Plugin Verifier:
 ```
 
 For local installation, use the ZIP from `build/distributions` through `Settings | Plugins | Install Plugin from Disk...`.
+
+## License
+
+The project is distributed under the [GNU General Public License v3.0 or later](LICENSE) (`GPL-3.0-or-later`).
+The same license covers the `name.krot:markdown-table-core` library and the
+[Markdown Table Editor for Notepad++](https://github.com/krotname/NppMarkdownTableEditor) plugin, so the whole
+Markdown Table Editor suite ships under identical terms.
+
+Copyright (C) 2026 krotname

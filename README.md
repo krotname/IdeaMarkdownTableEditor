@@ -247,3 +247,12 @@ Performance benchmarks ядра:
 ```
 
 Для локальной установки используйте готовый ZIP из `build/distributions` через `Settings | Plugins | Install Plugin from Disk...`.
+
+## Лицензия
+
+Проект распространяется по лицензии [GNU General Public License v3.0 или более поздней версии](LICENSE) (`GPL-3.0-or-later`).
+Та же лицензия действует для библиотеки ядра `name.krot:markdown-table-core` и для плагина
+[Markdown Table Editor для Notepad++](https://github.com/krotname/NppMarkdownTableEditor), поэтому весь комплект
+Markdown Table Editor распространяется на единых условиях.
+
+Copyright (C) 2026 krotname
