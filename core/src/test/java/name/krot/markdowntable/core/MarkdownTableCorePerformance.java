@@ -32,6 +32,7 @@ public final class MarkdownTableCorePerformance {
 			"| --- | --- |",
 			"| x | y |"
 		);
+		String endToEndCsv = delimited(2_000, 6, ',');
 
 		runBenchmark("align 3000x8 table", 500, () ->
 			consume(MarkdownTableCore.apply(largeTable, 1_502, 3, MarkdownTableCore.Action.ALIGN)));
@@ -59,6 +60,17 @@ public final class MarkdownTableCorePerformance {
 			consumeRanges(MarkdownTableCore.findTableRanges(pipeHeavyDocument)));
 		runBenchmark("fit 1000000-char header", 1_500, () ->
 			consume(MarkdownTableCore.applyWrappedToWidth(wideHeaderTable, 2, 0, 80)));
+		runBenchmark("end-to-end convert, sort, wrap, align", 1_200, () -> {
+			MarkdownTableCore.EditResult converted = MarkdownTableCore.fromDelimited(endToEndCsv);
+			consume(converted);
+			MarkdownTableCore.EditResult sorted =
+				MarkdownTableCore.apply(converted.lines, 2, 1, MarkdownTableCore.Action.SORT_DESCENDING);
+			consume(sorted);
+			MarkdownTableCore.EditResult wrapped =
+				MarkdownTableCore.applyWrappedToWidth(sorted.lines, 2, 1, 120);
+			consume(wrapped);
+			consume(MarkdownTableCore.apply(wrapped.lines, 2, 1, MarkdownTableCore.Action.ALIGN));
+		});
 		assertTrue(sink != 0, "benchmark results must be consumed");
 	}
 
@@ -77,12 +89,14 @@ public final class MarkdownTableCorePerformance {
 		Arrays.sort(samples);
 		double scale = thresholdScale();
 		long medianMillis = TimeUnit.NANOSECONDS.toMillis(samples[samples.length / 2]);
+		long p95Millis = TimeUnit.NANOSECONDS.toMillis(percentile(samples, 95));
 		long scaledThreshold = Math.max(1, Math.round(thresholdMillis * scale));
 		System.out.printf(
 			Locale.ROOT,
-			"core performance: %-30s median=%d ms threshold=%d ms samples=%s%n",
+			"core performance: %-38s median=%d ms p95=%d ms threshold=%d ms samples=%s%n",
 			name,
 			medianMillis,
+			p95Millis,
 			scaledThreshold,
 			samplesMillis(samples)
 		);
@@ -90,6 +104,12 @@ public final class MarkdownTableCorePerformance {
 			medianMillis <= scaledThreshold,
 			() -> name + " median " + medianMillis + " ms exceeded threshold " + scaledThreshold + " ms"
 		);
+	}
+
+	/** Nearest-rank percentile over an ascending sample array. */
+	private static long percentile(long[] sortedSamples, int percentile) {
+		int rank = (int) Math.ceil(percentile / 100.0 * sortedSamples.length);
+		return sortedSamples[Math.min(Math.max(rank, 1), sortedSamples.length) - 1];
 	}
 
 	private static String samplesMillis(long[] samples) {

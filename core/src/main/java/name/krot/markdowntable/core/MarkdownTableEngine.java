@@ -131,37 +131,67 @@ final class MarkdownTableEngine {
 	}
 
 	public static TableRange findTableRange(List<String> lines, int row) {
-		TableRange result = new TableRange();
+		TableRange notFound = new TableRange();
 		if (lines.isEmpty() || row < 0 || row >= lines.size()) {
-			return result;
+			return notFound;
 		}
 
-		for (TableRange range : findTableRanges(lines)) {
-			if (row >= range.firstRow && row <= range.lastRow) {
+		for (int separatorRow = 1; separatorRow < lines.size(); separatorRow++) {
+			TableRange range = tableRangeWithSeparatorAt(lines, separatorRow);
+			if (range == null) {
+				continue;
+			}
+			if (row < range.firstRow) {
+				// Ranges are discovered in document order, so no later table can contain the row.
+				return notFound;
+			}
+			if (row <= range.lastRow) {
 				return range;
 			}
+			separatorRow = nextSeparatorCandidate(range);
 		}
-
-		return result;
+		return notFound;
 	}
 
 	public static List<TableRange> findTableRanges(List<String> lines) {
 		List<TableRange> ranges = new ArrayList<>();
 		for (int separatorRow = 1; separatorRow < lines.size(); separatorRow++) {
-			int firstRow = separatorRow - 1;
-			if (!isPotentialTableLine(lines.get(firstRow)) ||
-				!isSeparatorForHeader(lines.get(firstRow), lines.get(separatorRow))) {
+			TableRange range = tableRangeWithSeparatorAt(lines, separatorRow);
+			if (range == null) {
 				continue;
 			}
-
-			TableRange range = new TableRange();
-			range.found = true;
-			range.firstRow = firstRow;
-			range.lastRow = tableRangeEnd(lines, firstRow, separatorRow);
 			ranges.add(range);
-			separatorRow = range.lastRow;
+			separatorRow = nextSeparatorCandidate(range);
 		}
 		return ranges;
+	}
+
+	/**
+	 * Returns the table whose header sits directly above {@code separatorRow}, or {@code null}
+	 * when those two lines do not form a header/separator pair.
+	 */
+	private static TableRange tableRangeWithSeparatorAt(List<String> lines, int separatorRow) {
+		int firstRow = separatorRow - 1;
+		if (!isPotentialTableLine(lines.get(firstRow)) ||
+			!isSeparatorForHeader(lines.get(firstRow), lines.get(separatorRow))) {
+			return null;
+		}
+
+		TableRange range = new TableRange();
+		range.found = true;
+		range.firstRow = firstRow;
+		range.lastRow = tableRangeEnd(lines, firstRow, separatorRow);
+		return range;
+	}
+
+	/**
+	 * Returns the loop value that resumes scanning after {@code range}. The caller's {@code for}
+	 * increment turns it into {@code lastRow + 2}, so the next header candidate is the first row
+	 * past the table and discovered ranges can never overlap - not even when the table ended on a
+	 * row that still carries pipes.
+	 */
+	private static int nextSeparatorCandidate(TableRange range) {
+		return range.lastRow + 1;
 	}
 
 	private static boolean isSeparatorForHeader(String headerLine, String separatorLine) {
@@ -180,76 +210,132 @@ final class MarkdownTableEngine {
 		return isSeparatorRow(separator) || isShortSeparatorLine(line);
 	}
 
-	public static EditResult apply(List<String> lines, int row, int column, Action action) {
-		EditResult result = new EditResult();
+	/**
+	 * The parsed table that contains a requested document row, together with the caret position
+	 * translated into table-local coordinates.
+	 */
+	private static final class ResolvedTable {
+		final Table table;
+		final List<String> sourceLines;
+		final int row;
+		final int column;
+
+		ResolvedTable(Table table, List<String> sourceLines, int row, int column) {
+			this.table = table;
+			this.sourceLines = sourceLines;
+			this.row = row;
+			this.column = column;
+		}
+	}
+
+	private static int clamp(int value, int maximum) {
+		if (value > maximum) {
+			value = maximum;
+		}
+		return Math.max(value, 0);
+	}
+
+	/**
+	 * Locates and parses the table containing {@code row}, clamping the caret into the table.
+	 *
+	 * @return the resolved table, or {@code null} when {@code row} is not inside a Markdown table
+	 */
+	private static ResolvedTable resolveTable(List<String> lines, int row, int column) {
 		if (lines.isEmpty()) {
-			result.message = "No table found";
-			return result;
+			return null;
 		}
 
-		if (row >= lines.size()) {
-			row = lines.size() - 1;
-		}
-		if (row < 0) {
-			row = 0;
-		}
-
-		TableRange tableRange = findTableRange(lines, row);
+		TableRange tableRange = findTableRange(lines, clamp(row, lines.size() - 1));
 		if (!tableRange.found) {
-			result.message = "No Markdown table found";
-			return result;
+			return null;
 		}
 
-		lines = lines.subList(tableRange.firstRow, tableRange.lastRow + 1);
-		row -= tableRange.firstRow;
-
-		Table table = parseTable(lines);
+		List<String> tableLines = lines.subList(tableRange.firstRow, tableRange.lastRow + 1);
+		Table table = parseTable(tableLines);
 		if (!isMarkdownTable(table)) {
-			result.message = "No Markdown table found";
-			return result;
+			return null;
 		}
 
-		if (row >= table.rows.size()) {
-			row = table.rows.size() - 1;
-		}
-		if (row < 0) {
-			row = 0;
-		}
-		if (column >= table.columns) {
-			column = table.columns - 1;
-		}
-		if (column < 0) {
-			column = 0;
+		return new ResolvedTable(
+			table,
+			tableLines,
+			clamp(clamp(row, lines.size() - 1) - tableRange.firstRow, table.rows.size() - 1),
+			clamp(column, table.columns - 1)
+		);
+	}
+
+	private static EditResult noTableFound(List<String> lines) {
+		EditResult result = new EditResult();
+		result.message = lines.isEmpty() ? "No table found" : "No Markdown table found";
+		return result;
+	}
+
+	private static EditResult formattedResult(ResolvedTable resolved, FormatResult formatted) {
+		EditResult result = new EditResult();
+		setResultFromFormat(result, formatted);
+		result.ok = true;
+		result.changed = !formatted.lines.equals(resolved.sourceLines);
+		return result;
+	}
+
+	public static EditResult apply(List<String> lines, int row, int column, Action action) {
+		ResolvedTable resolved = resolveTable(lines, row, column);
+		if (resolved == null) {
+			return noTableFound(lines);
 		}
 
-		int targetRow = row;
-		int targetColumn = column;
+		ActionOutcome outcome = applyAction(resolved, action);
+		FormatResult formatted = formatTable(
+			resolved.table,
+			outcome.targetRow,
+			outcome.targetColumn,
+			outcome.minimumWidths
+		);
+		return formattedResult(resolved, formatted);
+	}
+
+	/** Caret position and width constraints produced by one editing action. */
+	private static final class ActionOutcome {
+		int targetRow;
+		int targetColumn;
+		List<Integer> minimumWidths;
+
+		ActionOutcome(int targetRow, int targetColumn) {
+			this.targetRow = targetRow;
+			this.targetColumn = targetColumn;
+		}
+	}
+
+	private static ActionOutcome applyAction(ResolvedTable resolved, Action action) {
+		Table table = resolved.table;
+		int row = resolved.row;
+		int column = resolved.column;
+		ActionOutcome outcome = new ActionOutcome(row, column);
 		int currentRowId = table.rows.get(row).id;
-		List<Integer> minimumWidths = null;
 
 		switch (action) {
 			case NEXT_CELL:
-				if (targetColumn + 1 < table.columns) {
-					targetColumn++;
+				if (column + 1 < table.columns) {
+					outcome.targetColumn = column + 1;
 				} else {
-					targetColumn = 0;
-					targetRow = nextEditableRow(table, targetRow);
-					if (targetRow >= table.rows.size()) {
+					outcome.targetColumn = 0;
+					outcome.targetRow = nextEditableRow(table, row);
+					if (outcome.targetRow >= table.rows.size()) {
 						insertEmptyRow(table, table.rows.size());
 					}
 				}
 				break;
 			case PREVIOUS_CELL:
-				if (targetColumn > 0) {
-					targetColumn--;
+				if (column > 0) {
+					outcome.targetColumn = column - 1;
 				} else {
-					targetColumn = table.columns - 1;
-					targetRow = previousEditableRow(table, targetRow);
+					outcome.targetColumn = table.columns - 1;
+					outcome.targetRow = previousEditableRow(table, row);
 				}
 				break;
 			case INSERT_ROW_BELOW:
-				targetRow = nextEditableRow(table, row);
-				insertEmptyRow(table, targetRow);
+				outcome.targetRow = nextEditableRow(table, row);
+				insertEmptyRow(table, outcome.targetRow);
 				break;
 			case DELETE_ROW:
 				if (canDeleteRow(table, row)) {
@@ -257,119 +343,84 @@ final class MarkdownTableEngine {
 					if (table.separatorRow != -1 && row < table.separatorRow) {
 						table.separatorRow--;
 					}
-					targetRow = closestEditableRow(table, row);
+					outcome.targetRow = closestEditableRow(table, row);
 				}
 				break;
 			case INSERT_COLUMN_RIGHT:
 				insertColumn(table, column + 1);
-				targetColumn = column + 1;
+				outcome.targetColumn = column + 1;
 				break;
 			case DELETE_COLUMN:
 				removeColumn(table, column);
-				targetColumn = column >= table.columns ? table.columns - 1 : column;
+				outcome.targetColumn = Math.min(column, table.columns - 1);
 				break;
 			case NARROW_COLUMN:
-				minimumWidths = new ArrayList<>();
-				targetRow = resizeColumnWidth(table, row, column, false, minimumWidths);
-				break;
 			case WIDEN_COLUMN:
-				minimumWidths = new ArrayList<>();
-				targetRow = resizeColumnWidth(table, row, column, true, minimumWidths);
+				outcome.minimumWidths = new ArrayList<>();
+				outcome.targetRow = resizeColumnWidth(
+					table,
+					row,
+					column,
+					action == Action.WIDEN_COLUMN,
+					outcome.minimumWidths
+				);
 				break;
 			case MOVE_ROW_UP:
-				if (row > 0 && !table.rows.get(row).separator && !table.rows.get(row - 1).separator) {
+				if (canSwapRows(table, row, row - 1)) {
 					Collections.swap(table.rows, row, row - 1);
-					targetRow = row - 1;
+					outcome.targetRow = row - 1;
 				}
 				break;
 			case MOVE_ROW_DOWN:
-				if (row + 1 < table.rows.size() && !table.rows.get(row).separator && !table.rows.get(row + 1).separator) {
+				if (canSwapRows(table, row, row + 1)) {
 					Collections.swap(table.rows, row, row + 1);
-					targetRow = row + 1;
+					outcome.targetRow = row + 1;
 				}
 				break;
 			case MOVE_COLUMN_LEFT:
 				if (column > 0) {
 					moveColumn(table, column, column - 1);
-					targetColumn = column - 1;
+					outcome.targetColumn = column - 1;
 				}
 				break;
 			case MOVE_COLUMN_RIGHT:
 				if (column + 1 < table.columns) {
 					moveColumn(table, column, column + 1);
-					targetColumn = column + 1;
+					outcome.targetColumn = column + 1;
 				}
 				break;
 			case SORT_ASCENDING:
-				targetRow = sortRows(table, column, true, currentRowId, row);
-				break;
 			case SORT_DESCENDING:
-				targetRow = sortRows(table, column, false, currentRowId, row);
+				outcome.targetRow = sortRows(table, column, action == Action.SORT_ASCENDING, currentRowId, row);
 				break;
 			case WRAP_LONG_CELLS:
-				targetRow = wrapLongCells(table, row);
+				outcome.targetRow = wrapCellsToWidths(table, row, null);
 				break;
 			case ALIGN:
 				break;
 		}
+		return outcome;
+	}
 
-		FormatResult formatted = formatTable(table, targetRow, targetColumn, minimumWidths);
-		setResultFromFormat(result, formatted);
-		result.ok = true;
-		result.changed = true;
-		return result;
+	private static boolean canSwapRows(Table table, int row, int otherRow) {
+		return otherRow >= 0
+			&& otherRow < table.rows.size()
+			&& !table.rows.get(row).separator
+			&& !table.rows.get(otherRow).separator;
 	}
 
 	public static EditResult applyWrappedToWidth(List<String> lines, int row, int column, int maxTableWidth) {
-		EditResult result = new EditResult();
-		if (lines.isEmpty()) {
-			result.message = "No table found";
-			return result;
+		ResolvedTable resolved = resolveTable(lines, row, column);
+		if (resolved == null) {
+			return noTableFound(lines);
 		}
 
-		if (row >= lines.size()) {
-			row = lines.size() - 1;
-		}
-		if (row < 0) {
-			row = 0;
-		}
-
-		TableRange tableRange = findTableRange(lines, row);
-		if (!tableRange.found) {
-			result.message = "No Markdown table found";
-			return result;
-		}
-
-		lines = lines.subList(tableRange.firstRow, tableRange.lastRow + 1);
-		row -= tableRange.firstRow;
-
-		Table table = parseTable(lines);
-		if (!isMarkdownTable(table)) {
-			result.message = "No Markdown table found";
-			return result;
-		}
-
-		if (row >= table.rows.size()) {
-			row = table.rows.size() - 1;
-		}
-		if (row < 0) {
-			row = 0;
-		}
-		if (column >= table.columns) {
-			column = table.columns - 1;
-		}
-		if (column < 0) {
-			column = 0;
-		}
-
-		row = unwrapContinuationRows(table, row);
+		Table table = resolved.table;
+		int unwrappedRow = unwrapContinuationRows(table, resolved.row);
 		List<Integer> columnWidths = targetColumnWidthsForTableWidth(table, Math.max(maxTableWidth, 0));
-		int targetRow = wrapCellsToColumnWidths(table, row, columnWidths);
-		FormatResult formatted = formatTable(table, targetRow, column, columnWidths);
-		setResultFromFormat(result, formatted);
-		result.ok = true;
-		result.changed = true;
-		return result;
+		int targetRow = wrapCellsToWidths(table, unwrappedRow, columnWidths);
+		FormatResult formatted = formatTable(table, targetRow, resolved.column, columnWidths);
+		return formattedResult(resolved, formatted);
 	}
 
 	public static EditResult fromDelimited(String text) {
@@ -422,17 +473,7 @@ final class MarkdownTableEngine {
 	}
 
 	private static String trim(String value) {
-		int first = 0;
-		while (first < value.length() && isSpace(value.charAt(first))) {
-			first++;
-		}
-
-		int last = value.length();
-		while (last > first && isSpace(value.charAt(last - 1))) {
-			last--;
-		}
-
-		return value.substring(first, last);
+		return trimRange(value, 0, value.length());
 	}
 
 	private static String trimRange(String value, int first, int last) {
@@ -451,10 +492,6 @@ final class MarkdownTableEngine {
 			slashCount++;
 		}
 		return (slashCount % 2) == 1;
-	}
-
-	private static boolean endsWithUnescapedPipe(String line) {
-		return !line.isEmpty() && line.charAt(line.length() - 1) == '|' && !isEscaped(line, line.length() - 1);
 	}
 
 	private static boolean endsWithUnescapedPipeTrimmed(String line) {
@@ -612,7 +649,10 @@ final class MarkdownTableEngine {
 			table.trailingPipe = trailingPipeRows * 2 >= lines.size();
 		}
 
-		for (int i = 0; i < table.rows.size(); i++) {
+		// The scan starts at the second row: a table range always pairs a header with the separator
+		// directly below it, so a header made of dashes such as "| --- | --- |" must stay a header
+		// instead of being mistaken for the separator and rejecting the whole table.
+		for (int i = 1; i < table.rows.size(); i++) {
 			if (isSeparatorRow(table.rows.get(i)) || (i == 1 && isShortSeparatorLine(lines.get(i)))) {
 				table.separatorRow = i;
 				table.rows.get(i).separator = true;
@@ -851,7 +891,7 @@ final class MarkdownTableEngine {
 	private static void addDelimitedRow(List<List<String>> rows, List<String> row, boolean hasDelimitedSyntax) {
 		boolean hasValue = false;
 		for (String cell : row) {
-			if (!trim(cell).isEmpty()) {
+			if (cellHasText(cell)) {
 				hasValue = true;
 				break;
 			}
@@ -1337,8 +1377,16 @@ final class MarkdownTableEngine {
 		return segments;
 	}
 
-	private static int wrapLongCells(Table table, int originalTargetRow) {
-		if (table.separatorRow == -1) {
+	/**
+	 * Splits data rows so that no cell exceeds its column width, keeping Markdown links and code
+	 * spans intact.
+	 *
+	 * @param columnWidths per-column display widths, or {@code null} to hard-wrap every column at
+	 *                     {@link #HARD_WRAP_CELL_WIDTH}
+	 * @return the row index the caret should follow to
+	 */
+	private static int wrapCellsToWidths(Table table, int originalTargetRow, List<Integer> columnWidths) {
+		if (table.separatorRow == -1 || (columnWidths != null && columnWidths.size() < table.columns)) {
 			return originalTargetRow;
 		}
 
@@ -1347,10 +1395,10 @@ final class MarkdownTableEngine {
 		int nextId = nextRowId(table);
 		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
 			Row row = table.rows.get(rowIndex);
+			if (rowIndex == originalTargetRow) {
+				wrappedTargetRow = wrappedRows.size();
+			}
 			if (row.separator || rowIndex <= table.separatorRow) {
-				if (rowIndex == originalTargetRow) {
-					wrappedTargetRow = wrappedRows.size();
-				}
 				wrappedRows.add(row);
 				continue;
 			}
@@ -1358,13 +1406,10 @@ final class MarkdownTableEngine {
 			List<List<String>> cellSegments = new ArrayList<>();
 			int segmentCount = 1;
 			for (int column = 0; column < table.columns; column++) {
-				List<String> segments = wrapCellSegments(row.cells.get(column), HARD_WRAP_CELL_WIDTH);
+				int width = columnWidths == null ? HARD_WRAP_CELL_WIDTH : columnWidths.get(column);
+				List<String> segments = wrapCellSegments(row.cells.get(column), width);
 				cellSegments.add(segments);
 				segmentCount = Math.max(segmentCount, segments.size());
-			}
-
-			if (rowIndex == originalTargetRow) {
-				wrappedTargetRow = wrappedRows.size();
 			}
 
 			for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
@@ -1383,63 +1428,98 @@ final class MarkdownTableEngine {
 		return wrappedTargetRow;
 	}
 
+	private static List<Integer> uniformWidths(Table table, int minimumWidth) {
+		List<Integer> widths = new ArrayList<>(table.columns);
+		for (int i = 0; i < table.columns; i++) {
+			widths.add(minimumWidth);
+		}
+		return widths;
+	}
+
+	private static void growWidthsToFit(List<Integer> widths, Row row, int columns) {
+		for (int column = 0; column < columns && column < row.cells.size(); column++) {
+			widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
+		}
+	}
+
+	/** Widths that fit every content cell, ignoring the separator row. */
 	private static List<Integer> naturalColumnWidths(Table table) {
-		List<Integer> widths = new ArrayList<>();
-		for (int i = 0; i < table.columns; i++) {
-			widths.add(3);
-		}
-
+		List<Integer> widths = uniformWidths(table, 3);
 		for (Row row : table.rows) {
-			if (row.separator) {
-				continue;
-			}
-			for (int column = 0; column < table.columns; column++) {
-				widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
+			if (!row.separator) {
+				growWidthsToFit(widths, row, table.columns);
 			}
 		}
 		return widths;
 	}
 
+	/** Widths of the table as it is currently laid out, separator markers included. */
 	private static List<Integer> currentColumnWidths(Table table) {
-		List<Integer> widths = new ArrayList<>();
-		for (int i = 0; i < table.columns; i++) {
-			widths.add(1);
-		}
-
+		List<Integer> widths = uniformWidths(table, 1);
 		for (Row row : table.rows) {
-			for (int column = 0; column < table.columns && column < row.cells.size(); column++) {
-				widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
-			}
+			growWidthsToFit(widths, row, table.columns);
 		}
 		return widths;
 	}
 
+	/** Widths required by the header rows alone; used as the floor when shrinking columns. */
 	private static List<Integer> headerColumnWidths(Table table) {
-		List<Integer> widths = new ArrayList<>();
-		for (int i = 0; i < table.columns; i++) {
-			widths.add(3);
-		}
-
+		List<Integer> widths = uniformWidths(table, 3);
 		int headerEnd = table.separatorRow == -1 ? table.rows.size() : table.separatorRow;
 		for (int rowIndex = 0; rowIndex < headerEnd && rowIndex < table.rows.size(); rowIndex++) {
-			Row row = table.rows.get(rowIndex);
-			for (int column = 0; column < table.columns; column++) {
-				widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
-			}
+			growWidthsToFit(widths, table.rows.get(rowIndex), table.columns);
 		}
 		return widths;
+	}
+
+	/**
+	 * Returns whether formatted rows must open with a pipe.
+	 *
+	 * <p>A row whose first cell is empty would otherwise start with padding followed by the pipe
+	 * that separates the first two columns. Re-parsing such a row strips that pipe as a leading
+	 * pipe and silently drops the first column, so the pipe is forced back on.</p>
+	 */
+	private static boolean rendersLeadingPipe(Table table) {
+		return table.leadingPipe || hasEmptyCellInColumn(table, 0);
+	}
+
+	/**
+	 * Returns whether formatted rows must close with a pipe; mirrors {@link #rendersLeadingPipe}
+	 * for the trailing edge, where an empty last cell would otherwise be swallowed on re-parse.
+	 *
+	 * <p>A single-column table without a leading pipe also needs one, because it has no separating
+	 * pipe of its own and would be rendered as plain text that is no longer a table.</p>
+	 */
+	private static boolean rendersTrailingPipe(Table table) {
+		return table.trailingPipe
+			|| hasEmptyCellInColumn(table, table.columns - 1)
+			|| (table.columns < 2 && !rendersLeadingPipe(table));
+	}
+
+	private static boolean hasEmptyCellInColumn(Table table, int column) {
+		if (column < 0) {
+			return false;
+		}
+		for (Row row : table.rows) {
+			if (!row.separator && column < row.cells.size() && !cellHasText(row.cells.get(column))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static int formattedTableOverhead(Table table) {
-		int overhead = table.leadingPipe ? 1 : 0;
+		boolean leadingPipe = rendersLeadingPipe(table);
+		boolean trailingPipe = rendersTrailingPipe(table);
+		int overhead = leadingPipe ? 1 : 0;
 		for (int column = 0; column < table.columns; column++) {
 			if (column > 0) {
 				overhead += 2;
 			}
-			if (table.leadingPipe || column > 0) {
+			if (leadingPipe || column > 0) {
 				overhead++;
 			}
-			if (table.trailingPipe && column + 1 == table.columns) {
+			if (trailingPipe && column + 1 == table.columns) {
 				overhead += 2;
 			}
 		}
@@ -1624,52 +1704,6 @@ final class MarkdownTableEngine {
 		return widths;
 	}
 
-	private static int wrapCellsToColumnWidths(Table table, int originalTargetRow, List<Integer> columnWidths) {
-		if (table.separatorRow == -1 || columnWidths.size() < table.columns) {
-			return originalTargetRow;
-		}
-
-		List<Row> wrappedRows = new ArrayList<>();
-		int wrappedTargetRow = originalTargetRow;
-		int nextId = nextRowId(table);
-		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
-			Row row = table.rows.get(rowIndex);
-			if (row.separator || rowIndex <= table.separatorRow) {
-				if (rowIndex == originalTargetRow) {
-					wrappedTargetRow = wrappedRows.size();
-				}
-				wrappedRows.add(row);
-				continue;
-			}
-
-			List<List<String>> cellSegments = new ArrayList<>();
-			int segmentCount = 1;
-			for (int column = 0; column < table.columns; column++) {
-				List<String> segments = wrapCellSegments(row.cells.get(column), columnWidths.get(column));
-				cellSegments.add(segments);
-				segmentCount = Math.max(segmentCount, segments.size());
-			}
-
-			if (rowIndex == originalTargetRow) {
-				wrappedTargetRow = wrappedRows.size();
-			}
-
-			for (int segmentIndex = 0; segmentIndex < segmentCount; segmentIndex++) {
-				Row wrapped = new Row();
-				wrapped.id = segmentIndex == 0 ? row.id : nextId++;
-				for (int column = 0; column < table.columns; column++) {
-					List<String> segments = cellSegments.get(column);
-					wrapped.cells.add(segmentIndex < segments.size() ? segments.get(segmentIndex) : "");
-				}
-				wrappedRows.add(wrapped);
-			}
-		}
-
-		table.rows.clear();
-		table.rows.addAll(wrappedRows);
-		return wrappedTargetRow;
-	}
-
 	private static boolean[] continuationRowsToPreserve(Table table, int originalTargetRow) {
 		boolean[] preserve = new boolean[table.rows.size()];
 		if (table.separatorRow == -1 || originalTargetRow < 0 || originalTargetRow >= table.rows.size()) {
@@ -1738,11 +1772,17 @@ final class MarkdownTableEngine {
 			}
 		}
 
-		return wrapCellsToColumnWidths(table, originalTargetRow, columnWidths);
+		return wrapCellsToWidths(table, originalTargetRow, columnWidths);
 	}
 
+	/** Whether a cell holds anything but whitespace, without copying the cell. */
 	private static boolean cellHasText(String cell) {
-		return !trim(cell).isEmpty();
+		for (int i = 0; i < cell.length(); i++) {
+			if (!isSpace(cell.charAt(i))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static int nonEmptyCellCount(Row row) {
@@ -1955,17 +1995,10 @@ final class MarkdownTableEngine {
 
 	private static FormatResult formatTable(Table table, int targetRow, int targetColumn, List<Integer> minimumWidths) {
 		int separatorMinimumWidth = minimumWidths == null ? 3 : 1;
-		List<Integer> widths = new ArrayList<>();
-		for (int i = 0; i < table.columns; i++) {
-			widths.add(separatorMinimumWidth);
-		}
-
+		List<Integer> widths = uniformWidths(table, separatorMinimumWidth);
 		for (Row row : table.rows) {
-			if (row.separator) {
-				continue;
-			}
-			for (int column = 0; column < table.columns; column++) {
-				widths.set(column, Math.max(widths.get(column), displayWidth(row.cells.get(column))));
+			if (!row.separator) {
+				growWidthsToFit(widths, row, table.columns);
 			}
 		}
 		if (minimumWidths != null) {
@@ -1978,15 +2011,17 @@ final class MarkdownTableEngine {
 		result.targetRow = targetRow < table.rows.size() ? targetRow : 0;
 		result.targetColumn = targetColumn < table.columns ? targetColumn : 0;
 
+		boolean leadingPipe = rendersLeadingPipe(table);
+		boolean trailingPipe = rendersTrailingPipe(table);
 		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
 			Row row = table.rows.get(rowIndex);
-			StringBuilder line = new StringBuilder(table.leadingPipe ? "|" : "");
+			StringBuilder line = new StringBuilder(leadingPipe ? "|" : "");
 
 			for (int column = 0; column < table.columns; column++) {
 				if (column > 0) {
 					line.append(" |");
 				}
-				if (table.leadingPipe || column > 0) {
+				if (leadingPipe || column > 0) {
 					line.append(' ');
 				}
 
@@ -2007,7 +2042,7 @@ final class MarkdownTableEngine {
 					}
 				}
 
-				if (table.trailingPipe && column + 1 == table.columns) {
+				if (trailingPipe && column + 1 == table.columns) {
 					line.append(" |");
 				}
 			}
