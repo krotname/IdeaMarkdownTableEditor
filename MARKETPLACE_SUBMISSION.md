@@ -47,6 +47,15 @@ Use this for the JetBrains Marketplace version notes for `@PLUGIN_VERSION@` if t
 </ul>
 ```
 
+## Automated submission
+
+Run the **Publish to JetBrains Marketplace** workflow from `main`: start with `dry-run`, then use
+`publish` with the confirmation `markdown-table-editor-idea:@PLUGIN_VERSION@`. It builds, verifies,
+and uploads the ZIP with `gradlew publishPlugin` using the `JETBRAINS_MARKETPLACE_TOKEN` secret.
+Locally the same task works with `ORG_GRADLE_PROJECT_marketplaceToken` or the
+`JETBRAINS_MARKETPLACE_TOKEN` environment variable. Uploaded updates stay `Under review` until
+JetBrains moderation approves them.
+
 ## Manual submission
 
 1. Log in to JetBrains Marketplace.

@@ -196,6 +196,15 @@ intellijPlatform {
 		}
 	}
 
+	// Marketplace upload. The token is never stored in the repository: supply it as
+	// ORG_GRADLE_PROJECT_marketplaceToken or JETBRAINS_MARKETPLACE_TOKEN. Uploaded updates still go
+	// through JetBrains moderation before they become public.
+	publishing {
+		token = providers.gradleProperty("marketplaceToken")
+			.orElse(providers.environmentVariable("JETBRAINS_MARKETPLACE_TOKEN"))
+		channels = listOf("default")
+	}
+
 	pluginVerification {
 		ides {
 			jetBrainsIdeVerificationTypes.forEach {
