@@ -66,8 +66,6 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
 	}
-	withSourcesJar()
-	withJavadocJar()
 }
 
 dependencies {
@@ -198,7 +196,7 @@ val verifyCentralPublication = tasks.register<VerifyCentralPublicationTask>("ver
 	description = "Builds and validates the Maven Central publication without uploading it."
 	dependsOn(tasks.named("jar"))
 	dependsOn(tasks.named("sourcesJar"))
-	dependsOn(tasks.named("javadocJar"))
+	dependsOn(tasks.named("plainJavadocJar"))
 	dependsOn(tasks.withType<GenerateMavenPom>())
 	artifactFiles.from(
 		layout.buildDirectory.file("libs/markdown-table-core-$resolvedCoreVersion.jar"),
