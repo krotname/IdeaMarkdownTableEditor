@@ -178,7 +178,11 @@ dependencies {
 		if (platformLocalPath.get().isNotBlank()) {
 			local(platformLocalPath.get())
 		} else {
-			intellijIdea(platformVersion)
+			// Community, not Ultimate: the plugin only needs com.intellij.modules.platform, and
+			// compiling against the Community distribution keeps Ultimate-only API out by
+			// construction. It is also the only variant that release builds can fetch - JetBrains
+			// answers 451 for Ultimate downloads from Russia, where the release runner lives.
+			intellijIdeaCommunity(platformVersion)
 		}
 	}
 }
