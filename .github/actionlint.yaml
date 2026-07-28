@@ -2,4 +2,4 @@
 # that target it. See .github/workflows/release.yml.
 self-hosted-runner:
   labels:
-    - adler
+    - adler-lenovo
