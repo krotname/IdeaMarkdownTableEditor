@@ -11,6 +11,9 @@ permissions:
 
 jobs:
   selftest:
+    # Same trusted-ref rule as the release build: a dispatch picks the ref, and only the default
+    # branch may execute code on the persistent runner.
+    if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, windows, adler]
     timeout-minutes: 90
     steps:
@@ -38,7 +41,9 @@ jobs:
 
       - name: Build and test
         shell: cmd
-        run: gradlew.bat clean check buildPlugin --no-daemon --console=plain
+        # Same cache flags as the release build: gradle.properties turns the build cache on, and a
+        # cache hit would let the job pass without the runner actually compiling and testing.
+        run: gradlew.bat clean check buildPlugin --no-daemon --console=plain --no-build-cache --rerun-tasks
 
       - name: Report produced artifacts
         shell: pwsh
