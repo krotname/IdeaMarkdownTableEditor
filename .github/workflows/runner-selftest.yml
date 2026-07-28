@@ -43,7 +43,7 @@ jobs:
         shell: cmd
         # Same cache flags as the release build: gradle.properties turns the build cache on, and a
         # cache hit would let the job pass without the runner actually compiling and testing.
-        run: gradlew.bat clean check buildPlugin --no-daemon --console=plain --no-build-cache --rerun-tasks
+        run: .\gradlew.bat clean check buildPlugin --no-daemon --console=plain --no-build-cache --rerun-tasks
 
       - name: Report produced artifacts
         shell: pwsh
