@@ -181,7 +181,7 @@ Marketplace вычисляет конкретные версии продукт�
 ## Самостоятельная библиотека ядра
 
 Независимое от редактора ядро выделено в Java 17 модуль без runtime-зависимостей:
-[`name.krot:markdown-table-core:0.2.0`](https://central.sonatype.com/artifact/name.krot/markdown-table-core/0.2.0).
+[`name.krot:markdown-table-core:0.3.0`](https://central.sonatype.com/artifact/name.krot/markdown-table-core/0.3.0).
 Плагин использует опубликованный артефакт из Maven Central, поэтому plugin-тесты проверяют
 интеграцию с той же публичной библиотекой, которую получают внешние потребители.
 История изменений ядра — в [core/CHANGELOG.md](core/CHANGELOG.md).

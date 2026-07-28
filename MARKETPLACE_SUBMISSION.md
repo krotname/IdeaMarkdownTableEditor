@@ -39,11 +39,8 @@ Use this for the JetBrains Marketplace version notes for `@PLUGIN_VERSION@` if t
 
 ```html
 <ul>
-  <li>Fixed table detection so a separator line right after a table no longer starts a second, overlapping table that reused the previous table's last row as its header, which could corrupt a document when reformatting every table.</li>
-  <li>Fixed formatting of tables without outer pipes: rows now keep the outer pipe whenever the first or last column holds an empty cell, so inserting a column no longer drops one on the next parse.</li>
-  <li>Fixed deleting down to a single column in a table without outer pipes, which used to leave rows with no pipe at all and turn the table into plain text.</li>
-  <li>Fixed a header made only of dashes being mistaken for the separator row, which rejected every edit on that table.</li>
-  <li>Upgraded the bundled table engine to name.krot:markdown-table-core:0.2.0 and kept Java/C++ core behavior in sync, verified across 28763 generated scenarios.</li>
+  <li>The plugin, its table engine, and the Notepad++ edition of Markdown Table Editor now ship under one license, GPL-3.0-or-later. Earlier releases stay available under their original MIT terms.</li>
+  <li>Upgraded the bundled table engine to name.krot:markdown-table-core:0.3.0, which carries the same behavior as 0.2.0 under the new license.</li>
 </ul>
 ```
 
