@@ -1,0 +1,50 @@
+name: Runner self-test
+
+# Manual check that the self-hosted release runner can still build the plugin end to end.
+# It never publishes anything: no release, no Marketplace upload, no attestation.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    # Same trusted-ref rule as the release build: a dispatch picks the ref, and only the default
+    # branch may execute code on the persistent runner.
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, windows, adler]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Report runner environment
+        shell: pwsh
+        run: |
+          "runner: $env:RUNNER_NAME"
+          "host: $env:COMPUTERNAME"
+          "os: " + (Get-CimInstance Win32_OperatingSystem).Caption
+          "cpu: " + (Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)
+          "ram_gb: " + [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+          "free_disk_gb: " + [math]::Round((Get-PSDrive C).Free / 1GB)
+          java -version
+
+      - name: Build and test
+        shell: cmd
+        # Same cache flags as the release build: gradle.properties turns the build cache on, and a
+        # cache hit would let the job pass without the runner actually compiling and testing.
+        run: gradlew.bat clean check buildPlugin --no-daemon --console=plain --no-build-cache --rerun-tasks
+
+      - name: Report produced artifacts
+        shell: pwsh
+        run: Get-ChildItem build/distributions -File | ForEach-Object { "{0} {1} bytes" -f $_.Name, $_.Length }
