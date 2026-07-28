@@ -7,14 +7,14 @@ GitHub-flavored Markdown pipe tables.
 
 ```kotlin
 dependencies {
-    implementation("name.krot:markdown-table-core:0.2.0")
+    implementation("name.krot:markdown-table-core:0.3.0")
 }
 ```
 
-Version `0.2.0` is published on
-[Maven Central](https://central.sonatype.com/artifact/name.krot/markdown-table-core/0.2.0)
+Version `0.3.0` is published on
+[Maven Central](https://central.sonatype.com/artifact/name.krot/markdown-table-core/0.3.0)
 and available from the
-[Central repository](https://repo1.maven.org/maven2/name/krot/markdown-table-core/0.2.0/).
+[Central repository](https://repo1.maven.org/maven2/name/krot/markdown-table-core/0.3.0/).
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed since `0.1.0`.
 
