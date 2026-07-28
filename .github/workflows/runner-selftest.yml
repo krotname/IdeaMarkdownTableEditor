@@ -14,7 +14,7 @@ jobs:
     # Same trusted-ref rule as the release build: a dispatch picks the ref, and only the default
     # branch may execute code on the persistent runner.
     if: github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, windows, adler]
+    runs-on: [self-hosted, windows, adler-lenovo]
     timeout-minutes: 90
     steps:
       - name: Checkout
