@@ -9,7 +9,7 @@
 [![Java](https://img.shields.io/badge/Java-17-007396)](https://adoptium.net/)
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![JetBrains downloads](https://img.shields.io/jetbrains/plugin/d/32159?label=JetBrains%20downloads)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
-[![Website](https://img.shields.io/badge/website-markdowntableeditor.krot.name-0f766e)](https://markdowntableeditor.krot.name/)
+[![Website](https://img.shields.io/badge/website-markdowntableeditor.ru-0f766e)](https://markdowntableeditor.ru/)
 
 Markdown Table Editor turns JetBrains IDEs on the IntelliJ Platform into convenient Markdown table editors.
 Paste a messy table from someone else or from an AI tool, press `Tab`, and the plugin aligns the columns, preserves Markdown formatting,
@@ -17,7 +17,7 @@ and helps you quickly rearrange rows, columns, and data directly in the IDE.
 
 **Quick start:** [install from JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor) ·
 [download the latest release ZIP](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest) ·
-[open the project website](https://markdowntableeditor.krot.name/) ·
+[open the project website](https://markdowntableeditor.ru/) ·
 [README на русском](README.md)
 
 ## Related Projects
