@@ -10,7 +10,7 @@
 [![Java](https://img.shields.io/badge/Java-17-007396)](https://adoptium.net/)
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![JetBrains downloads](https://img.shields.io/jetbrains/plugin/d/32159?label=JetBrains%20downloads)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
-[![Website](https://img.shields.io/badge/website-markdowntableeditor.krot.name-0f766e)](https://markdowntableeditor.krot.name/)
+[![Website](https://img.shields.io/badge/website-markdowntableeditor.ru-0f766e)](https://markdowntableeditor.ru/)
 
 Markdown Table Editor превращает IDE JetBrains на IntelliJ Platform в удобный редактор Markdown-таблиц.
 Берёте чужую косую таблицу или сгенерированную ИИ, жмете `Tab`, а плагин выровняет колонки, сохранит Markdown-разметку
@@ -18,7 +18,7 @@ Markdown Table Editor превращает IDE JetBrains на IntelliJ Platform 
 
 **Быстрый старт:** [установить из JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor) ·
 [скачать ZIP из последнего релиза](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest) ·
-[открыть сайт проекта](https://markdowntableeditor.krot.name/) ·
+[открыть сайт проекта](https://markdowntableeditor.ru/) ·
 [English README](README.en.md)
 
 ## Другие версии
