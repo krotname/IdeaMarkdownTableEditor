@@ -3,6 +3,13 @@
 All notable changes to `name.krot:markdown-table-core` are recorded here.
 The module follows [semantic versioning](https://semver.org/).
 
+## 0.3.1
+
+### Changed
+
+- The Maven Central POM now declares [markdowntableeditor.ru](https://markdowntableeditor.ru/)
+  as the project homepage. Source control metadata continues to point to the GitHub repository.
+
 ## 0.3.0
 
 Source and binary compatible with `0.2.0`: no public type, method, field, or enum constant was

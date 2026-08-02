@@ -168,7 +168,7 @@ mavenPublishing {
 		name = "Markdown Table Core"
 		description = "Dependency-free parsing, formatting, conversion, and editing for Markdown pipe tables."
 		inceptionYear = "2026"
-		url = "https://github.com/krotname/IdeaMarkdownTableEditor"
+		url = "https://markdowntableeditor.ru/"
 		licenses {
 			license {
 				name = "GNU General Public License v3.0 or later"
@@ -209,6 +209,7 @@ val verifyCentralPublication = tasks.register<VerifyCentralPublicationTask>("ver
 		"<artifactId>markdown-table-core</artifactId>",
 		"<version>$resolvedCoreVersion</version>",
 		"<name>Markdown Table Core</name>",
+		"<url>https://markdowntableeditor.ru/</url>",
 		"<licenses>",
 		"<developers>",
 		"<scm>"
