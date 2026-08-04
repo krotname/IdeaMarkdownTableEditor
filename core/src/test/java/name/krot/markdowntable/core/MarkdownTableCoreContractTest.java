@@ -271,6 +271,51 @@ final class MarkdownTableCoreContractTest {
 	}
 
 	@Test
+	void fittingKeepsSparseRowsThatWrappingCouldNotHaveProduced() {
+		// The third row sets the column width, so "second" would still have fitted after "short".
+		// Wrapping is greedy and never leaves that room, so these are two records, not one wrapped row.
+		List<String> table = List.of(
+			"| Name  | Note                     |",
+			"| ----- | ------------------------ |",
+			"| Alice | short                    |",
+			"|       | second                   |",
+			"| Bob   | a much longer value here |"
+		);
+
+		EditResult result = MarkdownTableCore.applyWrappedToWidth(table, 0, 0, 200);
+
+		assertEquals(table, result.lines);
+		assertFalse(result.changed, "a table that already fits is left alone");
+	}
+
+	@Test
+	void fittingRejoinsRowsThatWrappingProduced() {
+		List<String> wrapped = List.of(
+			"| Key | Description        |",
+			"| --- | ------------------ |",
+			"| x   | alpha beta gamma   |",
+			"|     | delta epsilon zeta |"
+		);
+
+		EditResult result = MarkdownTableCore.applyWrappedToWidth(wrapped, 0, 0, 120);
+
+		assertEquals(3, result.lines.size(), "a widened table pulls its continuation rows back in");
+		assertTrue(result.lines.get(2).contains("alpha beta gamma delta epsilon zeta"), result.lines.toString());
+	}
+
+	@Test
+	void aSegmentUnderAnEmptyCellIsNeverWrappingOutput() {
+		// Wrapping fills a cell's segments from the top, so "b" cannot be the second segment of an
+		// empty cell.
+		List<String> table = List.of("| A | B |", "| --- | --- |", "| a |  |", "|  | b |");
+
+		EditResult result = MarkdownTableCore.applyWrappedToWidth(table, 0, 0, 200);
+
+		assertEquals(4, result.lines.size(), result.lines.toString());
+		assertTrue(result.lines.get(3).contains("b"), result.lines.toString());
+	}
+
+	@Test
 	void wrappingToAWidthIsStableWhenRepeated() {
 		List<String> table = List.of("| h | text |", "| --- | --- |",
 			"| 1 | the quick brown fox jumps over the lazy dog again and again |");

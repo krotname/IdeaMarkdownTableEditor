@@ -1715,14 +1715,18 @@ final class MarkdownTableEngine {
 			continuationBaseForRow[i] = -1;
 		}
 
+		List<Integer> widths = wrappingReferenceWidths(table);
 		int baseRowIndex = -1;
 		Row baseRow = null;
+		Row previousSegment = null;
 		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
 			Row row = table.rows.get(rowIndex);
-			if (row.separator || rowIndex <= table.separatorRow || baseRowIndex == -1 || !isLikelyContinuationRow(row, baseRow, table.columns)) {
+			if (row.separator || rowIndex <= table.separatorRow || baseRowIndex == -1 ||
+				!isLikelyContinuationRow(row, baseRow, previousSegment, table.columns, widths)) {
 				if (!row.separator && rowIndex > table.separatorRow) {
 					baseRowIndex = rowIndex;
 					baseRow = copyRow(row);
+					previousSegment = copyRow(row);
 				}
 				continue;
 			}
@@ -1731,6 +1735,7 @@ final class MarkdownTableEngine {
 			for (int column = 0; column < table.columns; column++) {
 				baseRow.cells.set(column, appendContinuationCell(baseRow.cells.get(column), row.cells.get(column)));
 			}
+			previousSegment = copyRow(row);
 		}
 
 		int targetBaseRow = continuationBaseForRow[originalTargetRow];
@@ -1795,7 +1800,90 @@ final class MarkdownTableEngine {
 		return count;
 	}
 
-	private static boolean isLikelyContinuationRow(Row row, Row baseRow, int columns) {
+	/**
+	 * Returns the first token of a cell exactly as {@link #wrapCellSegments} would split it, so
+	 * Markdown links and code spans stay whole.
+	 */
+	private static String firstWrapToken(String cell) {
+		String value = trim(cell);
+		if (value.isEmpty()) {
+			return "";
+		}
+
+		int end;
+		if (value.charAt(0) == '`') {
+			end = markdownCodeSpanEnd(value, 0);
+		} else if (startsMarkdownLinkAt(value, 0)) {
+			end = markdownLinkEnd(value, 0);
+		} else {
+			end = 0;
+			while (end < value.length() && !isSpace(value.charAt(end))) {
+				end += Character.charCount(value.codePointAt(end));
+			}
+		}
+		return value.substring(0, Math.min(end, value.length()));
+	}
+
+	/**
+	 * Column widths a wrap would have used, measured only over rows that cannot themselves be
+	 * continuations.
+	 *
+	 * <p>A continuation row must leave at least one column empty, so rows that fill every column
+	 * carry the real width. Measuring the continuation candidates too would let a hand-split row
+	 * widen the very column it is tested against.</p>
+	 */
+	private static List<Integer> wrappingReferenceWidths(Table table) {
+		List<Integer> widths = uniformWidths(table, 1);
+		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+			Row row = table.rows.get(rowIndex);
+			if (!row.separator && rowIndex > table.separatorRow && nonEmptyCellCount(row) != table.columns) {
+				continue;
+			}
+			growWidthsToFit(widths, row, table.columns);
+		}
+		return widths;
+	}
+
+	/**
+	 * Returns whether {@code row} could have been produced by wrapping the cells of
+	 * {@code previousSegment} at {@code widths}.
+	 *
+	 * <p>Wrapping leaves a checkable trace. It fills a cell's segments from the top, so a segment
+	 * never sits under an empty one, and it is greedy, so it never leaves room for the next token.
+	 * A row that breaks either rule is ordinary sparse data that merely looks like wrapping output,
+	 * and merging it would destroy a record.</p>
+	 */
+	private static boolean couldFollowWrappedSegment(Row previousSegment, Row row, int columns, List<Integer> widths) {
+		if (previousSegment == null || previousSegment.cells.size() < columns) {
+			return false;
+		}
+
+		for (int column = 0; column < columns; column++) {
+			String cell = row.cells.get(column);
+			if (!cellHasText(cell)) {
+				continue;
+			}
+
+			String previousCell = previousSegment.cells.get(column);
+			if (!cellHasText(previousCell)) {
+				return false;
+			}
+
+			int width = column < widths.size() ? widths.get(column) : 0;
+			if (displayWidth(previousCell) + 1 + displayWidth(firstWrapToken(cell)) <= width) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static boolean isLikelyContinuationRow(
+		Row row,
+		Row baseRow,
+		Row previousSegment,
+		int columns,
+		List<Integer> widths
+	) {
 		if (columns < 2 || row.cells.size() < columns || baseRow.cells.size() < columns) {
 			return false;
 		}
@@ -1813,7 +1901,11 @@ final class MarkdownTableEngine {
 		}
 
 		int requiredAnchors = Math.max(1, columns / 3);
-		return emptyWhereBaseHasText >= requiredAnchors;
+		if (emptyWhereBaseHasText < requiredAnchors) {
+			return false;
+		}
+
+		return couldFollowWrappedSegment(previousSegment, row, columns, widths);
 	}
 
 	private static Row copyRow(Row row) {
@@ -1907,18 +1999,21 @@ final class MarkdownTableEngine {
 		}
 
 		boolean[] preserveContinuationRows = continuationRowsToPreserve(table, originalTargetRow);
+		List<Integer> widths = wrappingReferenceWidths(table);
 		List<Row> unwrappedRows = new ArrayList<>();
 		int targetRow = originalTargetRow;
 		int baseRowIndex = -1;
+		Row previousSegment = null;
 		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
 			Row row = table.rows.get(rowIndex);
 			if (row.separator || rowIndex <= table.separatorRow || preserveContinuationRows[rowIndex] || baseRowIndex == -1 ||
-				!isLikelyContinuationRow(row, unwrappedRows.get(baseRowIndex), table.columns)) {
+				!isLikelyContinuationRow(row, unwrappedRows.get(baseRowIndex), previousSegment, table.columns, widths)) {
 				if (rowIndex == originalTargetRow) {
 					targetRow = unwrappedRows.size();
 				}
 				if (!row.separator && rowIndex > table.separatorRow) {
 					baseRowIndex = unwrappedRows.size();
+					previousSegment = copyRow(row);
 				}
 				unwrappedRows.add(row);
 				continue;
@@ -1932,6 +2027,7 @@ final class MarkdownTableEngine {
 			for (int column = 0; column < table.columns; column++) {
 				baseRow.cells.set(column, appendContinuationCell(baseRow.cells.get(column), row.cells.get(column)));
 			}
+			previousSegment = copyRow(row);
 		}
 
 		table.rows.clear();
