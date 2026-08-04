@@ -7,7 +7,7 @@
 [![Release](https://img.shields.io/github/v/release/krotname/IdeaMarkdownTableEditor?label=release)](https://github.com/krotname/IdeaMarkdownTableEditor/releases/latest)
 [![License](https://img.shields.io/github/license/krotname/IdeaMarkdownTableEditor)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17-007396)](https://adoptium.net/)
-[![MvnRepository](https://badges.mvnrepository.com/badge/name.krot/markdown-table-core/badge.svg?label=MvnRepository)](https://mvnrepository.com/artifact/name.krot/markdown-table-core)
+[![MvnRepository](https://img.shields.io/maven-central/v/name.krot/markdown-table-core?label=MvnRepository&logo=apachemaven&logoColor=white)](https://mvnrepository.com/artifact/name.krot/markdown-table-core)
 [![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32159?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![JetBrains downloads](https://img.shields.io/jetbrains/plugin/d/32159?label=JetBrains%20downloads)](https://plugins.jetbrains.com/plugin/32159-markdown-table-editor)
 [![Website](https://img.shields.io/badge/website-markdowntableeditor.ru-0f766e)](https://markdowntableeditor.ru/)
