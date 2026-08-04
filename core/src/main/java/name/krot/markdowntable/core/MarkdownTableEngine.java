@@ -1801,42 +1801,18 @@ final class MarkdownTableEngine {
 	}
 
 	/**
-	 * Returns the first token of a cell exactly as {@link #wrapCellSegments} would split it, so
-	 * Markdown links and code spans stay whole.
-	 */
-	private static String firstWrapToken(String cell) {
-		String value = trim(cell);
-		if (value.isEmpty()) {
-			return "";
-		}
-
-		int end;
-		if (value.charAt(0) == '`') {
-			end = markdownCodeSpanEnd(value, 0);
-		} else if (startsMarkdownLinkAt(value, 0)) {
-			end = markdownLinkEnd(value, 0);
-		} else {
-			end = 0;
-			while (end < value.length() && !isSpace(value.charAt(end))) {
-				end += Character.charCount(value.codePointAt(end));
-			}
-		}
-		return value.substring(0, Math.min(end, value.length()));
-	}
-
-	/**
-	 * Column widths a wrap would have used, measured only over rows that cannot themselves be
-	 * continuations.
+	 * Column widths a wrap would have used, measured only over body rows that fill every column.
 	 *
-	 * <p>A continuation row must leave at least one column empty, so rows that fill every column
-	 * carry the real width. Measuring the continuation candidates too would let a hand-split row
-	 * widen the very column it is tested against.</p>
+	 * <p>Header rows are never wrapped, so a header wider than the wrap target would report a width
+	 * the body was never split at. A continuation row must leave at least one column empty, so
+	 * measuring the candidates too would let a hand-split row widen the very column it is tested
+	 * against.</p>
 	 */
 	private static List<Integer> wrappingReferenceWidths(Table table) {
 		List<Integer> widths = uniformWidths(table, 1);
-		for (int rowIndex = 0; rowIndex < table.rows.size(); rowIndex++) {
+		for (int rowIndex = table.separatorRow + 1; rowIndex < table.rows.size(); rowIndex++) {
 			Row row = table.rows.get(rowIndex);
-			if (!row.separator && rowIndex > table.separatorRow && nonEmptyCellCount(row) != table.columns) {
+			if (row.separator || nonEmptyCellCount(row) != table.columns) {
 				continue;
 			}
 			growWidthsToFit(widths, row, table.columns);
@@ -1849,9 +1825,14 @@ final class MarkdownTableEngine {
 	 * {@code previousSegment} at {@code widths}.
 	 *
 	 * <p>Wrapping leaves a checkable trace. It fills a cell's segments from the top, so a segment
-	 * never sits under an empty one, and it is greedy, so it never leaves room for the next token.
-	 * A row that breaks either rule is ordinary sparse data that merely looks like wrapping output,
-	 * and merging it would destroy a record.</p>
+	 * never sits under an empty one, and it never splits a cell that fits, so a cell that would
+	 * still have fitted after the previous segment was never wrapped away from it. A row that
+	 * breaks either rule is ordinary sparse data that merely looks like wrapping output, and
+	 * merging it would destroy a record.</p>
+	 *
+	 * <p>The second test deliberately measures the whole cell rather than its first token. A
+	 * segment can be a fragment of a construct that was hard-split mid-token, and re-tokenising
+	 * such a fragment would under-measure it and reject a genuine continuation.</p>
 	 */
 	private static boolean couldFollowWrappedSegment(Row previousSegment, Row row, int columns, List<Integer> widths) {
 		if (previousSegment == null || previousSegment.cells.size() < columns) {
@@ -1870,7 +1851,7 @@ final class MarkdownTableEngine {
 			}
 
 			int width = column < widths.size() ? widths.get(column) : 0;
-			if (displayWidth(previousCell) + 1 + displayWidth(firstWrapToken(cell)) <= width) {
+			if (displayWidth(previousCell) + 1 + displayWidth(trim(cell)) <= width) {
 				return false;
 			}
 		}

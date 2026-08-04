@@ -316,6 +316,33 @@ final class MarkdownTableCoreContractTest {
 	}
 
 	@Test
+	void fittingRejoinsBodyThatWasWrappedBelowTheHeaderWidth() {
+		// The header is wider than the wrap target, so the rendered column is wider than the width
+		// the body segments were actually split at.
+		List<String> table = List.of(
+			"| Identifier | Description |", "| --- | --- |", "| x | alpha beta gamma delta epsilon |");
+
+		EditResult narrow = MarkdownTableCore.applyWrappedToWidth(table, 2, 0, 15);
+		assertTrue(narrow.lines.size() > 3, narrow.lines.toString());
+
+		EditResult wide = MarkdownTableCore.applyWrappedToWidth(narrow.lines, 0, 0, 200);
+		assertEquals(3, wide.lines.size(), wide.lines.toString());
+	}
+
+	@Test
+	void fittingRejoinsConstructsThatWereHardSplitMidToken() {
+		// Wrapping cuts an over-wide link mid-token, so a fragment no longer parses as a link.
+		List<String> table = List.of("| A | B |", "| --- | --- |", "| [x y](url) [x y](url) | a |");
+
+		EditResult narrow = MarkdownTableCore.applyWrappedToWidth(table, 2, 0, 18);
+		assertTrue(narrow.lines.size() > 3, narrow.lines.toString());
+
+		EditResult wide = MarkdownTableCore.applyWrappedToWidth(narrow.lines, 0, 0, 200);
+		assertEquals(3, wide.lines.size(), wide.lines.toString());
+		assertTrue(wide.lines.get(2).contains("[x y](url) [x y](url)"), wide.lines.toString());
+	}
+
+	@Test
 	void wrappingToAWidthIsStableWhenRepeated() {
 		List<String> table = List.of("| h | text |", "| --- | --- |",
 			"| 1 | the quick brown fox jumps over the lazy dog again and again |");
