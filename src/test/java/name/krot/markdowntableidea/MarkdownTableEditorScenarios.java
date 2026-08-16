@@ -223,7 +223,17 @@ public final class MarkdownTableEditorScenarios {
 		expectTrue("insert table in middle", MarkdownTableEditor.insertTable(insertMiddle.editor, null, 2, 1));
 		expectString("insert middle text", insertMiddle.text(),
 			"prefix\n| Column 1 | Column 2 |\n| -------- | -------- |\n|          |          |\n suffix");
-		expectInt("insert middle caret", insertMiddle.caretOffset(), "prefix\n| ".length());
+		// Каретка встаёт в первую ячейку данных, а не в заголовок: так же, как её ставит
+		// редакция для Notepad++, и так, как просит ядро (targetRow = 2 при строках данных).
+		expectInt("insert middle caret", insertMiddle.caretOffset(),
+			"prefix\n| Column 1 | Column 2 |\n| -------- | -------- |\n| ".length());
+
+		TestEditor insertWithRowsAtStart = new TestEditor("", false, true);
+		insertWithRowsAtStart.setCaretOffset(0);
+		expectTrue("insert table with rows at start",
+			MarkdownTableEditor.insertTable(insertWithRowsAtStart.editor, null, 1, 2));
+		expectInt("insert with rows caret", insertWithRowsAtStart.caretOffset(),
+			"| Column 1 |\n| -------- |\n| ".length());
 
 		TestEditor insertAtStart = new TestEditor("suffix", false, true);
 		insertAtStart.setCaretOffset(0);
