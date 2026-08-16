@@ -489,7 +489,9 @@ public final class MarkdownTableEditor {
 
 		String eol = chooseEol(source, chooseEolForRange(document, range.start, range.end));
 		String replacement = String.join(eol, edit.lines);
-		replaceRange(editor, project, range.start, range.end, replacement, range.start + edit.targetColumnOffset);
+		int caretOffset = positionForLineColumn(
+			range.start, edit.lines, eol, edit.targetRow, edit.targetColumnOffset);
+		replaceRange(editor, project, range.start, range.end, replacement, caretOffset);
 		return true;
 	}
 
@@ -523,7 +525,12 @@ public final class MarkdownTableEditor {
 
 		String eol = chooseEol(document, lineNumberAtOffset(document, start), document.getLineCount() - 1);
 		InsertText insertText = tableInsertText(document, start, end, String.join(eol, edit.lines), eol);
-		replaceRange(editor, project, start, end, insertText.text, start + insertText.caretDelta + edit.targetColumnOffset);
+		// Ядро указывает и строку, и смещение в ней: у таблицы со строками данных это первая
+		// ячейка данных, а не заголовок. Без targetRow каретка вставала в шапку — редакция для
+		// Notepad++ (offsetForLineColumn при вставке) уже считает позицию правильно.
+		int caretOffset = positionForLineColumn(
+			start + insertText.caretDelta, edit.lines, eol, edit.targetRow, edit.targetColumnOffset);
+		replaceRange(editor, project, start, end, insertText.text, caretOffset);
 		return true;
 	}
 
