@@ -107,22 +107,29 @@ def select_deals(listings: list[Listing], config: dict) -> list[Listing]:
     return deals
 
 
-def filter_new(deals: list[Listing], state_path: Path, drop_pct: float) -> list[Listing]:
-    """Оставить только новые объявления или заметно подешевевшие старые."""
-    state = {}
+def load_state(state_path: Path) -> dict:
     if state_path.exists():
-        state = json.loads(state_path.read_text(encoding="utf-8"))
+        return json.loads(state_path.read_text(encoding="utf-8"))
+    return {}
+
+
+def pick_new(deals: list[Listing], state: dict, drop_pct: float) -> list[Listing]:
+    """Оставить только новые объявления или заметно подешевевшие старые."""
     fresh = []
-    now = int(time.time())
     for d in deals:
         prev = state.get(d.key)
         if prev is None or d.price_rub <= prev["price"] * (1 - drop_pct / 100):
             fresh.append(d)
-            state[d.key] = {"price": d.price_rub, "ts": now, "title": d.title[:80]}
+    return fresh
+
+
+def mark_notified(fresh: list[Listing], state: dict, state_path: Path) -> None:
+    now = int(time.time())
+    for d in fresh:
+        state[d.key] = {"price": d.price_rub, "ts": now, "title": d.title[:80]}
     state_path.write_text(
         json.dumps(state, ensure_ascii=False, indent=1), encoding="utf-8"
     )
-    return fresh
 
 
 def run_once(config: dict, args) -> None:
@@ -133,17 +140,22 @@ def run_once(config: dict, args) -> None:
     if args.dry_run:
         notify.send_console(deals)
         return
-    fresh = filter_new(
-        deals,
-        BASE_DIR / config.get("state_file", "state.json"),
-        float(config.get("renotify_drop_pct", 10)),
-    )
+    state_path = BASE_DIR / config.get("state_file", "state.json")
+    state = load_state(state_path)
+    fresh = pick_new(deals, state, float(config.get("renotify_drop_pct", 10)))
     if not fresh:
         print("  нового ничего: все выгодные позиции уже присылались")
         return
     notify.send_console(fresh)
+    delivered = True
     if (config.get("notify") or {}).get("telegram"):
-        notify.send_telegram(fresh)
+        delivered = notify.send_telegram(fresh)
+    # Помечаем «показанным» только доставленное: иначе упавший Telegram
+    # навсегда проглотит уведомление (state пропустит его до следующего -10%).
+    if delivered:
+        mark_notified(fresh, state, state_path)
+    else:
+        print("! доставка не удалась — state.json не обновляю, пришлю эти позиции в следующий проход")
 
 
 def selftest() -> int:
@@ -202,15 +214,20 @@ def selftest() -> int:
 
     with tempfile.TemporaryDirectory() as td:
         sp = Path(td) / "state.json"
-        first = filter_new(list(deals), sp, drop_pct=10)
-        second = filter_new(list(deals), sp, drop_pct=10)
+        state = load_state(sp)
+        first = pick_new(deals, state, drop_pct=10)
+        mark_notified(first, state, sp)  # доставка удалась → фиксируем
+        state = load_state(sp)
+        second = pick_new(deals, state, drop_pct=10)
         deals[0].price_rub *= 0.5
-        third = filter_new(list(deals), sp, drop_pct=10)
+        third = pick_new(deals, state, drop_pct=10)
+        # Доставка «упала»: mark_notified не зовём — позиция должна прийти снова.
+        fourth = pick_new(deals, state, drop_pct=10)
         print(
             f"  дедуп: 1-й прогон {len(first)}, повтор {len(second)}, "
-            f"после падения цены {len(third)}"
+            f"после падения цены {len(third)}, ретрай без доставки {len(fourth)}"
         )
-        ok = ok and (len(first), len(second), len(third)) == (1, 0, 1)
+        ok = ok and (len(first), len(second), len(third), len(fourth)) == (1, 0, 1, 1)
 
     print("selftest:", "OK" if ok else "FAILED")
     return 0 if ok else 1

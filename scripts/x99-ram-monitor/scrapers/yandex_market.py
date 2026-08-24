@@ -45,13 +45,22 @@ def fetch(
             url = f"https://market.yandex.ru/search?text={quote(query)}&how=aprice"
             page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
             page.wait_for_timeout(3000)
-            content = page.content()
-            if blocked_by_antibot(content):
-                raise RuntimeError(
-                    "Яндекс Маркет показал капчу. Запустите один раз с "
-                    "headless: false, пройдите её — профиль сохранится в "
-                    ".profiles/yandex_market."
-                )
+            if blocked_by_antibot(page.content()):
+                if headless:
+                    raise RuntimeError(
+                        "Яндекс Маркет показал капчу. Запустите один раз с "
+                        "headless: false, решите её в открывшемся окне — "
+                        "профиль сохранится в .profiles/yandex_market."
+                    )
+                # Видимый браузер: держим окно открытым, пока человек решает
+                # капчу — иначе одноразовый ручной проход невозможен.
+                print("  ЯМ показал капчу — решите её в окне браузера (жду до 3 минут)")
+                waited_ms = 0
+                while waited_ms < 180_000 and blocked_by_antibot(page.content()):
+                    page.wait_for_timeout(3000)
+                    waited_ms += 3000
+                if blocked_by_antibot(page.content()):
+                    raise RuntimeError("Капча ЯМ не решена за 3 минуты — пропускаю")
             for raw in page.evaluate(_COLLECT_JS):
                 m = re.search(r"(\d+)/?$", raw["href"])
                 pid = m.group(1) if m else raw["href"]
