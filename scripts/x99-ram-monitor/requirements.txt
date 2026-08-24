@@ -1,0 +1,5 @@
+requests>=2.31
+PyYAML>=6.0
+# Для Ozon/Авито/Я.Маркета (антибот) дополнительно:
+#   pip install playwright && playwright install chromium
+playwright>=1.44 ; python_version >= "3.9"

@@ -1,0 +1,5 @@
+state.json
+.profiles/
+__pycache__/
+.venv/
+monitor.log

@@ -1,0 +1,46 @@
+# Мониторинг дешёвой DDR4 ECC REG памяти для X99.
+# Пороги «выгоднее рынка» выставлены по срезу цен на август 2026:
+#   Ozon, новый комплект Atermiter 4x16 2133  ~18 700 ₽  → ~292 ₽/ГБ
+#   Я.Маркет, новый Samsung 16GB 2133 REG      ~9 200 ₽  → ~576 ₽/ГБ
+#   серверные магазины, Hynix 16GB 2133        ~3 500 ₽  → ~219 ₽/ГБ
+#   Авито, б/у Samsung/Hynix 16GB 2133P        1500–3000 ₽ → 94–188 ₽/ГБ
+# DRAM дорожает с конца 2025 — пороги правьте под текущий рынок.
+
+queries:
+  - "ddr4 ecc reg 16gb"
+  - "ddr4 ecc reg 2133 серверная"
+  - "atermiter ddr4 x99"
+
+target:
+  max_price_per_gb: 220     # ₽/ГБ: всё, что дешевле — присылаем
+  median_discount: 0.75     # ...или на 25% ниже медианы текущей выдачи
+  min_capacity_gb: 8
+  overrides:
+    avito:
+      max_price_per_gb: 160 # б/у обязан быть заметно дешевле нового
+
+markets:
+  wildberries:
+    enabled: true           # без браузера, через открытый JSON-поиск
+    pages: 2
+  ozon:
+    enabled: true           # нужен Playwright; первый запуск: headless: false
+    headless: true
+  avito:
+    enabled: true           # нужен Playwright; сортировка «сначала новые»
+    headless: true
+    region: all             # или слаг города: moskva, sankt-peterburg, ...
+  yandex_market:
+    enabled: false          # SmartCaptcha агрессивная — включайте осознанно
+    headless: true
+
+filters:
+  include: "ddr4"                                # regex по заголовку
+  require_any: ["ecc", "reg", "rdimm", "сервер"] # хотя бы одно слово
+  exclude: ["ddr3", "ddr5", "sodimm", "so-dimm", "ноутбук", "материнская"]
+
+notify:
+  telegram: true            # креды из окружения: TG_BOT_TOKEN, TG_CHAT_ID
+
+state_file: state.json      # память «что уже присылали»
+renotify_drop_pct: 10       # прислать повторно, если цена упала ещё на 10%
