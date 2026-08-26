@@ -12,3 +12,6 @@ verification-*/
 *.iml
 docs/social-preview.png
 /secrets.txt
+*.local.md
+*.secrets.md
+home-infra-secrets*
