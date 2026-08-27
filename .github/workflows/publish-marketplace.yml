@@ -99,7 +99,7 @@ jobs:
             build/distributions/MarkdownTableEditorIdea-${{ inputs.version }}.zip
             build/release/MARKETPLACE_SUBMISSION.md
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
 
   # The token lives in the "marketplace" environment, which requires a reviewer approval and is
   # limited to protected branches. Dropping the environment from this job would also drop access to

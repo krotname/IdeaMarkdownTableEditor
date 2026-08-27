@@ -112,7 +112,7 @@ jobs:
             core/build/libs/markdown-table-core-${{ inputs.version }}*.jar
             core/build/publications/maven/pom-default.xml*
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
 
       - name: Publish and release to Maven Central
         if: ${{ inputs.mode == 'publish' }}
