@@ -83,6 +83,7 @@ jobs:
             build/release/MARKETPLACE_SUBMISSION.md
           if-no-files-found: error
 
+          retention-days: 7
   release:
     needs:
       - version
