@@ -54,6 +54,27 @@ final class MarkdownTableGoldenFixtures {
 				assertEquals(asInt(scenario.get("targetColumn")), result.targetColumn, name + " targetColumn");
 			}
 		}
+
+		for (Map<String, Object> scenario : asObjectList(root.get("separatorLines"))) {
+			String name = asString(scenario.get("name"));
+			assertEquals(
+				asBoolean(scenario.get("separator")),
+				MarkdownTableCore.isPotentialSeparatorLine(asString(scenario.get("input"))),
+				name
+			);
+		}
+
+		for (Map<String, Object> scenario : asObjectList(root.get("ranges"))) {
+			String name = asString(scenario.get("name"));
+			List<Map<String, Object>> expected = asObjectList(scenario.get("ranges"));
+			List<MarkdownTableCore.TableRange> actual =
+				MarkdownTableCore.findTableRanges(asStringList(scenario.get("input")));
+			assertEquals(expected.size(), actual.size(), name + " range count");
+			for (int i = 0; i < expected.size(); i++) {
+				assertEquals(asInt(expected.get(i).get("firstRow")), actual.get(i).firstRow, name + " firstRow " + i);
+				assertEquals(asInt(expected.get(i).get("lastRow")), actual.get(i).lastRow, name + " lastRow " + i);
+			}
+		}
 	}
 
 	@SuppressWarnings("unchecked")

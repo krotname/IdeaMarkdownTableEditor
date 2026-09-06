@@ -25,8 +25,8 @@
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>The plugin, its table engine, and the Notepad++ edition of Markdown Table Editor now ship under one license, GPL-3.0-or-later. Earlier releases stay available under their original MIT terms.</li>
-			<li>Upgraded the bundled table engine to name.krot:markdown-table-core:0.3.0, which carries the same behavior as 0.2.0 under the new license.</li>
+			<li>No change in behavior. The JetBrains, Notepad++, and Visual Studio Code editions of Markdown Table Editor now expose the same table engine surface, and the shared golden fixtures grew sections for table-range scanning and separator-line detection so all three engines are checked against the same expectations.</li>
+			<li>The bundled table engine stays name.krot:markdown-table-core:0.3.1.</li>
 		</ul>
 	]]></change-notes>
 
