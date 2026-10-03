@@ -746,7 +746,10 @@ final class MarkdownTableEngine {
 			return Collections.emptyList();
 		}
 
-		char delimiter = detectDelimiter(value);
+		return parseDelimitedRows(value, detectDelimiter(value));
+	}
+
+	private static List<List<String>> parseDelimitedRows(String value, char delimiter) {
 		List<List<String>> rows = new ArrayList<>();
 		List<String> row = new ArrayList<>();
 		StringBuilder cell = new StringBuilder();
@@ -831,7 +834,6 @@ final class MarkdownTableEngine {
 	private static char detectDelimiter(String text) {
 		int tabs = 0;
 		int commas = 0;
-		boolean firstDelimitedRecord = true;
 		boolean inQuotes = false;
 		boolean cellBlank = true;
 		for (int i = 0; i < text.length(); i++) {
@@ -851,20 +853,42 @@ final class MarkdownTableEngine {
 				commas++;
 				cellBlank = true;
 			} else if (ch == '\r' || ch == '\n') {
-				if (firstDelimitedRecord && tabs > 0) {
-					return '\t';
-				}
-				if (firstDelimitedRecord && commas > 0) {
-					// A comma-only header can be a single TSV cell. Check the body.
-					firstDelimitedRecord = false;
-					commas = 0;
+				if (tabs > 0 || commas > 0) {
+					break;
 				}
 				cellBlank = true;
 			} else if (!isSpace(ch)) {
 				cellBlank = false;
 			}
 		}
-		return tabs > 0 && (firstDelimitedRecord || commas == 0) ? '\t' : ',';
+		if (tabs > 0) {
+			return '\t';
+		}
+		if (text.indexOf('\t') < 0) {
+			return ',';
+		}
+
+		// Compare logical body records using each delimiter's quote grammar.
+		// A populated tab-separated field is stronger evidence than tab padding;
+		// punctuation commas in occasional TSV cells need not imply CSV.
+		List<List<String>> csv = parseDelimitedRows(text, ',');
+		List<List<String>> tsv = parseDelimitedRows(text, '\t');
+		int csvRecords = 0;
+		int tsvRecords = 0;
+		for (int row = 1; row < csv.size(); row++) {
+			if (csv.get(row).size() > 1) {
+				csvRecords++;
+			}
+		}
+		for (int row = 1; row < tsv.size(); row++) {
+			for (int column = 1; column < tsv.get(row).size(); column++) {
+				if (cellHasText(tsv.get(row).get(column))) {
+					tsvRecords++;
+					break;
+				}
+			}
+		}
+		return tsvRecords > csvRecords ? '\t' : ',';
 	}
 
 	private static boolean hasDelimiterOutsideQuotes(String text) {
