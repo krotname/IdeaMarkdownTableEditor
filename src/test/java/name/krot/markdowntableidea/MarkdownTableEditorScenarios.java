@@ -179,13 +179,15 @@ public final class MarkdownTableEditorScenarios {
 		expectTrue("selection removed after convert", !selectedCsv.hasSelection());
 
 		for (String eol : List.of("\n", "\r\n", "\r")) {
-			String source = "Name,Score" + eol + "Anna,10" + eol;
-			TestEditor wholeLines = new TestEditor(source + "Following paragraph", false, true);
-			wholeLines.select(0, source.length());
-			expectTrue("convert csv selection with trailing newline", MarkdownTableEditor.convertDelimited(wholeLines.editor, null, true));
-			expectString("csv selection keeps newline before following prose", wholeLines.text(),
-				"| Name | Score |" + eol + "| ---- | ----- |" + eol + "| Anna | 10    |" + eol + "Following paragraph");
-			expectInt("csv trailing newline keeps caret in first cell", wholeLines.caretOffset(), 2);
+			for (String suffix : List.of(eol, eol + eol, eol + eol + eol)) {
+				String source = "Name,Score" + eol + "Anna,10" + suffix;
+				TestEditor wholeLines = new TestEditor(source + "Following paragraph", false, true);
+				wholeLines.select(0, source.length());
+				expectTrue("convert csv selection with trailing newline", MarkdownTableEditor.convertDelimited(wholeLines.editor, null, true));
+				expectString("csv selection keeps newline before following prose", wholeLines.text(),
+					"| Name | Score |" + eol + "| ---- | ----- |" + eol + "| Anna | 10    |" + suffix + "Following paragraph");
+				expectInt("csv trailing newline keeps caret in first cell", wholeLines.caretOffset(), 2);
+			}
 		}
 
 		TestEditor singleLineCsvInCrLfDocument = new TestEditor("intro\r\nName,Score", false, true);
