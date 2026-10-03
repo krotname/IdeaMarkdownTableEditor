@@ -68,7 +68,7 @@ final class MarkdownTableCoreTest {
 	}
 
 	@Test
-	void publicFacadeRejectsNullInputs() {
+    void publicFacadeRejectsNullInputs() {
 		assertThrows(NullPointerException.class, () -> MarkdownTableCore.isPotentialTableLine(null));
 		assertThrows(NullPointerException.class, () -> MarkdownTableCore.columnFromCursor(null, 0));
 		assertThrows(NullPointerException.class, () -> MarkdownTableCore.findTableRange(null, 0));
@@ -79,5 +79,29 @@ final class MarkdownTableCoreTest {
 		assertThrows(NullPointerException.class,
 			() -> MarkdownTableCore.apply(List.of(), 0, 0, null));
 		assertThrows(NullPointerException.class, () -> MarkdownTableCore.fromDelimited(null));
+	}
+
+	@Test
+	void tsvConversionPreservesEmptyOuterColumns() {
+		MarkdownTableCore.EditResult result = MarkdownTableCore.fromDelimited("\tB\t\n1\t2\t");
+
+		assertTrue(result.ok, result.message);
+		assertEquals(List.of(
+			"|     | B   |     |",
+			"| --- | --- | --- |",
+			"| 1   | 2   |     |"
+		), result.lines);
+	}
+
+	@Test
+	void tsvConversionPreservesEmptyHeaderCells() {
+		MarkdownTableCore.EditResult result = MarkdownTableCore.fromDelimited("\t\t\n1\t2\t3");
+
+		assertTrue(result.ok, result.message);
+		assertEquals(List.of(
+			"|     |     |     |",
+			"| --- | --- | --- |",
+			"| 1   | 2   | 3   |"
+		), result.lines);
 	}
 }
