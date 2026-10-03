@@ -80,4 +80,13 @@ final class MarkdownTableCoreTest {
 			() -> MarkdownTableCore.apply(List.of(), 0, 0, null));
 		assertThrows(NullPointerException.class, () -> MarkdownTableCore.fromDelimited(null));
 	}
+
+	@Test
+	void delimiterDetectionAcceptsASparseHeaderBeforeDelimitedRows() {
+		MarkdownTableCore.EditResult result = MarkdownTableCore.fromDelimited("Name\nAnna\t20\nBob\t30");
+		assertTrue(result.ok);
+		assertEquals(List.of(
+			"| Name |     |", "| ---- | --- |", "| Anna | 20  |", "| Bob  | 30  |"
+		), result.lines);
+	}
 }

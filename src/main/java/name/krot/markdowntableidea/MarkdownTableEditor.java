@@ -489,6 +489,9 @@ public final class MarkdownTableEditor {
 
 		String eol = chooseEol(source, chooseEolForRange(document, range.start, range.end));
 		String replacement = String.join(eol, edit.lines);
+		if (source.endsWith("\n") || source.endsWith("\r")) {
+			replacement += eol;
+		}
 		int caretOffset = positionForLineColumn(
 			range.start, edit.lines, eol, edit.targetRow, edit.targetColumnOffset);
 		replaceRange(editor, project, range.start, range.end, replacement, caretOffset);
