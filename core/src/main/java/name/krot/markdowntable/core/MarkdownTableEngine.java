@@ -834,11 +834,16 @@ final class MarkdownTableEngine {
 	private static char detectDelimiter(String text) {
 		int tabs = 0;
 		int commas = 0;
+		boolean firstDelimitedRecord = true;
+		boolean quotedTabs = false;
 		boolean inQuotes = false;
 		boolean cellBlank = true;
 		for (int i = 0; i < text.length(); i++) {
 			char ch = text.charAt(i);
 			if (inQuotes) {
+				if (ch == '\t') {
+					quotedTabs = true;
+				}
 				if (ch == '"' && i + 1 < text.length() && text.charAt(i + 1) == '"') {
 					i++;
 				} else if (ch == '"') {
@@ -846,15 +851,18 @@ final class MarkdownTableEngine {
 				}
 			} else if (ch == '"' && cellBlank) {
 				inQuotes = true;
-			} else if (ch == '\t') {
+			} else if (ch == '\t' && firstDelimitedRecord) {
 				tabs++;
 				cellBlank = true;
 			} else if (ch == ',') {
 				commas++;
 				cellBlank = true;
 			} else if (ch == '\r' || ch == '\n') {
-				if (tabs > 0 || commas > 0) {
-					break;
+				if (firstDelimitedRecord && tabs > 0) {
+					return '\t';
+				}
+				if (commas > 0) {
+					firstDelimitedRecord = false;
 				}
 				cellBlank = true;
 			} else if (!isSpace(ch)) {
@@ -873,11 +881,19 @@ final class MarkdownTableEngine {
 		// punctuation commas in occasional TSV cells need not imply CSV.
 		List<List<String>> csv = parseDelimitedRows(text, ',');
 		List<List<String>> tsv = parseDelimitedRows(text, '\t');
+		// Continuations of a valid quoted CSV field are not TSV records.
+		if (!csv.isEmpty() && quotedTabs) {
+			return ',';
+		}
 		int csvRecords = 0;
+		int leadingTabs = 0;
 		int tsvRecords = 0;
 		for (int row = 1; row < csv.size(); row++) {
 			if (csv.get(row).size() > 1) {
 				csvRecords++;
+				if (trim(csv.get(row).get(0)).indexOf('\t') >= 0) {
+					leadingTabs++;
+				}
 			}
 		}
 		for (int row = 1; row < tsv.size(); row++) {
@@ -888,7 +904,7 @@ final class MarkdownTableEngine {
 				}
 			}
 		}
-		return tsvRecords > csvRecords ? '\t' : ',';
+		return tsvRecords > csvRecords || (tsvRecords > 0 && tsvRecords == csvRecords && leadingTabs == csvRecords) ? '\t' : ',';
 	}
 
 	private static boolean hasDelimiterOutsideQuotes(String text) {
