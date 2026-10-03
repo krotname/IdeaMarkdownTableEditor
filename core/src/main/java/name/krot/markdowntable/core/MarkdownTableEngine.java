@@ -831,6 +831,7 @@ final class MarkdownTableEngine {
 	private static char detectDelimiter(String text) {
 		int tabs = 0;
 		int commas = 0;
+		boolean firstDelimitedRecord = true;
 		boolean inQuotes = false;
 		boolean cellBlank = true;
 		for (int i = 0; i < text.length(); i++) {
@@ -850,16 +851,20 @@ final class MarkdownTableEngine {
 				commas++;
 				cellBlank = true;
 			} else if (ch == '\r' || ch == '\n') {
-				// Later records may contain literal tabs in CSV fields.
-				if (tabs > 0 || commas > 0) {
-					break;
+				if (firstDelimitedRecord && tabs > 0) {
+					return '\t';
+				}
+				if (firstDelimitedRecord && commas > 0) {
+					// A comma-only header can be a single TSV cell. Check the body.
+					firstDelimitedRecord = false;
+					commas = 0;
 				}
 				cellBlank = true;
 			} else if (!isSpace(ch)) {
 				cellBlank = false;
 			}
 		}
-		return tabs > 0 ? '\t' : ',';
+		return tabs > 0 && (firstDelimitedRecord || commas == 0) ? '\t' : ',';
 	}
 
 	private static boolean hasDelimiterOutsideQuotes(String text) {
