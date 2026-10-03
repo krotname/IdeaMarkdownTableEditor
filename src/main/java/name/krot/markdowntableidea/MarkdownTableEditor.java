@@ -490,13 +490,15 @@ public final class MarkdownTableEditor {
 		String eol = chooseEol(source, chooseEolForRange(document, range.start, range.end));
 		String replacement = String.join(eol, edit.lines);
 		int end = source.length();
+		int trailingBreaks = 0;
 		while (end > 0 && (source.charAt(end - 1) == '\r' || source.charAt(end - 1) == '\n')) {
 			char last = source.charAt(--end);
 			if (last == '\n' && end > 0 && source.charAt(end - 1) == '\r') {
 				--end;
 			}
-			replacement += eol;
+			++trailingBreaks;
 		}
+		replacement += eol.repeat(trailingBreaks);
 		int caretOffset = positionForLineColumn(
 			range.start, edit.lines, eol, edit.targetRow, edit.targetColumnOffset);
 		replaceRange(editor, project, range.start, range.end, replacement, caretOffset);
