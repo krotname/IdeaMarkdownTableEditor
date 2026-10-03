@@ -737,7 +737,7 @@ final class MarkdownTableEngine {
 	}
 
 	private static List<List<String>> parseDelimited(String text) {
-		String value = text == null ? "" : text;
+		String value = text;
 		if (value.isEmpty()) {
 			return Collections.emptyList();
 		}
