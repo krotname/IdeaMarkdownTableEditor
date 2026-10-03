@@ -750,12 +750,17 @@ final class MarkdownTableEngine {
 	}
 
 	private static List<List<String>> parseDelimitedRows(String value, char delimiter) {
+		return parseDelimitedRows(value, delimiter, null);
+	}
+
+	private static List<List<String>> parseDelimitedRows(String value, char delimiter, List<Integer> recordStarts) {
 		List<List<String>> rows = new ArrayList<>();
 		List<String> row = new ArrayList<>();
 		StringBuilder cell = new StringBuilder();
 		boolean inQuotes = false;
 		boolean closedQuotedField = false;
 		boolean rowHasDelimitedSyntax = false;
+		int recordStart = 0;
 
 		for (int i = 0; i < value.length(); i++) {
 			char ch = value.charAt(i);
@@ -787,7 +792,7 @@ final class MarkdownTableEngine {
 					rowHasDelimitedSyntax = true;
 				} else if (ch == '\r' || ch == '\n') {
 					row.add(cell.toString());
-					addDelimitedRow(rows, row, rowHasDelimitedSyntax);
+					addDelimitedRow(rows, row, rowHasDelimitedSyntax, recordStarts, recordStart);
 					row = new ArrayList<>();
 					cell.setLength(0);
 					closedQuotedField = false;
@@ -795,6 +800,7 @@ final class MarkdownTableEngine {
 					if (ch == '\r' && i + 1 < value.length() && value.charAt(i + 1) == '\n') {
 						i++;
 					}
+					recordStart = i + 1;
 				} else if (isSpace(ch)) {
 					cell.append(ch);
 				} else {
@@ -810,13 +816,14 @@ final class MarkdownTableEngine {
 				rowHasDelimitedSyntax = true;
 			} else if (ch == '\r' || ch == '\n') {
 				row.add(cell.toString());
-				addDelimitedRow(rows, row, rowHasDelimitedSyntax);
+				addDelimitedRow(rows, row, rowHasDelimitedSyntax, recordStarts, recordStart);
 				row = new ArrayList<>();
 				cell.setLength(0);
 				rowHasDelimitedSyntax = false;
 				if (ch == '\r' && i + 1 < value.length() && value.charAt(i + 1) == '\n') {
 					i++;
 				}
+				recordStart = i + 1;
 			} else {
 				cell.append(ch);
 			}
@@ -827,7 +834,7 @@ final class MarkdownTableEngine {
 		}
 
 		row.add(cell.toString());
-		addDelimitedRow(rows, row, rowHasDelimitedSyntax);
+		addDelimitedRow(rows, row, rowHasDelimitedSyntax, recordStarts, recordStart);
 		return rows;
 	}
 
@@ -835,15 +842,11 @@ final class MarkdownTableEngine {
 		int tabs = 0;
 		int commas = 0;
 		boolean firstDelimitedRecord = true;
-		boolean quotedTabs = false;
 		boolean inQuotes = false;
 		boolean cellBlank = true;
 		for (int i = 0; i < text.length(); i++) {
 			char ch = text.charAt(i);
 			if (inQuotes) {
-				if (ch == '\t') {
-					quotedTabs = true;
-				}
 				if (ch == '"' && i + 1 < text.length() && text.charAt(i + 1) == '"') {
 					i++;
 				} else if (ch == '"') {
@@ -879,12 +882,10 @@ final class MarkdownTableEngine {
 		// Compare logical body records using each delimiter's quote grammar.
 		// A populated tab-separated field is stronger evidence than tab padding;
 		// punctuation commas in occasional TSV cells need not imply CSV.
-		List<List<String>> csv = parseDelimitedRows(text, ',');
-		List<List<String>> tsv = parseDelimitedRows(text, '\t');
-		// Continuations of a valid quoted CSV field are not TSV records.
-		if (!csv.isEmpty() && quotedTabs) {
-			return ',';
-		}
+		List<Integer> csvStarts = new ArrayList<>();
+		List<Integer> tsvStarts = new ArrayList<>();
+		List<List<String>> csv = parseDelimitedRows(text, ',', csvStarts);
+		List<List<String>> tsv = parseDelimitedRows(text, '\t', tsvStarts);
 		int csvRecords = 0;
 		int leadingTabs = 0;
 		int tsvRecords = 0;
@@ -896,7 +897,16 @@ final class MarkdownTableEngine {
 				}
 			}
 		}
+		int csvStartIndex = 0;
 		for (int row = 1; row < tsv.size(); row++) {
+			// Physical continuations inside CSV fields are not new TSV records.
+			// The opening record still supplies evidence for an empty first field.
+			while (csvStartIndex < csvStarts.size() && csvStarts.get(csvStartIndex) < tsvStarts.get(row)) {
+				csvStartIndex++;
+			}
+			if (!csv.isEmpty() && (csvStartIndex == csvStarts.size() || !csvStarts.get(csvStartIndex).equals(tsvStarts.get(row)))) {
+				continue;
+			}
 			for (int column = 1; column < tsv.get(row).size(); column++) {
 				if (cellHasText(tsv.get(row).get(column))) {
 					tsvRecords++;
@@ -940,7 +950,8 @@ final class MarkdownTableEngine {
 		return true;
 	}
 
-	private static void addDelimitedRow(List<List<String>> rows, List<String> row, boolean hasDelimitedSyntax) {
+	private static void addDelimitedRow(List<List<String>> rows, List<String> row, boolean hasDelimitedSyntax,
+		List<Integer> recordStarts, int recordStart) {
 		boolean hasValue = false;
 		for (String cell : row) {
 			if (cellHasText(cell)) {
@@ -950,6 +961,9 @@ final class MarkdownTableEngine {
 		}
 		if (hasValue || hasDelimitedSyntax) {
 			rows.add(row);
+			if (recordStarts != null) {
+				recordStarts.add(recordStart);
+			}
 		}
 	}
 
