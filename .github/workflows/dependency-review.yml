@@ -3,6 +3,15 @@ name: Dependency Review
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Exact PR base commit to compare
+        required: true
+        type: string
+      head_ref:
+        description: Exact PR head commit to compare
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -10,13 +19,6 @@ permissions:
 
 jobs:
   dependency-review:
-    if: >-
-      !(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
-        github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
-        (github.event_name != 'pull_request' ||
-          (github.event.pull_request.user.login == github.repository_owner &&
-           github.event.pull_request.head.repo.full_name == github.repository &&
-           !github.event.pull_request.head.repo.fork))) || vars.CI_LINUX_RUNS_ON != ''
     runs-on: >-
       ${{ fromJSON(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
           github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
@@ -24,7 +26,8 @@ jobs:
             (github.event.pull_request.user.login == github.repository_owner &&
              github.event.pull_request.head.repo.full_name == github.repository &&
              !github.event.pull_request.head.repo.fork)) &&
-          vars.CI_LINUX_RUNS_ON || '["ubuntu-latest"]') }}
+          (vars.CI_LINUX_RUNS_ON || '["arc-prod-adler-idea-mte"]') || '["ubuntu-latest"]') }}
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -32,3 +35,6 @@ jobs:
           persist-credentials: false
       - name: Review dependency changes
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          base-ref: ${{ github.event.pull_request.base.sha || inputs.base_ref }}
+          head-ref: ${{ github.event.pull_request.head.sha || inputs.head_ref }}
