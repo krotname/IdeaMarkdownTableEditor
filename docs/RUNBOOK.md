@@ -84,6 +84,13 @@ CI финального head, применимое ревью, merge, прове
 могут не запускать build CI. Отсутствующий run не считать зелёным run.
 Общий порядок и команды GitHub — в [ранбуке Npp](https://github.com/krotname/NppMarkdownTableEditor/blob/master/docs/RUNBOOK.md#pr-ci-и-завершение).
 
+Отсутствие checks также проверять через `gh api repos/krotname/IdeaMarkdownTableEditor/actions/workflows`.
+На 04.10.2026 workflows имеют `disabled_manually` во время
+[миграции CI #63](https://github.com/krotname/IdeaMarkdownTableEditor/pull/63).
+Docs PR сохраняется до успешных required checks; включение остановленных workflows
+и снятие gates не являются частью обновления документации. Snapshot перечитать
+перед продолжением, не принимать его за постоянное состояние CI.
+
 В аудите 03.10.2026 core tests, coverage gate, publication verification и
 performance прошли. CSV benchmark: 276 ms при лимите 800 ms; TSV: 285 ms при
 лимите 900 ms. Это исторические измерения, а не обещание скорости на любой машине.
