@@ -1,5 +1,4 @@
-# Custom labels of the self-hosted release runner, so actionlint accepts runs-on entries
-# that target it. See .github/workflows/release.yml.
+# Repository-scoped White Windows runner. Optional JSON overrides must retain this scope.
 self-hosted-runner:
   labels:
-    - adler-lenovo
+    - adler-white-idea

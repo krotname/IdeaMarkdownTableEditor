@@ -28,12 +28,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Runs for both modes and never sees the Marketplace token: workflow_dispatch takes the workflow
-  # file and the build scripts from the dispatched ref, so anything reachable here must be treated
-  # as untrusted.
+  # Both modes are owner-only and main-only before checkout on the persistent runner.
+  # Verification never receives the Marketplace token.
   verify:
     name: Verify ${{ inputs.version }}
-    runs-on: windows-latest
+    if: >-
+      github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+      github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+      github.ref == 'refs/heads/main'
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
     timeout-minutes: 60
     env:
       RELEASE_VERSION: ${{ inputs.version }}
@@ -108,7 +111,7 @@ jobs:
     name: Publish ${{ inputs.version }}
     needs: verify
     if: ${{ inputs.mode == 'publish' }}
-    runs-on: windows-latest
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
     timeout-minutes: 60
     environment: marketplace
     env:

@@ -15,7 +15,12 @@ permissions:
 
 jobs:
   version:
-    runs-on: windows-latest
+    # Gate before checkout, including the version and publishing jobs through needs.
+    if: >-
+      github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+      github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -43,20 +48,10 @@ jobs:
 
   build:
     needs: version
-    # Release artifacts are compiled on the self-hosted runner in Russia, which is what the
-    # Russian software registry filing declares as the compilation host. Pull request and CI
-    # checks stay on GitHub-hosted runners.
-    #
-    # The runner is adler-lenovo rather than the always-on server: Gradle resolves the IntelliJ
-    # Platform from a CloudFront-backed JetBrains repository, and on the server's direct link that
-    # download stalls part-way every time. The Notepad++ plugin has no such dependency and keeps
-    # building on the server.
-    #
-    # A manual dispatch runs the workflow file and the build scripts of whatever ref was picked,
-    # so the runner is bound to trusted refs only: the default branch and release tags. Any other
-    # ref skips this job, and the release job that depends on it is skipped with it.
+    # White is the compilation host. Verify JetBrains downloads on that host before enabling it;
+    # a stalled download must not silently move a release to hosted Windows or a shared runner.
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
-    runs-on: [self-hosted, windows, adler-lenovo]
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
     timeout-minutes: 90
     steps:
       - name: Checkout
@@ -88,7 +83,7 @@ jobs:
     needs:
       - version
       - build
-    runs-on: windows-latest
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
     permissions:
       contents: write
       id-token: write

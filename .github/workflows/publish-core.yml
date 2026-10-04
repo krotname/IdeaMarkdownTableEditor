@@ -30,7 +30,12 @@ concurrency:
 jobs:
   publish-core:
     name: Maven Central / ${{ inputs.mode }}
-    runs-on: windows-latest
+    # Both dry-run and publish receive signing secrets; reject untrusted refs before checkout.
+    if: >-
+      github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+      github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+      github.ref == 'refs/heads/main'
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
     timeout-minutes: 60
     env:
       RELEASE_VERSION: ${{ inputs.version }}

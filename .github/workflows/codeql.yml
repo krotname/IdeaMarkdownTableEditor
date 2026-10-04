@@ -15,7 +15,22 @@ permissions:
 jobs:
   analyze:
     name: Analyze (java)
-    runs-on: ubuntu-latest
+    # Keep Java CodeQL on Linux; do not point it at an unprovisioned or shared ARC pool.
+    if: >-
+      !(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+        github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+        (github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == github.repository_owner &&
+           github.event.pull_request.head.repo.full_name == github.repository &&
+           !github.event.pull_request.head.repo.fork))) || vars.CI_LINUX_RUNS_ON != ''
+    runs-on: >-
+      ${{ fromJSON(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+          github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+          (github.event_name != 'pull_request' ||
+            (github.event.pull_request.user.login == github.repository_owner &&
+             github.event.pull_request.head.repo.full_name == github.repository &&
+             !github.event.pull_request.head.repo.fork)) &&
+          vars.CI_LINUX_RUNS_ON || '["ubuntu-latest"]') }}
     permissions:
       actions: read
       contents: read

@@ -14,7 +14,22 @@ permissions:
 
 jobs:
   actionlint:
-    runs-on: ubuntu-latest
+    # Owner checks wait for an explicitly provisioned, repository-isolated Linux pool.
+    if: >-
+      !(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+        github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+        (github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == github.repository_owner &&
+           github.event.pull_request.head.repo.full_name == github.repository &&
+           !github.event.pull_request.head.repo.fork))) || vars.CI_LINUX_RUNS_ON != ''
+    runs-on: >-
+      ${{ fromJSON(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+          github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+          (github.event_name != 'pull_request' ||
+            (github.event.pull_request.user.login == github.repository_owner &&
+             github.event.pull_request.head.repo.full_name == github.repository &&
+             !github.event.pull_request.head.repo.fork)) &&
+          vars.CI_LINUX_RUNS_ON || '["ubuntu-latest"]') }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

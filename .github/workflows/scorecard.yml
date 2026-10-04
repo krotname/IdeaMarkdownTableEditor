@@ -14,7 +14,15 @@ permissions: read-all
 jobs:
   scorecard:
     name: OSSF Scorecards
-    runs-on: ubuntu-latest
+    # Scorecard is a Docker action, so it needs a real Linux pool, not White Windows.
+    if: >-
+      !(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+        github.actor == github.repository_owner && github.triggering_actor == github.repository_owner) ||
+      vars.CI_LINUX_RUNS_ON != ''
+    runs-on: >-
+      ${{ fromJSON(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+          github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+          vars.CI_LINUX_RUNS_ON || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
       actions: read
