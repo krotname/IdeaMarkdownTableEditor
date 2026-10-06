@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Both modes are owner-only and main-only before checkout on the persistent runner.
+  # Both modes are owner-only and main-only before checkout in the isolated Black VM.
   # Verification never receives the Marketplace token.
   verify:
     name: Verify ${{ inputs.version }}

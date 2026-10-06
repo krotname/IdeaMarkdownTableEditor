@@ -48,8 +48,8 @@ jobs:
 
   build:
     needs: version
-    # White is the compilation host. Verify JetBrains downloads on that host before enabling it;
-    # a stalled download must not silently move a release to hosted Windows or a shared runner.
+    # Build inside the isolated Black VM; White coordinates the job.
+    # Verify JetBrains downloads there before enabling releases; keep compilation on the home runner.
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     timeout-minutes: 90
