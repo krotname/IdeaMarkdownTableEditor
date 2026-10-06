@@ -35,7 +35,7 @@ jobs:
       github.repository == 'krotname/IdeaMarkdownTableEditor' &&
       github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
       github.ref == 'refs/heads/main'
-    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     timeout-minutes: 60
     env:
       RELEASE_VERSION: ${{ inputs.version }}

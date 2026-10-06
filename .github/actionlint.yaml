@@ -1,5 +1,7 @@
-# Repository-scoped White Windows runner. Optional JSON overrides must retain this scope.
+# Repository-scoped home runners. Overrides must retain this scope.
 self-hosted-runner:
   labels:
     - adler-white-idea
     - arc-prod-adler-idea-mte
+    - adler-black-ephemeral
+    - arc-prod-adler-docker-idea-mte

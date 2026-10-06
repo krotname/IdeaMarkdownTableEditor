@@ -70,14 +70,14 @@ jobs:
   idea:
     name: Tests / IDEA plugin
     # Forks, bots, other authors and non-owner reruns cannot select the home runner.
-    runs-on: >-
-      ${{ fromJSON(github.repository == 'krotname/IdeaMarkdownTableEditor' &&
-          github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
-          (github.event_name != 'pull_request' ||
-            (github.event.pull_request.user.login == github.repository_owner &&
-             github.event.pull_request.head.repo.full_name == github.repository &&
-             !github.event.pull_request.head.repo.fork)) &&
-          (vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') || '["windows-latest"]') }}
+    if: >-
+      github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+      github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+      (github.event_name != 'pull_request' ||
+      (github.event.pull_request.user.login == github.repository_owner &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.head.repo.fork))
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     timeout-minutes: 60
 
     steps:
@@ -106,6 +106,12 @@ jobs:
         shell: cmd
         run: gradlew.bat corePerformance --no-daemon --console=plain --no-build-cache --rerun-tasks
 
+      - name: Make installed Git shell available to Codecov
+        shell: pwsh
+        run: |
+          $gitBin = Join-Path $env:ProgramFiles 'Git\bin'
+          if (-not (Test-Path -LiteralPath (Join-Path $gitBin 'sh.exe'))) { throw 'Installed Git shell missing' }
+          $gitBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:

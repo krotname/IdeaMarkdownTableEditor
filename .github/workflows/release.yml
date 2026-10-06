@@ -20,7 +20,7 @@ jobs:
       github.repository == 'krotname/IdeaMarkdownTableEditor' &&
       github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -51,7 +51,7 @@ jobs:
     # White is the compilation host. Verify JetBrains downloads on that host before enabling it;
     # a stalled download must not silently move a release to hosted Windows or a shared runner.
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
-    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     timeout-minutes: 90
     steps:
       - name: Checkout
@@ -83,7 +83,7 @@ jobs:
     needs:
       - version
       - build
-    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea"]') }}
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     permissions:
       contents: write
       id-token: write
