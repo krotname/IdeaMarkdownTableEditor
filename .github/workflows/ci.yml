@@ -101,9 +101,13 @@ jobs:
           $gpgHome = Join-Path $env:RUNNER_TEMP 'temurin-gpg'
           New-Item -ItemType Directory -Path $gpgHome -Force | Out-Null
           $gpg = Join-Path (Split-Path (Get-Command git -ErrorAction Stop).Source -Parent) '..\usr\bin\gpg.exe'
-          & $gpg --homedir $gpgHome --batch --import $keyFile
+          $cygpath = Join-Path (Split-Path $gpg -Parent) 'cygpath.exe'
+          $gpgHomeUnix = & $cygpath --unix $gpgHome
+          $keyFileUnix = & $cygpath --unix $keyFile
+          $archiveUnix = & $cygpath --unix $archive
+          & $gpg --homedir $gpgHomeUnix --batch --import $keyFileUnix
           if ($LASTEXITCODE -ne 0) { throw 'Adoptium signing key import failed' }
-          & $gpg --homedir $gpgHome --batch --verify "$archive.sig" $archive
+          & $gpg --homedir $gpgHomeUnix --batch --verify "$archiveUnix.sig" $archiveUnix
           if ($LASTEXITCODE -ne 0) { throw 'Temurin archive signature verification failed' }
 
       - name: Set up JDK 17
