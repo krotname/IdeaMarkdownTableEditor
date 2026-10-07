@@ -1,9 +1,10 @@
 # Home CI runners
 
-Windows workflows use `[self-hosted, Windows, X64, adler-white-idea,
-adler-black-ephemeral]`. White coordinates GitHub admission and JIT registration;
-the disposable Windows guest runs on Black under a non-administrator account.
-The Windows base is an evaluation system, not a permanent licensed deployment.
+Windows workflows use `CI_WINDOWS_RUNS_ON` with `[self-hosted, Windows, X64,
+adler-white-idea, adler-white-ephemeral]`. White coordinates GitHub admission and
+JIT registration and runs the disposable Windows Server container under
+`ContainerUser` using its existing Docker engine and Hyper-V isolation. The
+retired Black Windows image is not recreated; no separate Windows VM is needed.
 No runner is installed on the owner's physical Windows desktop.
 
 ## Routing and trust
@@ -13,8 +14,10 @@ must also be authored by the owner, originate in this repository and not be fork
 Other authors, bots, forks and non-owner reruns are skipped before checkout.
 There is no GitHub-hosted or laptop fallback.
 
-`CI_WINDOWS_RUNS_ON` overrides must retain every default label, including
-`adler-black-ephemeral`. Direct Linux checks use `arc-prod-adler-idea-mte`;
+`CI_WINDOWS_RUNS_ON` must retain Windows/X64 and the White repository/admission
+labels. Older workflow snapshots can still request `adler-black-ephemeral`; the
+operator maps that compatibility label only to the White container backend.
+Direct Linux checks use `arc-prod-adler-idea-mte`;
 `CI_LINUX_RUNS_ON` must select that same repository-scoped pool. Release and
 Marketplace/Maven jobs retain their original main/tag, confirmation, environment,
 signing and publication gates. A migration check does not authorize publication.
@@ -31,8 +34,14 @@ Windows CI needs Temurin JDK 17, the checked-in Gradle 9.8.0 wrapper, Git Bash,
 PowerShell and a current runner supporting Node 24 actions. Codecov receives the
 installed Git `bin` directory through `GITHUB_PATH`; no privileged installation
 is performed in a job. Provisioning and admission are documented in VpnOps
-`ops/ci-windows-black`. Operator credentials stay on White; the guest receives
+`ops/ci-windows-white`. The worker is limited to 12 GiB, six CPUs and 64 GiB of
+writable storage, with disk and memory admission checks before launch. Operator
+credentials stay on White; the guest receives
 only the short-lived JIT configuration and normal per-job GitHub token.
+
+`CI_WINDOWS_JAVA_OPTIONS` is passed as `JAVA_TOOL_OPTIONS` in trusted Windows jobs
+when the approved LAN proxy is required for complete JetBrains CDN downloads.
+Keep localhost/LAN exclusions and TLS verification; do not change host routing.
 
 The repository's external-contributor approval policy is
 `all_external_contributors` (read back on 2026-10-04). Workflow trust predicates
@@ -40,7 +49,7 @@ are admission rules, not a sandbox for arbitrary changes to workflow YAML.
 
 ## Acceptance before merge
 
-1. Require final-head Windows CI on a Black guest: wrapper validation, clean
+1. Require final-head Windows CI in a White container: wrapper validation, clean
    `check`, packaged metadata, unit tests, 70% JaCoCo coverage, core performance,
    `buildPlugin`, ZIP artifact and baseline IDEA `verifyPlugin`.
 2. Dispatch the existing Runner self-test on the reviewed branch. Require clean
