@@ -18,6 +18,8 @@ jobs:
       github.ref_type == 'branch'
     runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     timeout-minutes: 90
+    env:
+      JAVA_TOOL_OPTIONS: ${{ vars.CI_WINDOWS_JAVA_OPTIONS }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
