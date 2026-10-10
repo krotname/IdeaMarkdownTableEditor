@@ -1,5 +1,7 @@
-# Custom labels of the self-hosted release runner, so actionlint accepts runs-on entries
-# that target it. See .github/workflows/release.yml.
+# Repository-scoped home runners. Overrides must retain this scope.
 self-hosted-runner:
   labels:
-    - adler-lenovo
+    - adler-white-idea
+    - arc-prod-adler-idea-mte
+    - adler-black-ephemeral
+    - arc-prod-adler-docker-idea-mte
