@@ -69,8 +69,18 @@ concurrency:
 jobs:
   idea:
     name: Tests / IDEA plugin
-    runs-on: windows-latest
+    # Forks, bots, other authors and non-owner reruns cannot select the home runner.
+    if: >-
+      github.repository == 'krotname/IdeaMarkdownTableEditor' &&
+      github.actor == github.repository_owner && github.triggering_actor == github.repository_owner &&
+      (github.event_name != 'pull_request' ||
+      (github.event.pull_request.user.login == github.repository_owner &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.head.repo.fork))
+    runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     timeout-minutes: 60
+    env:
+      JAVA_TOOL_OPTIONS: ${{ vars.CI_WINDOWS_JAVA_OPTIONS }}
 
     steps:
       - name: Checkout
@@ -78,17 +88,42 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Download Temurin JDK 17
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'temurin-jdk-17.zip'
+          Invoke-WebRequest -Uri 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_windows_hotspot_17.0.20.1_1.zip' -OutFile $archive -TimeoutSec 300
+          Invoke-WebRequest -Uri 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/OpenJDK17U-jdk_x64_windows_hotspot_17.0.20.1_1.zip.sig' -OutFile "$archive.sig" -TimeoutSec 60
+          $keySource = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/actions/setup-java/de7274f081f381c8f8158605e0321c36c376e2e6/src/distributions/temurin/adoptium-key.ts' -TimeoutSec 60).Content
+          $key = [regex]::Match($keySource, '-----BEGIN PGP PUBLIC KEY BLOCK-----[\s\S]*?-----END PGP PUBLIC KEY BLOCK-----')
+          if (-not $key.Success) { throw 'Adoptium signing key missing' }
+          $keyFile = Join-Path $env:RUNNER_TEMP 'temurin-signing-key.asc'
+          Set-Content -LiteralPath $keyFile -Value $key.Value -Encoding ascii
+          $gpgHome = Join-Path $env:RUNNER_TEMP 'temurin-gpg'
+          New-Item -ItemType Directory -Path $gpgHome -Force | Out-Null
+          $gpg = Join-Path (Split-Path (Get-Command git -ErrorAction Stop).Source -Parent) '..\usr\bin\gpg.exe'
+          $cygpath = Join-Path (Split-Path $gpg -Parent) 'cygpath.exe'
+          $gpgHomeUnix = & $cygpath --unix $gpgHome
+          $keyFileUnix = & $cygpath --unix $keyFile
+          $archiveUnix = & $cygpath --unix $archive
+          & $gpg --homedir $gpgHomeUnix --batch --import $keyFileUnix
+          if ($LASTEXITCODE -ne 0) { throw 'Adoptium signing key import failed' }
+          & $gpg --homedir $gpgHomeUnix --batch --verify "$archiveUnix.sig" $archiveUnix
+          if ($LASTEXITCODE -ne 0) { throw 'Temurin archive signature verification failed' }
+
       - name: Set up JDK 17
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          distribution: temurin
-          java-version: '17'
+          distribution: jdkfile
+          java-version: '17.0.20.1'
+          jdkFile: ${{ runner.temp }}/temurin-jdk-17.zip
 
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Clean check and build plugin
         shell: cmd
@@ -98,6 +133,12 @@ jobs:
         shell: cmd
         run: gradlew.bat corePerformance --no-daemon --console=plain --no-build-cache --rerun-tasks
 
+      - name: Make installed Git shell available to Codecov
+        shell: pwsh
+        run: |
+          $gitBin = Join-Path $env:ProgramFiles 'Git\bin'
+          if (-not (Test-Path -LiteralPath (Join-Path $gitBin 'sh.exe'))) { throw 'Installed Git shell missing' }
+          $gitBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
