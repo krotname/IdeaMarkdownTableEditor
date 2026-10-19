@@ -25,7 +25,7 @@
 
 	<change-notes><![CDATA[
 		<ul>
-			<li>No change in behavior. The JetBrains, Notepad++, and Visual Studio Code editions of Markdown Table Editor now expose the same table engine surface, and the shared golden fixtures grew sections for table-range scanning and separator-line detection so all three engines are checked against the same expectations.</li>
+			<li>Replaced the deprecated resource bundle constructor reported by IntelliJ IDEA 2026.3 Plugin Verifier. Localized messages now use the plugin class explicitly, preserving compatibility with IntelliJ Platform 2022.3 and newer.</li>
 			<li>The bundled table engine stays name.krot:markdown-table-core:0.3.1.</li>
 		</ul>
 	]]></change-notes>
