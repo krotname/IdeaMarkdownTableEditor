@@ -39,8 +39,8 @@ Use this for the JetBrains Marketplace version notes for `@PLUGIN_VERSION@` if t
 
 ```html
 <ul>
-  <li>The plugin, its table engine, and the Notepad++ edition of Markdown Table Editor now ship under one license, GPL-3.0-or-later. Earlier releases stay available under their original MIT terms.</li>
-  <li>Upgraded the bundled table engine to name.krot:markdown-table-core:0.3.0, which carries the same behavior as 0.2.0 under the new license.</li>
+  <li>Replaced the deprecated resource bundle constructor reported by IntelliJ IDEA 2026.3 Plugin Verifier. Localized messages now use the plugin class explicitly, preserving compatibility with IntelliJ Platform 2022.3 and newer.</li>
+  <li>The bundled table engine stays name.krot:markdown-table-core:0.3.1.</li>
 </ul>
 ```
 

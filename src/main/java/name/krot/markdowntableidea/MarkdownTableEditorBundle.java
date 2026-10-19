@@ -10,7 +10,7 @@ public final class MarkdownTableEditorBundle extends DynamicBundle {
 	private static final MarkdownTableEditorBundle INSTANCE = new MarkdownTableEditorBundle();
 
 	private MarkdownTableEditorBundle() {
-		super(BUNDLE);
+		super(MarkdownTableEditorBundle.class, BUNDLE);
 	}
 
 	public static String message(String key, Object... params) {
