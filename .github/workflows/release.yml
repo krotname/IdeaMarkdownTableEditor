@@ -188,6 +188,22 @@ jobs:
           subject-path: |
             release-assets/**/*.zip
             release-assets/**/*-sbom.cdx.json
+      - name: Install signed GitHub CLI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'github-cli.zip'
+          $destination = Join-Path $env:RUNNER_TEMP 'github-cli'
+          Invoke-WebRequest -Uri 'https://github.com/cli/cli/releases/download/v2.102.1/gh_2.102.1_windows_amd64.zip' -OutFile $archive -TimeoutSec 300
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination
+          $executable = Join-Path $destination 'bin\gh.exe'
+          $signature = Get-AuthenticodeSignature -LiteralPath $executable
+          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O="?GitHub, Inc\."?(?:,|$)') {
+            throw 'GitHub CLI publisher signature verification failed'
+          }
+          & $executable --version
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI cannot run' }
+          (Split-Path $executable -Parent) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Publish GitHub release
         shell: bash
         env:
