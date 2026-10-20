@@ -82,6 +82,23 @@ final class MarkdownTableCoreTest {
 	}
 
 	@Test
+	void delimitedConversionIgnoresLeadingBomBeforeQuotedFields() {
+		for (String input : List.of(
+			"\"Название\",\"Город\"\n\"Тест\",\"Москва\"",
+			"\"Название\"\t\"Город\"\r\n\"Тест\"\t\"Москва\"",
+			"\"Название\nтовара\",\"Город\"\n\"Тест\",\"Москва\"",
+			"\tНазвание\t\n\tТест\t",
+			"\"Название\",\"Город\"\n\"Те\uFEFFст\",\"Москва\""
+		)) {
+			MarkdownTableCore.EditResult expected = MarkdownTableCore.fromDelimited(input);
+			MarkdownTableCore.EditResult actual = MarkdownTableCore.fromDelimited("\uFEFF" + input);
+			assertTrue(expected.ok, expected.message);
+			assertTrue(actual.ok, actual.message);
+			assertEquals(expected.lines, actual.lines, input);
+		}
+	}
+
+	@Test
 	void delimiterDetectionAcceptsASparseHeaderBeforeDelimitedRows() {
 		MarkdownTableCore.EditResult result = MarkdownTableCore.fromDelimited("Name\nAnna\t20\nBob\t30");
 		assertTrue(result.ok);
