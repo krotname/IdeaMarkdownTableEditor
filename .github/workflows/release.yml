@@ -32,7 +32,7 @@ jobs:
 
       - name: Resolve version
         id: version
-        shell: bash
+        shell: '"C:\Program Files\Git\bin\bash.exe" --noprofile --norc -e -o pipefail {0}'
         run: |
           canonical_version="$(tr -d '[:space:]' < VERSION)"
           requested_version="${{ github.event.inputs.version }}"
@@ -48,8 +48,7 @@ jobs:
 
   build:
     needs: version
-    # Build inside the isolated Black VM; White coordinates the job.
-    # Verify JetBrains downloads there before enabling releases; keep compilation on the home runner.
+    # Build inside the isolated Windows container on White.
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     timeout-minutes: 90
@@ -106,7 +105,7 @@ jobs:
           path: release-assets
 
       - name: Generate release checksums
-        shell: bash
+        shell: '"C:\Program Files\Git\bin\bash.exe" --noprofile --norc -e -o pipefail {0}'
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
@@ -151,7 +150,7 @@ jobs:
             release-assets/**/*.zip
             release-assets/**/*-sbom.cdx.json
       - name: Publish GitHub release
-        shell: bash
+        shell: '"C:\Program Files\Git\bin\bash.exe" --noprofile --norc -e -o pipefail {0}'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ needs.version.outputs.tag }}
