@@ -606,7 +606,7 @@ public final class MarkdownTableEditor {
 		boolean inQuotes = false;
 		for (int line = 0; line <= document.getLineCount(); line++) {
 			DelimitedLineScan scan = line < document.getLineCount()
-				? scanDelimitedLine(getLineText(document, line), inQuotes)
+				? scanDelimitedLine(getLineText(document, line), inQuotes, blockStart == -1)
 				: new DelimitedLineScan(false, false);
 
 			if (blockStart == -1) {
@@ -632,11 +632,12 @@ public final class MarkdownTableEditor {
 		return new Range(0, 0);
 	}
 
-	private static DelimitedLineScan scanDelimitedLine(String line, boolean startsInQuotes) {
+	private static DelimitedLineScan scanDelimitedLine(String line, boolean startsInQuotes, boolean blockStart) {
 		boolean inQuotes = startsInQuotes;
 		boolean cellBlank = !startsInQuotes;
 		boolean hasDelimiter = false;
-		for (int i = 0; i < line.length(); i++) {
+		int firstChar = blockStart && line.startsWith("\uFEFF") ? 1 : 0;
+		for (int i = firstChar; i < line.length(); i++) {
 			char ch = line.charAt(i);
 			if (inQuotes) {
 				if (ch == '"' && i + 1 < line.length() && line.charAt(i + 1) == '"') {
