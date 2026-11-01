@@ -178,6 +178,12 @@ public final class MarkdownTableEditorScenarios {
 			"| Name | Score |\r\n| ---- | ----- |\r\n| Anna | 10    |");
 		expectTrue("selection removed after convert", !selectedCsv.hasSelection());
 
+		TestEditor bomCsv = new TestEditor("\uFEFF\"Name,Alias\",City\nBob,Paris\nbottom", false, true);
+		bomCsv.setCaretAt("Bob");
+		expectTrue("convert current csv block with bom", MarkdownTableEditor.convertDelimited(bomCsv.editor, null, true));
+		expectString("bom csv keeps adjacent prose", bomCsv.text(),
+			"| Name,Alias | City  |\n| ---------- | ----- |\n| Bob        | Paris |\nbottom");
+
 		for (String eol : List.of("\n", "\r\n", "\r")) {
 			for (String suffix : List.of(eol, eol + eol, eol + eol + eol)) {
 				String source = "Name,Score" + eol + "Anna,10" + suffix;

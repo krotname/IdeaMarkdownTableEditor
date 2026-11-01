@@ -738,7 +738,7 @@ final class MarkdownTableEngine {
 
 	private static List<List<String>> parseDelimited(String text) {
 		// Tabs at the edges delimit empty TSV cells and must reach the parser.
-		String value = text;
+		String value = text.startsWith("\uFEFF") ? text.substring(1) : text;
 		if (value.isEmpty()) {
 			return Collections.emptyList();
 		}

@@ -3,6 +3,12 @@
 All notable changes to `name.krot:markdown-table-core` are recorded here.
 The module follows [semantic versioning](https://semver.org/).
 
+## 0.3.2 (unreleased)
+
+### Fixed
+
+- Ignore an initial UTF-8 BOM when converting CSV or TSV, preserving BOM characters in data.
+
 ## 0.3.1
 
 ### Changed
