@@ -107,13 +107,10 @@ jobs:
         with:
           cache-disabled: ${{ startsWith(runner.name, 'adler-white-') }}
 
-      - name: Clean check and build plugin
+      - name: Clean check, benchmarks, build and verify plugin
         shell: cmd
-        run: gradlew.bat clean check buildPlugin --no-daemon --console=plain --no-build-cache --rerun-tasks
-
-      - name: Core performance benchmarks
-        shell: cmd
-        run: gradlew.bat corePerformance --no-daemon --console=plain --no-build-cache --rerun-tasks
+        # A single clean task graph executes every gate and shares its dependencies.
+        run: gradlew.bat clean check buildPlugin corePerformance verifyPlugin -PverifyRecommendedIdes=false -PverifyAllJetBrainsIdes=false --no-daemon --console=plain --no-build-cache
 
       - name: Make installed Git shell available to Codecov
         shell: pwsh
@@ -138,10 +135,6 @@ jobs:
           path: build/distributions/*.zip
           if-no-files-found: error
           retention-days: 1
-
-      - name: Verify plugin against baseline IDEA
-        shell: cmd
-        run: gradlew.bat verifyPlugin -PverifyRecommendedIdes=false -PverifyAllJetBrainsIdes=false --no-daemon --console=plain --no-build-cache
 
       - name: Upload Gradle reports on failure
         if: failure()
