@@ -54,7 +54,7 @@ jobs:
     runs-on: ${{ fromJSON(vars.CI_WINDOWS_RUNS_ON || '["self-hosted","Windows","X64","adler-white-idea","adler-black-ephemeral"]') }}
     timeout-minutes: 60
     env:
-      JAVA_TOOL_OPTIONS: ${{ vars.CI_WINDOWS_JAVA_OPTIONS }}
+      JAVA_TOOL_OPTIONS: ${{ (!vars.CI_WINDOWS_RUNS_ON || contains(vars.CI_WINDOWS_RUNS_ON, '"self-hosted"')) && vars.CI_WINDOWS_JAVA_OPTIONS || '' }}
 
     steps:
       - name: Checkout
